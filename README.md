@@ -10,12 +10,12 @@
 
 ## Prerequisites
 
-AiEconLab is built on top of the [AiPlus](https://github.com/izhiwen/aiplus)
+AiEconLab is built on top of the [AiPlus](https://github.com/izhiwen/AiPlus)
 agent substrate. Install AiPlus first:
 
 ```bash
 # Install AiPlus (>= 0.5.2)
-# Follow https://github.com/izhiwen/aiplus
+# Follow https://github.com/izhiwen/AiPlus
 
 # Then add the four substrate modules AiEconLab depends on:
 aiplus add agent-memory          # per-agent project-local memory
@@ -24,7 +24,7 @@ aiplus add agent-velocity        # per-agent calibration
 aiplus add auto-team-consultant  # consult-before-plan layer
 ```
 
-AiEconLab is intentionally a separate project (`github.com/izhiwen/aieconlab`)
+AiEconLab is intentionally a separate project (`github.com/izhiwen/AiEconLab`)
 with its own release cycle and audience, even though it uses the AiPlus
 substrate for memory, compact, velocity, and consult-before-plan.
 
@@ -227,7 +227,7 @@ AiEconLab does not:
 
 ## More
 
-- Main platform: [aiplus](https://github.com/izhiwen/aiplus)
+- Main platform: [aiplus](https://github.com/izhiwen/AiPlus)
 - Sibling module: [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
 
 ## License
