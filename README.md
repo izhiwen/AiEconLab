@@ -143,7 +143,7 @@ aiplus agent prune-worktrees   # clean up stale worktrees
 ```
                   aieconlab             ← orchestration layer
                            ↓ uses
-               aiplus-auto-team-consultant           ← decision-support layer
+               AiPlus-Auto-Team-Consultant           ← decision-support layer
                            ↓ uses
     AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— shared infrastructure layer ———————→
@@ -152,13 +152,13 @@ aiplus agent prune-worktrees   # clean up stale worktrees
 AiEconLab is the orchestration layer. It sits on top of the four
 existing AiPlus plugins and uses them as shared infrastructure:
 
-- **aiplus-agent-memory** — each agent gets a namespaced memory under
+- **AiPlus-Agent-Memory** — each agent gets a namespaced memory under
   `.aiplus/agent-memory/<role>/`
 - **AiPlus-Compact-Reminder** — each long-running agent runs its own token-saving compact
   cycle; PI tracks compact state per agent
-- **aiplus-agent-velocity** — each agent has its own velocity records, with
+- **AiPlus-Agent-Velocity** — each agent has its own velocity records, with
   research-specific units (regression-spec, table, figure, paper-section)
-- **aiplus-auto-team-consultant** — PI fires consultant before MEDIUM and
+- **AiPlus-Auto-Team-Consultant** — PI fires consultant before MEDIUM and
   HEAVY tasks; consultant findings flow into the staffed team's brief
 
 ### Five core design decisions
@@ -227,7 +227,7 @@ AiEconLab does not:
 
 ## More
 
-- Main platform: [aiplus](https://github.com/izhiwen/AiPlus)
+- Main platform: [AiPlus](https://github.com/izhiwen/AiPlus)
 - Sibling module: [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
 
 ## License

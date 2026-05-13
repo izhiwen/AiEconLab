@@ -109,7 +109,7 @@ aiplus agent prune-worktrees   # 清理过期 worktree
 ```
                   aieconlab             ← 协调层
                            ↓ uses
-               aiplus-auto-team-consultant           ← 决策支持层
+               AiPlus-Auto-Team-Consultant           ← 决策支持层
                            ↓ uses
     AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— 共享基础设施层 ———————→
@@ -117,10 +117,10 @@ aiplus agent prune-worktrees   # 清理过期 worktree
 
 AiEconLab 是协调层。建在四个已有 AiPlus 插件之上：
 
-- **aiplus-agent-memory** —— 每个 agent 在 `.aiplus/agent-memory/<role>/` 下有命名空间 memory
+- **AiPlus-Agent-Memory** —— 每个 agent 在 `.aiplus/agent-memory/<role>/` 下有命名空间 memory
 - **AiPlus-Compact-Reminder** —— 每个长时运行的 agent 跑自己的 token-saving compact 循环；PI 跟踪每个 agent 的 compact 状态
-- **aiplus-agent-velocity** —— 每个 agent 有自己的 velocity 记录，单位是研究专属的（回归 spec、表格、图、paper section）
-- **aiplus-auto-team-consultant** —— PI 在 MEDIUM 和 HEAVY 任务前触发顾问；顾问发现汇入团队简报
+- **AiPlus-Agent-Velocity** —— 每个 agent 有自己的 velocity 记录，单位是研究专属的（回归 spec、表格、图、paper section）
+- **AiPlus-Auto-Team-Consultant** —— PI 在 MEDIUM 和 HEAVY 任务前触发顾问；顾问发现汇入团队简报
 
 ### 五个核心设计决策
 
@@ -167,7 +167,7 @@ AiEconLab 不会：
 
 ## 更多
 
-- 主平台：[aiplus](https://github.com/izhiwen/AiPlus)
+- 主平台：[AiPlus](https://github.com/izhiwen/AiPlus)
 - 兄弟模块：[AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
 
 ## 许可证
