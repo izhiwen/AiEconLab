@@ -36,6 +36,13 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install Linux build deps
+        # aiplus depends on `keyring` (cross-platform credential store)
+        # which on Linux uses libdbus via the `secret-service` backend.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
