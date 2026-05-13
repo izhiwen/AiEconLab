@@ -1,0 +1,211 @@
+# AiPlus Econ Agent Team
+
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+[中文 README](README.zh-CN.md)
+
+## The pain
+
+You ask the agent to scope a paper, then clean the data, then run identification,
+then write the introduction, then prepare a referee response. By the third task
+it has **drifted**: the same prompt history now contains research design
+intuition, Stata syntax, lit-review fragments, and rebuttal language, and the
+output is none of them well.
+
+Worse, the shared context **pollutes** across roles. A theorist's framing leaks
+into the empirical RA's regression spec. Lit-review notes get buried under
+debug printlns from data cleaning. Robustness checks age out of the window
+because of irrelevant scratch.
+
+You try to compensate by giving the agent more hats. But one agent wearing
+PI, Theorist, Econometrician, RA, Referee, and Replicator does each hat
+**shallowly**. Real research projects divide labor because the work *is* that
+structured.
+
+### Not these other pains
+
+AiPlus Econ Agent Team is specifically about **role separation and execution**
+for applied-economics research. Other AiPlus plugins solve adjacent but
+different problems:
+
+| Plugin | Pain it solves | Why it is not Econ Agent Team |
+|---|---|---|
+| [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team) | Software-engineering role drift | Same architecture, different roles — that one ships SWE roles, this one ships research roles |
+| [aiplus-agent-memory](https://github.com/izhiwen/aiplus-agent-memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
+| [aiplus-auto-team-consultant](https://github.com/izhiwen/aiplus-auto-team-consultant) | **overlooks** — agent misses pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
+| [aiplus-compact-reminder](https://github.com/izhiwen/aiplus-compact-reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
+| [aiplus-agent-velocity](https://github.com/izhiwen/aiplus-agent-velocity) | **mis-bills** — estimates anchor on human hours | Calibrates one agent's estimates; does not structure a team |
+
+Econ Agent Team and [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
+are siblings — they can coexist in the same project (e.g. a researcher who
+also maintains a replication package as a software repo).
+
+## What we do about it
+
+**Replace single-agent drift with a permanent research team.**
+
+AiPlus Econ Agent Team installs a permanent virtual team of eight core roles
+into your project: Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee,
+and Replicator. Each role has its own persona, workspace, and memory
+namespace. The Owner (you, the lead author) talks only to Advisor and PI; the
+PI orchestrates the rest.
+
+The records cover:
+
+- **Role isolation** — each agent loads only its own persona and personal
+  memory. An RA does not see the Theorist's reasoning, and vice versa.
+- **Git worktree workspaces** — code-touching roles get isolated working
+  directories so RA-Stata and RA-Python can work in parallel without
+  stepping on each other. Conflicts surface through git, not silent overwrites.
+- **Three-layer memory** — personal (per-agent), team (PI-shared), and
+  project (existing `.aiplus/memory/`). Project memory wins on conflict, so
+  a team-of-the-day decision never overrides durable project consensus.
+- **Expert directory** — eleven specialists (Lit Reviewer, Writer,
+  Econometrician, Reproducibility Engineer, Historical Sources, Job Talk
+  Coach, and others) sit dormant until the PI summons them for tasks that
+  match their triggers.
+- **Adaptive routing** — the PI scores each task (LIGHT, MEDIUM, HEAVY) and
+  staffs only the roles that are needed. A quick coding fix gets a single
+  RA; a draft submission gets the full council.
+
+Default toolchain is **Python + Stata + LaTeX**. R and Julia are supported
+when the project declares them.
+
+No daemon. No cloud sync. No upload. Each agent is state-level permanent —
+its files live on disk, but the process is ephemeral, spawned only when the
+PI routes a task.
+
+## Install
+
+Add the module to your project:
+
+```bash
+cd MyResearchProject
+aiplus add econ-agent-team
+aiplus install codex          # or: claude-code, opencode, all
+```
+
+## Quick start
+
+```bash
+aiplus agent status              # Show team roster, active experts, warm bench
+aiplus agent route ra-stata      # Assign task to RA-Stata
+aiplus agent integrate ra-stata  # Merge RA-Stata's branch back into main
+aiplus agent audit run           # Run acceptance audit
+```
+
+Route a task through the PI:
+
+```text
+aiplus agent route "estimate the main IV spec with cluster-robust SEs"
+```
+
+The PI scores the task, picks the right team members, and reports back.
+
+Other everyday commands:
+
+```bash
+aiplus agent doctor            # validate configs, worktrees, memory layout
+aiplus agent list              # list all roles (core + expert)
+aiplus agent talk theorist     # direct conversation with one role
+aiplus agent invite lit-reviewer       # add an expert to the active team
+aiplus agent dismiss lit-reviewer      # remove expert from active team
+aiplus agent transcript        # show recent activity for audit
+aiplus agent prune-worktrees   # clean up stale worktrees
+```
+
+## Architecture overview
+
+```
+                  aiplus-econ-agent-team             ← orchestration layer
+                           ↓ uses
+               aiplus-auto-team-consultant           ← decision-support layer
+                           ↓ uses
+    aiplus-agent-memory   aiplus-compact-reminder   aiplus-agent-velocity
+               ←——————— shared infrastructure layer ———————→
+```
+
+Econ Agent Team is the orchestration layer. It sits on top of the four
+existing AiPlus plugins and uses them as shared infrastructure:
+
+- **aiplus-agent-memory** — each agent gets a namespaced memory under
+  `.aiplus/agent-memory/<role>/`
+- **aiplus-compact-reminder** — each long-running agent runs its own compact
+  cycle; PI tracks compact state per agent
+- **aiplus-agent-velocity** — each agent has its own velocity records, with
+  research-specific units (regression-spec, table, figure, paper-section)
+- **aiplus-auto-team-consultant** — PI fires consultant before MEDIUM and
+  HEAVY tasks; consultant findings flow into the staffed team's brief
+
+### Five core design decisions
+
+1. **Permanent core team of 8 roles** — installed automatically when the
+   plugin is added to a project.
+2. **Expert directory** — 11 specialist roles available on-demand, only
+   summoned when triggers match.
+3. **State-level permanence + warm bench** — agent identity lives on disk;
+   process is ephemeral, spawned only when PI routes a task.
+4. **Git worktree workspaces** — each code-touching role gets an isolated
+   working directory so RA-Stata and RA-Python can work in parallel without
+   silent overwrites.
+5. **Three-layer memory** — personal (per-agent), team (PI-shared), and
+   project (existing `.aiplus/memory/`). Project memory wins on conflict.
+
+See [`DESIGN.md`](DESIGN.md) for the full design rationale, routing protocol,
+memory model, worktree policy, and acceptance criteria.
+
+## What's inside
+
+- `core/templates/` — TOML configs and markdown personas for all 8 core
+  roles, plus the team-wide `econ-team.toml`
+- `core/templates/personas/` — role persona prompts (advisor, pi, theorist,
+  pm, ra-stata, ra-python, referee, replicator)
+- `core/templates/experts/` — expert role configs
+- `core/docs/` — design rationale, routing protocol, memory model,
+  worktree policy, safety boundaries
+- `adapters/codex/` — Codex plugin and skill assets
+- `adapters/claude-code/` — Claude Code project-local commands and agents
+- `adapters/opencode/` — OpenCode project-local config, commands, and prompts
+- `examples/` — synthetic examples for all three runtimes
+
+## Contributing
+
+We welcome contributions that stay within the plugin's scope (role separation
+and execution for applied-economics research, not software engineering and
+not advisory consulting).
+
+1. **Open an issue first** for anything larger than a typo fix — the
+   `aiplus-econ-agent-team` scope is tightly bounded.
+2. **Follow the existing TOML + markdown persona pattern** — per-agent
+   config lives in `.aiplus/agents/<role>.toml`, persona prompt in
+   `.aiplus/agents/personas/<role>.md`.
+3. **Add adapter parity** — if you change CLI surface, update all three
+   adapters (`adapters/codex/`, `adapters/claude-code/`, `adapters/opencode/`).
+4. **Run `aiplus agent doctor`** after config changes to validate worktrees,
+   memory layout, and TOML schema.
+5. **Acceptance criteria** are binding — see
+   `.aiplus/econ-agent-team/acceptance/v0.1.0/schema.yaml`. Any behavioral change
+   must update the schema and its sibling `.test.sh`.
+
+## Safety boundaries
+
+AiPlus Econ Agent Team does not:
+
+- upload agent state, persona, memory, or transcript to any service
+- run as a background daemon or persistent process
+- store secrets, IRB-protected paths, or restricted archive locations in
+  any agent's persona, memory, or workspace
+- modify global agent configuration (~/.codex, ~/.claude, etc.)
+- modify another project's `.aiplus/`
+- automatically approve Owner-gated actions (submit to journal, send referee
+  response, share data, push paper to public archive, claim authorship order)
+- introduce new network calls beyond what the host runtime already makes
+
+## More
+
+- Main platform: [aiplus](https://github.com/izhiwen/aiplus)
+- Sibling module: [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
+
+## License
+
+[Apache-2.0](LICENSE)
