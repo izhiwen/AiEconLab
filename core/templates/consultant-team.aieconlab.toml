@@ -1,0 +1,239 @@
+schema_version = "2.1"
+
+# =====================================================================
+# AiEconLab (AEL) Consultant Team — applied-economics research
+# =====================================================================
+# This file REPLACES the default SWE consultant team
+# (`.aiplus/consultant-team.toml` from aiplus-auto-team-consultant)
+# when AEL is installed into a project.
+#
+# Five expert seats designed from first principles for applied-econ
+# research plan-time review — not by renaming SWE seats. Each seat
+# delivers a NAMED output_artifact that is distinct from the deeper
+# work the corresponding execution-time role does later. Three user
+# personas fire in HEAVY tier or when risk >= 0.7. LIGHT tier does
+# NOT fire consultant — Theorist / Replicator / Referee / PM handle
+# everyday tasks in execution.
+#
+# v0.1 design notes (see DESIGN.md "Consultant team" section for
+# the full rationale):
+#   - The consultant is a strategic review board, not a daily team.
+#     Expected cadence: 5-15 fires per active paper per year, at
+#     strategic decision points (kickoff, sample-frame change,
+#     pre-submission, R&R receipt).
+#   - Each seat names its execution-time counterpart and what it
+#     intentionally does NOT do (to avoid duplication of effort).
+#   - Owner gates mirror AEL DESIGN.md §16 STOP-gates that are
+#     plan-time relevant.
+# =====================================================================
+
+[project]
+name = "<your-aieconlab-project>"
+domain = "applied-economics-research"
+
+# ─── Coordinator ──────────────────────────────────────────────────────────
+[[members]]
+role = "Coordinator"
+lens_id = "coordinator"
+triggers = ["default"]
+owner_gate = false
+# why: scores every plan-time consult on complexity + risk; staffs the
+# minimum sufficient subset of seats and personas.
+
+# ─── 5 expert team members (econ-research-tuned) ─────────────────────────
+
+[[members]]
+role = "Design Credibility"
+lens_id = "design"
+triggers = [
+  "kickoff", "research-question", "identification", "estimator",
+  "IV", "DID", "RD", "event-study", "parallel-trends",
+  "exclusion-restriction", "weak-instrument", "selection",
+  "mechanism", "placebo", "falsification", "external-validity",
+  "structural-estimation",
+]
+owner_gate = false
+output_artifact = "design-credibility-check.md"
+# why: half-page yes/no triage at plan time on:
+#   (a) does the empirical setting support the research question, or
+#       is the question being bent to fit available data?
+#   (b) is the estimator chosen for credibility, or for convenience?
+#   (c) is the load-bearing identifying assumption refutable, and is
+#       a falsification design in scope?
+# distinct from Theorist (core role) which writes the full
+# identification note (~2 pages) as a v1.0 execution deliverable.
+
+[[members]]
+role = "Contribution Framing"
+lens_id = "contribution"
+triggers = [
+  "intro", "abstract", "contribution", "placement",
+  "target-journal", "lit-gap", "motivation", "differential",
+  "comparable", "tier", "qjp", "aer", "jpe", "restud", "econometrica",
+]
+owner_gate = false
+output_artifact = "contribution-frame.md"
+# why: forces a 3-5-paper closest-comparable list AND a one-sentence
+# differential claim AND a target-tier recommendation BEFORE any prose
+# is drafted. Distinct from Lit Reviewer (expert) which builds the
+# full literature map and maintains references.bib.
+
+[[members]]
+role = "Day-1 Reproducibility"
+lens_id = "reproducibility"
+triggers = [
+  "archive", "gazetteer", "OCR", "raw-data", "merge",
+  "pipeline", "Makefile", "environment.yml", "seed", "version",
+  "pin", "replication-package", "AEA-data-editor", "dvc",
+]
+owner_gate = false
+output_artifact = "day-1-scaffold-checklist.md"
+# why: at plan time, list the day-1 scaffold requirements:
+# Makefile / env-pinning / seed convention / archive provenance log /
+# disambiguation tables / version-pinned ado/. The cost of building
+# this from day 1 is 1-2 days; the cost of retrofitting at
+# pre-submission is 1-2 weeks. Distinct from Reproducibility
+# Engineer (expert) and RA-Python (core) which actually BUILD the
+# scaffold; the seat sets the requirement.
+
+[[members]]
+role = "IRB / Disclosure Gate"
+lens_id = "irb"
+triggers = [
+  "IRB", "consent", "restricted-data", "DUA", "small-cell",
+  "re-identification", "disclosure", "anonymization", "PII",
+  "protected-attribute", "respondent-data", "human-subjects",
+]
+owner_gate = true
+output_artifact = "irb-gate-check.md"
+# why: at plan time, yes/no on (a) is this task in protocol scope,
+# (b) what re-identification risk lives in the planned outputs,
+# (c) what small-cell aggregation rule is needed in advance. Distinct
+# from Ethics / IRB Reviewer (expert) which writes per-task
+# authorization memos and replication-redaction memos during
+# execution. The seat surfaces the gate; the expert produces the
+# memos.
+# owner_gate = true because any "no" from this seat is a STOP and
+# escalates to Owner.
+
+[[members]]
+role = "LLM-as-Measurement"
+lens_id = "llm_measurement"
+triggers = [
+  "LLM", "GPT", "Claude", "Gemini", "Qwen", "DeepSeek",
+  "embedding", "fine-tune", "prompt-version", "multi-LLM",
+  "inter-rater", "held-out", "text-as-data", "scoring-archival",
+  "validity-protocol",
+]
+owner_gate = false
+output_artifact = "llm-validity-protocol.md"
+# why: when LLMs (or any frontier model) enter as a measurement
+# instrument on text, the validity protocol must exist BEFORE
+# scoring runs. Retrofit validity is the #1 reason
+# LLM-measurement papers get desk-rejected. Distinct from the
+# LLM-as-Measurement Specialist (expert) which actually DESIGNS
+# and AUDITS the full validity battery; the seat ensures the work
+# is scoped and budgeted at plan time, not as a panic add-on.
+# Stays dormant when no LLM-as-measurement work is in scope.
+
+# ─── 3 user persona members (HEAVY tier or risk >= 0.7) ──────────────────
+
+[[members]]
+role = "User: Anonymous Top-Tier Referee"
+lens_id = "user_referee"
+triggers = [
+  "submission", "rebuttal", "headline-result", "external-facing",
+  "QJE", "AER", "JPE", "ReStud", "Econometrica",
+]
+owner_gate = false
+# why: cold-reads the planned deliverable. Names the single easiest
+# reject reason a top-tier referee would write within 5 minutes of
+# opening the paper. Forces the team to address it BEFORE the plan
+# gets written, not after the referee letter arrives.
+
+[[members]]
+role = "User: Job-Market Audience"
+lens_id = "user_jmp_audience"
+triggers = [
+  "job-talk", "fly-out", "seminar", "talk", "conference",
+  "JEL", "AEA-meeting",
+]
+owner_gate = false
+# why: 60-minute audience evaluating contribution at a fly-out.
+# Surfaces "can a non-specialist grasp the contribution in 3 slides"
+# at plan time. Particularly relevant for plans that produce
+# job-market-relevant work.
+
+[[members]]
+role = "User: External Replicator (AEA Data Editor)"
+lens_id = "user_replicator"
+triggers = [
+  "replication-package", "AEA-data-editor", "submission",
+  "code-review", "JFE-replication", "Restud-replication",
+]
+owner_gate = false
+# why: surfaces "will a clean-machine run of `make all` reproduce
+# every number?" at plan time. Distinct from internal Replicator
+# (core role) which audits during execution; the persona forces
+# the team to design FOR replication from day 1, including
+# correctly splitting redacted-public vs reviewer-only packages.
+
+# ─── Owner gates (always escalate to Owner) ──────────────────────────────
+# Mirror AEL DESIGN.md §16 STOP-gates that are plan-time-relevant.
+# When the consultant detects that the plan touches any of these,
+# it surfaces an explicit gate-packet for Owner approval before the
+# plan is dispatched.
+[owner_gates]
+gates = [
+  { id = "submission",            description = "Any journal submission, public preprint, or external archive post" },
+  { id = "working-paper-post",    description = "Posting to NBER / SSRN / institutional working-paper series" },
+  { id = "referee-response-send", description = "Sending an R&R response letter to the editor" },
+  { id = "data-share",            description = "Sharing data or replication package with parties outside the IRB-listed personnel" },
+  { id = "authorship-change",     description = "Adding, removing, or reordering authors" },
+]
+
+# ─── Scaling rules ───────────────────────────────────────────────────────
+# AEL consultant is a strategic review board, not a daily team. LIGHT
+# tier does NOT fire consultant — everyday tasks (cluster-level change,
+# table caption update, single robustness check) flow through Theorist
+# / Replicator / Referee / PM in execution. The consultant only fires
+# on strategic-decision tasks: kickoff, sample-frame change,
+# pre-submission, R&R receipt, structural-section addition,
+# new-dataset onboarding, restricted-data merge.
+[scaling]
+light.complexity_max  = 2
+light.member_count    = 0
+light.review_mode     = "skip"          # LIGHT tier — no consult
+
+medium.complexity_min = 3
+medium.complexity_max = 4
+medium.member_count   = 3
+medium.review_mode    = "sync"
+
+heavy.complexity_min  = 5
+heavy.member_count    = "all"
+heavy.review_mode     = "sync"
+heavy.user_personas   = "always"
+
+# Risk override — pulls user personas into any tier (still skip on LIGHT)
+risk.user_persona_threshold = 0.7
+
+# ─── Econ-specific scoring signals ───────────────────────────────────────
+# Applied on top of the base complexity / risk score the coordinator
+# computes from the task description. Each signal that matches adds
+# +1 to the respective axis.
+[scoring.complexity_signals]
+novel_identification        = 1   # not a direct application of an existing IV/DID/RD design
+new_dataset                 = 1   # archive / dataset not previously used in team's history
+restricted_data             = 1   # touches IRB / DUA-bound files
+llm_as_measurement          = 1   # LLM enters as a measurement variable
+structural_estimation       = 1   # DSGE / discrete-choice / dynamic estimation
+sample_frame_change         = 1   # alters who is in or out of the analytical sample
+
+[scoring.risk_signals]
+submission_path             = 1   # task path leads to a STOP-gated submission
+binding_deadline_2w         = 1   # editor / conference deadline within 2 weeks
+rr_revision                 = 1   # R&R reply (irreversible once sent)
+working_paper_post_planned  = 1   # plan to post to NBER / SSRN / WP series
+first_paper_on_dataset      = 1   # no prior team history with this dataset
+external_coauthor           = 1   # cross-institution co-author dependency

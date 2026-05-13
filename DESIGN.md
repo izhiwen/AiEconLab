@@ -149,7 +149,7 @@ Total core team = 2 owner-facing + 6 internal = **8 roles**.
 
 ### 5.3 Expert Directory (on-demand, not core)
 
-Eleven specialists are pre-defined and ready to summon. **For v0.1, eight
+Twelve specialists are pre-defined and ready to summon. **For v0.1, nine
 "high-frequency" experts ship implemented; the remaining three ship as
 config stubs and become functional in v0.2.** All are State-level permanent
 (persona, memory, workspace template exist as files), but only enter a
@@ -165,6 +165,7 @@ project's *active* team when summoned.
 | **Job Talk Coach** | `job talk`, `seminar`, `talk prep`, `job market` | shipped |
 | **Visualization Specialist** | `figure`, `plot`, `map`, `color`, `ggplot`, `tikz`, `chart polish` | shipped |
 | **Ethics / IRB Reviewer** | `irb`, `consent`, `pii`, `anonymization`, `restricted data`, `dua` | shipped |
+| **LLM-as-Measurement Specialist** | `llm`, `gpt`, `claude`, `gemini`, `qwen`, `deepseek`, `embedding`, `prompt-version`, `multi-llm`, `text-as-data`, `inter-rater`, `held-out` | shipped |
 | **Survey / Experiment Specialist** | `RCT`, `survey`, `lab`, `field experiment`, `power analysis`, `pre-registration` | v0.2 stub |
 | **Computation Specialist** | `HPC`, `cluster`, `parallel`, `big data`, `bootstrap` (large), `simulation` (heavy) | v0.2 stub |
 | **Co-Author Liaison** | `co-author`, `authorship`, `attribution`, `division of labor`, `joint work` | v0.2 stub |
@@ -181,6 +182,7 @@ PI drops it via `aiplus agent dismiss`. State files remain on disk.
 | RCT / field experiment | + Survey / Experiment (v0.2) + Ethics / IRB (v0.2) + Lit Reviewer |
 | Structural / IO | + Econometrician + Computation (v0.2) + Reproducibility |
 | Empirical asset pricing | + Econometrician + Computation (v0.2) + Reproducibility |
+| **Text-as-data / LLM-measurement paper** | + LLM-as-Measurement + Lit Reviewer + Reproducibility + Historical Sources (if archival) |
 | Pre-submission round (any paper) | + Writer + Referee already core + Reproducibility |
 | Job-market push | + Job Talk Coach + Writer |
 | Co-authored project | + Co-Author Liaison (v0.2) + Lit Reviewer |
@@ -260,29 +262,93 @@ For full model, see sibling DESIGN.md §8.
 
 ---
 
-## 9. Coordinator (lives inside PI)
+## 9. Coordinator (lives inside PI) + AEL Consultant Team
+
+### 9.1 Tier scoring
 
 The PI scores each task using the same LIGHT / MEDIUM / HEAVY scale as
 `aiplus-auto-team-consultant`. Defaults in `econ-team.toml`:
 
 | Tier | Complexity | Fires consultant | Typical staffing |
 |---|---|---|---|
-| LIGHT | ≤ 2 | No | Single RA, or single Writer pass |
+| LIGHT | ≤ 2 | **No** | Single RA, or single Writer pass |
 | MEDIUM | 3-4 | Yes | RA + Theorist sign-off + Replicator |
-| HEAVY | ≥ 5 OR risk ≥ 0.7 | Yes | Full team + relevant experts |
+| HEAVY | ≥ 5 OR risk ≥ 0.7 | Yes | Full team + relevant experts + user personas |
 
-Research-specific scoring signals:
+Research-specific scoring signals (in `consultant-team.aieconlab.toml`):
 
-- **+1 complexity** if the task touches identification
-- **+1 complexity** if the artifact is external-facing (submission, post)
-- **+1 risk** if reversibility class is irreversible (submission, posting,
-  authorship change)
-- **+1 risk** if a deadline is binding and within 1 week
-- **+1 complexity** if the task touches restricted / IRB data
-- **+1 complexity** if the task changes the sample frame
+Complexity (+1 each):
+- `novel_identification` — not a direct application of an existing IV/DID/RD design
+- `new_dataset` — archive / dataset not previously used in team's history
+- `restricted_data` — touches IRB / DUA-bound files
+- `llm_as_measurement` — LLM enters as a measurement variable
+- `structural_estimation` — DSGE / discrete-choice / dynamic estimation
+- `sample_frame_change` — alters who is in or out of the analytical sample
 
-PI auto-fires consultant on MEDIUM and HEAVY. PI never auto-fires
-consultant on LIGHT (cost > value for trivial tasks).
+Risk (+1 each):
+- `submission_path` — task path leads to a STOP-gated submission
+- `binding_deadline_2w` — editor / conference deadline within 2 weeks
+- `rr_revision` — R&R reply (irreversible once sent)
+- `working_paper_post_planned` — plan to post to NBER / SSRN / WP series
+- `first_paper_on_dataset` — no prior team history with this dataset
+- `external_coauthor` — cross-institution co-author dependency
+
+### 9.2 AEL replaces the default SWE consultant team
+
+`aiplus-auto-team-consultant` ships with a consultant-team config tuned for
+software engineering projects (Architecture / UX & Onboarding / Security &
+Privacy / Pitfall & Risk / AI Integration). When AEL is installed, it
+**replaces** that default with `consultant-team.aieconlab.toml`, designed
+from first principles for applied-economics research at plan time.
+
+**The AEL consultant is a strategic review board, not a daily team.**
+Expected cadence is 5-15 fires per active paper per year, at strategic
+decision points (kickoff, sample-frame change, pre-submission, R&R
+receipt). LIGHT tier explicitly skips consult — everyday tasks
+(cluster-level change, table caption update, single robustness check)
+flow through Theorist / Replicator / Referee / PM in execution.
+
+### 9.3 The five seats
+
+Each seat fires at plan time with a named `output_artifact`. Every seat
+is intentionally distinct from the corresponding execution-time role —
+plan-time triage is light and gating; execution-time deliverables are
+deep and authoring.
+
+| Seat | Plan-time output | Counterpart at execution time |
+|---|---|---|
+| **Design Credibility** | `design-credibility-check.md` — half-page yes/no triage on (a) does setting support question, (b) is estimator chosen for credibility or convenience, (c) is the load-bearing assumption refutable | Theorist (core) writes the full identification note (~2 pages) |
+| **Contribution Framing** | `contribution-frame.md` — 3-5 closest comparables, one-sentence differential claim, target-tier recommendation | Lit Reviewer (expert) builds full lit map and references.bib |
+| **Day-1 Reproducibility** | `day-1-scaffold-checklist.md` — Makefile / env / seed / archive provenance day-1 requirements | Reproducibility Engineer (expert) + RA-Python (core) actually build the scaffold |
+| **IRB / Disclosure Gate** | `irb-gate-check.md` — yes/no on protocol scope, small-cell risk, advance disclosure rule | Ethics/IRB Reviewer (expert) writes per-task authorization memos |
+| **LLM-as-Measurement** | `llm-validity-protocol.md` — fires only when LLMs enter as measurement; validity battery design | LLM-as-Measurement Specialist (expert) designs and audits the full battery |
+
+Three user personas join in HEAVY tier or when risk ≥ 0.7:
+- **Anonymous Top-Tier Referee** — names the single easiest-reject reason
+- **Job-Market Audience** — can a 60-min audience grasp the contribution in 3 slides?
+- **External Replicator (AEA Data Editor)** — will `make all` reproduce every number on a clean machine?
+
+### 9.4 Owner gates (plan-time mirrors)
+
+The consultant config explicitly declares five STOP-gates from DESIGN.md
+§16 that are plan-time-relevant. When the consultant detects that a plan
+path touches any of these, it surfaces a gate-packet for explicit Owner
+approval before the plan is dispatched.
+
+- `submission`
+- `working-paper-post`
+- `referee-response-send`
+- `data-share`
+- `authorship-change`
+
+### 9.5 Coexistence with `aiplus-agent-team` (deferred to v0.2)
+
+If both `aiplus-agent-team` (SWE) and `aieconlab` are installed in the
+same project, v0.1 takes a simple stance: **AEL install overwrites the
+SWE consultant config**. v0.2 will support side-by-side configs
+(`consultant-team.swe.toml` + `consultant-team.aieconlab.toml`), with the
+active config selected by the calling role's tier (PI uses AEL config;
+CEO uses SWE config).
 
 ---
 
@@ -483,16 +549,26 @@ The PI prepares; the Owner approves.
 
 **v0.1.0 (this release):**
 - All 8 core roles with full personas and TOML configs
-- 8 of 11 experts shipped (full personas)
-- 3 of 11 experts as config stubs (v0.2)
+- 9 of 12 experts shipped (full personas), including the new
+  LLM-as-Measurement Specialist
+- 3 of 12 experts as config stubs (v0.2)
+- AEL-tuned consultant team (`consultant-team.aieconlab.toml`)
+  replacing the default SWE consultant: 5 expert seats designed from
+  first principles for applied-econ research at plan time, 3 user
+  personas, 5 owner gates mirrored from STOP-gates, LIGHT tier skips
+  consult by design (econ consult is a strategic review board, not a
+  daily team)
 - Three adapters (codex, claude-code, opencode) with parity
 - Examples per runtime
-- Acceptance schema + audit tests
+- Acceptance schema + audit tests (15 invariants)
 
 **v0.2.x:**
 - Ship the 3 stub experts (Survey / Experiment, Computation, Co-Author Liaison)
 - Velocity unit-type calibration from real-project history
 - Per-paper memory partitions (one team can manage 3+ papers in parallel)
+- Side-by-side coexistence of `consultant-team.swe.toml` and
+  `consultant-team.aieconlab.toml` in the same project, with the active
+  config selected by the calling role's tier
 
 **v0.3.x:**
 - Co-author Liaison full implementation
@@ -530,6 +606,9 @@ The PI prepares; the Owner approves.
 | Default toolchain Python + Stata + LaTeX | yes | Most-common applied econ stack |
 | Sibling module, not profile of agent-team | yes | Roles, vocabulary, and STOP-gates differ enough to warrant separation; same architecture |
 | Re-derive DESIGN sections 6/7/8 | no | Identical to sibling, cite |
+| Replace SWE consultant team, not rename SWE seats | yes | The 5 plan-time concerns of econ research (Design Credibility, Contribution Framing, Day-1 Reproducibility, IRB Gate, LLM-as-Measurement) don't map 1:1 to SWE concerns (Architecture, UX, Security, Pitfall, AI Integration). Direct rename would have been duplication of existing AEL roles. Full re-derivation produces seats with named `output_artifact` distinct from execution-time deliverables |
+| LIGHT tier skips consult in AEL | yes | AEL consult cadence is ~5-15 per paper per year (review board), not daily. SWE's LIGHT tier of "1 member async" creates noise on routine econ tasks (cluster change, table polish) that Theorist / Replicator already handle |
+| Add LLM-as-Measurement as 12th expert | yes | The user's research style and an emerging class of econ papers use LLMs as measurement instruments on text data. Validity protocol is a domain that existing AEL roles do not own; deserves a dedicated expert paired with a consultant seat (same pattern as AI Integration in SWE) |
 
 ---
 
@@ -571,15 +650,25 @@ is binding. Every release must pass:
 
 1. All 8 core role `.toml` files load without TOML errors.
 2. All 8 core role `personas/*.md` files exist and are non-empty.
-3. All 11 expert `.toml` files exist (shipped or stub).
-4. The `econ-team.toml` declares all 8 core roles.
-5. The three adapters (codex, claude-code, opencode) have parity on the
+3. All 12 expert `.toml` files exist (shipped or stub).
+4. All 9 shipped expert personas exist and are ≥ 500 bytes.
+5. All 3 stub expert personas exist.
+6. The `econ-team.toml` declares all 8 core roles.
+7. The `consultant-team.aieconlab.toml` exists, parses, declares all 5
+   expert seats (`design`, `contribution`, `reproducibility`, `irb`,
+   `llm_measurement`), 3 user personas (`user_referee`,
+   `user_jmp_audience`, `user_replicator`), 5 owner gates
+   (`submission`, `working-paper-post`, `referee-response-send`,
+   `data-share`, `authorship-change`), and sets LIGHT tier
+   `review_mode = "skip"`.
+8. The three adapters (codex, claude-code, opencode) have parity on the
    CLI surface declared in §11.
-6. Every persona declares a forbidden-actions section.
-7. Every persona's example section has ≥ 3 examples.
-8. STOP-gates listed in §16 appear in PI and Replicator personas.
-9. The doctor check on `aiplus-module.json` passes.
-10. The acceptance audit `.test.sh` passes on a fresh clone.
+9. Every persona declares a forbidden-actions section.
+10. Every core persona's example section has ≥ 3 examples.
+11. STOP-gates listed in §16 appear in PI and Replicator personas.
+12. The doctor check on `aiplus-module.json` passes.
+13. The acceptance audit `.test.sh` passes on a fresh clone (currently
+    15 invariants).
 
 Any behavioral change must update both the schema and its sibling
 `.test.sh` before merge.

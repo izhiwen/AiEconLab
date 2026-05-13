@@ -72,7 +72,7 @@ core_invariants:
     min_size_bytes: 500
 
   - id: experts_present
-    description: "All 11 expert TOML files exist and parse."
+    description: "All 12 expert TOML files exist and parse."
     files_required:
       - "{experts_dir}/lit-reviewer.toml"
       - "{experts_dir}/writer.toml"
@@ -85,10 +85,11 @@ core_invariants:
       - "{experts_dir}/computation.toml"
       - "{experts_dir}/ethics-irb.toml"
       - "{experts_dir}/coauthor-liaison.toml"
+      - "{experts_dir}/llm-measurement.toml"
     parse_as: toml
 
   - id: shipped_expert_personas_present
-    description: "All 6 shipped expert personas exist and are non-empty."
+    description: "All 9 shipped expert personas exist and are non-empty."
     files_required:
       - "{personas_dir}/lit-reviewer.md"
       - "{personas_dir}/writer.md"
@@ -96,18 +97,41 @@ core_invariants:
       - "{personas_dir}/reproducibility.md"
       - "{personas_dir}/historical-sources.md"
       - "{personas_dir}/job-talk-coach.md"
+      - "{personas_dir}/viz-specialist.md"
+      - "{personas_dir}/ethics-irb.md"
+      - "{personas_dir}/llm-measurement.md"
     parse_as: markdown
     min_size_bytes: 500
 
   - id: stub_expert_personas_present
-    description: "All 5 stub expert personas exist."
+    description: "All 3 stub expert personas exist."
     files_required:
-      - "{personas_dir}/_stubs/viz-specialist.md"
       - "{personas_dir}/_stubs/survey-experiment.md"
       - "{personas_dir}/_stubs/computation.md"
-      - "{personas_dir}/_stubs/ethics-irb.md"
       - "{personas_dir}/_stubs/coauthor-liaison.md"
     parse_as: markdown
+
+  - id: consultant_team_present
+    description: "AEL research-tuned consultant team TOML exists and declares all 5 expert seats + 3 personas + 5 owner gates."
+    files_required:
+      - "{core_templates_dir}/consultant-team.aieconlab.toml"
+    parse_as: toml
+    must_contain_lens_ids:
+      - design
+      - contribution
+      - reproducibility
+      - irb
+      - llm_measurement
+      - user_referee
+      - user_jmp_audience
+      - user_replicator
+    must_contain_owner_gates:
+      - submission
+      - working-paper-post
+      - referee-response-send
+      - data-share
+      - authorship-change
+    must_set_light_review_mode: "skip"
 
   - id: module_manifest_present
     description: "aiplus-module.json exists, parses as JSON, declares all 3 runtime adapters."
