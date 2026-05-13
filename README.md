@@ -2,7 +2,7 @@
 
 > **A permanent virtual research team for applied economists.**
 > Eight core agents (Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee, Replicator)
-> plus an eleven-specialist expert directory. Default toolchain: Python + Stata + LaTeX.
+> plus an twelve-specialist expert directory. Default toolchain: Python + Stata + LaTeX.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -84,7 +84,7 @@ The records cover:
 - **Three-layer memory** — personal (per-agent), team (PI-shared), and
   project (existing `.aiplus/memory/`). Project memory wins on conflict, so
   a team-of-the-day decision never overrides durable project consensus.
-- **Expert directory** — eleven specialists (Lit Reviewer, Writer,
+- **Expert directory** — twelve specialists (Lit Reviewer, Writer,
   Econometrician, Reproducibility Engineer, Historical Sources, Job Talk
   Coach, and others) sit dormant until the PI summons them for tasks that
   match their triggers.
@@ -108,6 +108,22 @@ cd MyResearchProject
 aiplus add aieconlab
 aiplus install codex          # or: claude-code, opencode, all
 ```
+
+`aiplus add aieconlab` does three things:
+
+1. Installs all 8 core role configs + personas (Advisor, PI, Theorist, PM,
+   RA-Stata, RA-Python, Referee, Replicator).
+2. Installs all 12 expert configs (9 shipped, 3 v0.2 stubs).
+3. **Replaces** the default SWE consultant team
+   (`.aiplus/consultant-team.toml` from `AiPlus-Auto-Team-Consultant`)
+   with `consultant-team.aieconlab.toml` — 5 expert seats designed from
+   first principles for applied-econ research at plan time, 3 user
+   personas, 5 owner gates mirroring AEL DESIGN §16 STOP-gates, LIGHT
+   tier skips consult by design.
+
+If you also have `aiplus-agent-team` (SWE) installed in the same project,
+the AEL consultant config overwrites the SWE one — coexistence of both
+consultant configs is on the v0.2 roadmap.
 
 ## Quick start
 
@@ -165,7 +181,7 @@ existing AiPlus plugins and uses them as shared infrastructure:
 
 1. **Permanent core team of 8 roles** — installed automatically when the
    plugin is added to a project.
-2. **Expert directory** — 11 specialist roles available on-demand, only
+2. **Expert directory** — 12 specialist roles available on-demand, only
    summoned when triggers match.
 3. **State-level permanence + warm bench** — agent identity lives on disk;
    process is ephemeral, spawned only when PI routes a task.
@@ -180,17 +196,23 @@ memory model, worktree policy, and acceptance criteria.
 
 ## What's inside
 
-- `core/templates/` — TOML configs and markdown personas for all 8 core
-  roles, plus the team-wide `econ-team.toml`
+- `core/templates/` — TOML configs for all 8 core roles plus the
+  team-wide `econ-team.toml` and the AEL research-tuned
+  `consultant-team.aieconlab.toml`
 - `core/templates/personas/` — role persona prompts (advisor, pi, theorist,
-  pm, ra-stata, ra-python, referee, replicator)
-- `core/templates/experts/` — expert role configs
-- `core/docs/` — design rationale, routing protocol, memory model,
-  worktree policy, safety boundaries
+  pm, ra-stata, ra-python, referee, replicator) and 9 shipped expert
+  personas
+- `core/templates/personas/_stubs/` — 3 v0.2 expert stubs
+  (survey-experiment, computation, coauthor-liaison)
+- `core/templates/experts/` — 12 expert role configs (9 shipped + 3 stub)
+  including the new **LLM-as-Measurement Specialist** paired with the
+  consultant team's seat 5
 - `adapters/codex/` — Codex plugin and skill assets
 - `adapters/claude-code/` — Claude Code project-local commands and agents
 - `adapters/opencode/` — OpenCode project-local config, commands, and prompts
 - `examples/` — synthetic examples for all three runtimes
+- `tests/acceptance.test.sh` — 15 structural invariants (passes on every push)
+- `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml` — binding acceptance schema
 
 ## Contributing
 

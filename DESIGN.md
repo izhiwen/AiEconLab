@@ -101,7 +101,7 @@ over plausible alternatives:
 
 1. **Permanent core team of 8 roles**, installed automatically when the
    plugin is added to a project (§5).
-2. **Expert directory** of 11 specialist roles available on-demand, only
+2. **Expert directory** of 12 specialist roles available on-demand, only
    summoned when triggers match (§5.3).
 3. **State-level permanence + warm bench** (not process-level daemon, not
    pure ephemeral) — agent identity lives on disk, fast cache for repeat
