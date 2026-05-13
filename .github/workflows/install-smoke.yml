@@ -1,0 +1,185 @@
+name: Install Smoke Test
+
+# Watchdog workflow: builds the aiplus CLI from source, vendors in the
+# current AiEconLab repo as the bundled snapshot, then runs the full
+# `aiplus install + aiplus add aieconlab + aiplus doctor + agent route`
+# flow in a clean tmp project. Catches regressions like the schema
+# mismatch we just fixed (where AEL's consultant-team.toml structure
+# diverged from what aiplus doctor expects).
+#
+# Runs on every push and PR; ~5 minutes with cargo cache, ~10 cold.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  install-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout AiEconLab
+        uses: actions/checkout@v4
+        with:
+          path: aieconlab
+
+      - name: Checkout AiPlus CLI source
+        uses: actions/checkout@v4
+        with:
+          repository: izhiwen/AiPlus
+          ref: main
+          path: aiplus
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            aiplus/target
+          key: ${{ runner.os }}-cargo-aiplus-${{ hashFiles('aiplus/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-aiplus-
+
+      - name: Vendor live AiEconLab into AiPlus bundle
+        run: |
+          set -euo pipefail
+          # Replace whatever aieconlab snapshot AiPlus has with the
+          # version of AEL being tested (this PR / commit). This is the
+          # whole point of the smoke test — does AEL HEAD install cleanly
+          # against AiPlus HEAD?
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            aieconlab/ aiplus/assets/aieconlab/
+          echo "Vendored AEL HEAD into aiplus/assets/aieconlab/"
+          ls aiplus/assets/aieconlab/core/templates/experts/ | wc -l
+          ls aiplus/assets/aieconlab/core/templates/consultant-team*.toml
+
+      - name: Build aiplus CLI (release)
+        working-directory: aiplus
+        run: |
+          set -euo pipefail
+          cargo build --release --bin aiplus
+          ./target/release/aiplus --version
+
+      - name: Smoke test — clean default install (no AEL)
+        run: |
+          set -euo pipefail
+          BIN="$GITHUB_WORKSPACE/aiplus/target/release/aiplus"
+          mkdir -p "$RUNNER_TEMP/smoke-default" && cd "$RUNNER_TEMP/smoke-default"
+          git init -q -b main
+          git config user.email "ci@example.com"
+          git config user.name "CI"
+
+          # Step 1: bootstrap
+          "$BIN" install codex
+
+          # Step 2: AEL should NOT be auto-installed (opt-in)
+          if [ -f .aiplus/agents/pi.toml ]; then
+            echo "::error::AEL leaked into default install — pi.toml present"
+            exit 1
+          fi
+          if [ -f .aiplus/agents/experts/llm-measurement.toml ]; then
+            echo "::error::AEL leaked into default install — llm-measurement.toml present"
+            exit 1
+          fi
+
+          # Step 3: consultant-team.toml should be SWE default (small)
+          size=$(wc -c < .aiplus/consultant-team.toml)
+          if [ "$size" -gt 7000 ]; then
+            echo "::error::AEL consultant config (large) leaked into default install. Size=$size"
+            exit 1
+          fi
+          echo "PASS: default install does not include AEL"
+
+      - name: Smoke test — opt-in install (aiplus add aieconlab)
+        run: |
+          set -euo pipefail
+          BIN="$GITHUB_WORKSPACE/aiplus/target/release/aiplus"
+          mkdir -p "$RUNNER_TEMP/smoke-opt-in" && cd "$RUNNER_TEMP/smoke-opt-in"
+          git init -q -b main
+          git config user.email "ci@example.com"
+          git config user.name "CI"
+
+          "$BIN" install codex
+          "$BIN" add aieconlab
+          git add -A && git commit -qm "init / 初始化"
+
+          # AEL core role files
+          for role in advisor pi theorist pm ra-stata ra-python referee replicator; do
+            if [ ! -f ".aiplus/agents/$role.toml" ]; then
+              echo "::error::missing AEL core role: $role"
+              exit 1
+            fi
+          done
+
+          # All 12 expert TOMLs
+          for expert in lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement survey-experiment computation coauthor-liaison; do
+            if [ ! -f ".aiplus/agents/experts/$expert.toml" ]; then
+              echo "::error::missing AEL expert: $expert"
+              exit 1
+            fi
+          done
+
+          # Consultant config is AEL flavor
+          if ! grep -q 'id = "ai_integration"' .aiplus/consultant-team.toml; then
+            echo "::error::consultant-team.toml missing ai_integration member"
+            exit 1
+          fi
+          if ! grep -q '^\[user_evidence\]' .aiplus/consultant-team.toml; then
+            echo "::error::consultant-team.toml missing [user_evidence] section"
+            exit 1
+          fi
+          if ! grep -q 'light.review_mode\s*=\s*"skip"' .aiplus/consultant-team.toml; then
+            echo "::error::consultant-team.toml LIGHT tier not set to skip"
+            exit 1
+          fi
+          for gate in submission working-paper-post referee-response-send data-share authorship-change; do
+            if ! grep -q "id = \"${gate}\"" .aiplus/consultant-team.toml; then
+              echo "::error::consultant-team.toml missing owner gate: $gate"
+              exit 1
+            fi
+          done
+
+          # Doctor passes
+          doctor_status=$("$BIN" doctor 2>&1 | grep -E '^DOCTOR_STATUS=' || true)
+          echo "$doctor_status"
+          case "$doctor_status" in
+            DOCTOR_STATUS=PASS) ;;
+            *)
+              echo "::error::aiplus doctor reported $doctor_status (expected PASS)"
+              "$BIN" doctor 2>&1 | grep -E 'NEEDS_FIX|FAIL' | head -10
+              exit 1
+              ;;
+          esac
+
+          # Agent route — the new LLM-as-Measurement Specialist works
+          "$BIN" agent route llm-measurement 2>&1 | tee /tmp/route.log
+          if ! grep -q 'Created worktree for llm-measurement' /tmp/route.log; then
+            echo "::error::agent route llm-measurement did not create worktree"
+            exit 1
+          fi
+
+          echo "PASS: opt-in install installs AEL cleanly + doctor passes + agent route works"
+
+      - name: Run AEL acceptance test on installed snapshot
+        run: |
+          set -euo pipefail
+          cd aieconlab
+          bash tests/acceptance.test.sh
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "✓ Default install: AEL not auto-installed"
+          echo "✓ Opt-in install: AEL files + consultant config landed"
+          echo "✓ Doctor: PASS"
+          echo "✓ Agent route llm-measurement: worktree created"
+          echo "✓ Acceptance test: 15 invariants pass"
