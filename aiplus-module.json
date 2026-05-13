@@ -11,7 +11,6 @@
     "substrate_modules": [
       "aiplus-agent-memory",
       "aiplus-compact-reminder",
-      "aiplus-agent-velocity",
       "aiplus-auto-team-consultant"
     ]
   },
@@ -37,7 +36,7 @@
   "installHints": [
     "Install permanent virtual applied-economics research team (AiEconLab / AEL) with 8 core roles and expert directory.",
     "Default toolchain: Python + Stata + LaTeX. Requires git for worktree provisioning.",
-    "Depends on aiplus >= 0.5.2 and the four substrate modules listed in `requires.substrate_modules`.",
+    "Depends on aiplus >= 0.5.2 (which already provides the velocity subcommand built-in) and the three substrate modules listed in `requires.substrate_modules`.",
     "Sibling to aiplus-agent-team; the two can be installed in the same project."
   ],
   "doctorChecks": [

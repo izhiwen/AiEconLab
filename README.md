@@ -17,11 +17,11 @@ agent substrate. Install AiPlus first:
 # Install AiPlus (>= 0.5.2)
 # Follow https://github.com/izhiwen/AiPlus
 
-# Then add the four substrate modules AiEconLab depends on:
+# Then add the three substrate modules AiEconLab depends on:
 aiplus add agent-memory          # per-agent project-local memory
 aiplus add compact-reminder      # token-saving compact + structured resume
-aiplus add agent-velocity        # per-agent calibration
 aiplus add auto-team-consultant  # consult-before-plan layer
+# (velocity calibration is built into the aiplus CLI; no separate add needed)
 ```
 
 AiEconLab is intentionally a separate project (`github.com/izhiwen/AiEconLab`)

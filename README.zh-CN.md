@@ -16,11 +16,11 @@ AiEconLab 建在 [AiPlus](https://github.com/izhiwen/AiPlus) agent substrate 之
 # 安装 AiPlus (>= 0.5.2)
 # 见 https://github.com/izhiwen/AiPlus
 
-# 然后装 AiEconLab 依赖的四个底座模块：
+# 然后装 AiEconLab 依赖的三个底座模块：
 aiplus add agent-memory          # 每个 agent 的项目本地 memory
 aiplus add compact-reminder      # 节省 token 的 compact + 结构化 resume
-aiplus add agent-velocity        # 每个 agent 的估时校准
 aiplus add auto-team-consultant  # 规划前顾问层
+# (velocity 校准是 aiplus CLI 的内建 subcommand，无需 add 单独模块)
 ```
 
 AiEconLab 是独立项目（`github.com/izhiwen/AiEconLab`），有自己的发布节奏和受众，但功能上依赖 AiPlus 提供的 memory、compact、velocity、consult-before-plan 这四层基础设施。
