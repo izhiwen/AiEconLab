@@ -208,7 +208,11 @@ AiEconLab 不会：
 ## 更多
 
 - 主平台：[AiPlus](https://github.com/izhiwen/AiPlus)
-- 兄弟模块：[AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
+- 兄弟模块（SWE）：[AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
+- AEL LLM-as-Measurement Specialist 验证协议在真实档案数据上的工作样例：
+  [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)
+  （294 篇 19 世纪古汉语档案文档跨 5 个 frontier LLM 评分，
+  两两相关性 0.85–0.95）
 
 ## 许可证
 

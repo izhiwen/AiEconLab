@@ -287,7 +287,12 @@ AiEconLab does not:
 ## More
 
 - Main platform: [AiPlus](https://github.com/izhiwen/AiPlus)
-- Sibling module: [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
+- Sibling module (SWE): [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
+- Worked example of AEL's LLM-as-Measurement Specialist validity
+  protocol on real archival data:
+  [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)
+  (294 19th-century Classical Chinese documents scored across 5
+  frontier LLMs, pairwise correlations 0.85–0.95)
 
 ## License
 
