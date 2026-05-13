@@ -60,7 +60,7 @@ three recurring failures:
 The existing AiPlus plugins each address part of the problem:
 
 - `aiplus-agent-memory` gives one agent a clean, project-local memory.
-- `aiplus-compact-reminder` keeps one agent's context recoverable.
+- `AiPlus-Compact-Reminder` cuts one agent's token burn via structured compact + resume.
 - `aiplus-auto-team-consultant` consults a virtual expert team *before* a
   plan is written, but does not execute and does not persist.
 - `aiplus-agent-velocity` calibrates one agent's estimates.
@@ -382,14 +382,14 @@ Research-specific extensions:
                            ↓ uses
                aiplus-auto-team-consultant           ← decision-support layer
                            ↓ uses
-    aiplus-agent-memory   aiplus-compact-reminder   aiplus-agent-velocity
+    AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— shared infrastructure layer ———————→
 ```
 
 - **aiplus-agent-memory** — each agent gets a namespaced memory under
   `.aiplus/agent-memory/<role>/`. Research adds new memory categories:
   identification notes, codebook history, falsification-test results.
-- **aiplus-compact-reminder** — each long-running agent (PI, Theorist,
+- **AiPlus-Compact-Reminder** — saves tokens by triggering compact at the right moment and resuming cleanly. Each long-running agent (PI, Theorist,
   Writer) runs its own compact cycle. Compact preserves: open flags,
   active submission queue, identification notes, current spec sign-offs.
 - **aiplus-agent-velocity** — each agent has its own velocity records,

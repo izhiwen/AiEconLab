@@ -18,7 +18,7 @@ AiEconLab 建在 [AiPlus](https://github.com/izhiwen/AiPlus) agent substrate 之
 
 # 然后装 AiEconLab 依赖的四个底座模块：
 aiplus add agent-memory          # 每个 agent 的项目本地 memory
-aiplus add compact-reminder      # compact 后上下文恢复
+aiplus add compact-reminder      # 节省 token 的 compact + 结构化 resume
 aiplus add agent-velocity        # 每个 agent 的估时校准
 aiplus add auto-team-consultant  # 规划前顾问层
 ```
@@ -42,7 +42,7 @@ AiEconLab 专门解决**应用经济学研究的角色分工与执行**问题。
 | [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) | 软件工程角色漂移 | 架构相同，角色不同 —— 那个发软件工程角色，这个发研究角色 |
 | [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **失忆** —— session 之间忘记上下文 | 给单个 agent 记忆；不分角色 |
 | [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **盲点** —— 规划时漏掉关键风险 | 规划*前*建议；不执行也不持久 |
-| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **遗忘** —— compact 后丢失上下文 | 单 agent 上下文恢复；不分角色 |
+| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **烧 token** —— 长 session 反复重新加载同样上下文，token 烧得快 | compact + 结构化 resume 给单 agent 省 token；不分角色 |
 | [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **估错时** —— 估算锚在人类工时 | 校准单 agent 估算；不构建团队 |
 
 AiEconLab 和 [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) 是兄弟模块 —— 可以共存在同一个项目里（比如同时维护 paper 和 replication package 软件仓库的研究者）。
@@ -111,14 +111,14 @@ aiplus agent prune-worktrees   # 清理过期 worktree
                            ↓ uses
                aiplus-auto-team-consultant           ← 决策支持层
                            ↓ uses
-    aiplus-agent-memory   aiplus-compact-reminder   aiplus-agent-velocity
+    AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— 共享基础设施层 ———————→
 ```
 
 AiEconLab 是协调层。建在四个已有 AiPlus 插件之上：
 
 - **aiplus-agent-memory** —— 每个 agent 在 `.aiplus/agent-memory/<role>/` 下有命名空间 memory
-- **aiplus-compact-reminder** —— 每个长时运行的 agent 跑自己的 compact 循环；PI 跟踪每个 agent 的 compact 状态
+- **AiPlus-Compact-Reminder** —— 每个长时运行的 agent 跑自己的 token-saving compact 循环；PI 跟踪每个 agent 的 compact 状态
 - **aiplus-agent-velocity** —— 每个 agent 有自己的 velocity 记录，单位是研究专属的（回归 spec、表格、图、paper section）
 - **aiplus-auto-team-consultant** —— PI 在 MEDIUM 和 HEAVY 任务前触发顾问；顾问发现汇入团队简报
 

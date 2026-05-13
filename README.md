@@ -19,7 +19,7 @@ agent substrate. Install AiPlus first:
 
 # Then add the four substrate modules AiEconLab depends on:
 aiplus add agent-memory          # per-agent project-local memory
-aiplus add compact-reminder      # context recovery after compact
+aiplus add compact-reminder      # token-saving compact + structured resume
 aiplus add agent-velocity        # per-agent calibration
 aiplus add auto-team-consultant  # consult-before-plan layer
 ```
@@ -57,7 +57,7 @@ different problems:
 | [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) | Software-engineering role drift | Same architecture, different roles — that one ships SWE roles, this one ships research roles |
 | [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
 | [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **overlooks** — agent misses pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
-| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
+| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **token waste** — long sessions burn tokens reloading the same context | Compact + structured resume saves tokens for one agent; does not separate roles |
 | [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **mis-bills** — estimates anchor on human hours | Calibrates one agent's estimates; does not structure a team |
 
 AiEconLab and [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
@@ -145,7 +145,7 @@ aiplus agent prune-worktrees   # clean up stale worktrees
                            ↓ uses
                aiplus-auto-team-consultant           ← decision-support layer
                            ↓ uses
-    aiplus-agent-memory   aiplus-compact-reminder   aiplus-agent-velocity
+    AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— shared infrastructure layer ———————→
 ```
 
@@ -154,7 +154,7 @@ existing AiPlus plugins and uses them as shared infrastructure:
 
 - **aiplus-agent-memory** — each agent gets a namespaced memory under
   `.aiplus/agent-memory/<role>/`
-- **aiplus-compact-reminder** — each long-running agent runs its own compact
+- **AiPlus-Compact-Reminder** — each long-running agent runs its own token-saving compact
   cycle; PI tracks compact state per agent
 - **aiplus-agent-velocity** — each agent has its own velocity records, with
   research-specific units (regression-spec, table, figure, paper-section)
