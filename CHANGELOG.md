@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+(no unreleased changes yet — last released cut was v0.1.1)
+
+## [0.1.1] — 2026-05-13
+
+A polish release rolling up everything since v0.1.0: the 12th expert,
+the research-tuned consultant team replacing SWE default, an install
+smoke-test watchdog, a full set of community files, an honest beta
+walkthrough, and ready-to-post outreach drafts.
+
 ### Added
 
 - **LLM-as-Measurement Specialist** (12th expert) with full persona
@@ -141,5 +150,6 @@ research workflows.
 submission, working-paper posting, referee response sending, data
 sharing, and authorship changes. See DESIGN.md §16.
 
-[unreleased]: https://github.com/izhiwen/AiEconLab/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/izhiwen/AiEconLab/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/izhiwen/AiEconLab/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/izhiwen/AiEconLab/releases/tag/v0.1.0
