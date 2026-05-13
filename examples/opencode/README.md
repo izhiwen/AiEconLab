@@ -1,7 +1,7 @@
-# OpenCode example — Econ Agent Team
+# OpenCode example — AiEconLab
 
 A synthetic walkthrough of a project-kickoff sequence routed through the
-Econ Agent Team under the OpenCode runtime.
+AiEconLab under the OpenCode runtime.
 
 ## Scenario
 

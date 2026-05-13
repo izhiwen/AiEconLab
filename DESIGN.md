@@ -1,7 +1,7 @@
-# AiPlus Econ Agent Team Design
+# AiEconLab Design
 
 Status: draft v0.1.0
-Acceptance schema (binding): `.aiplus/econ-agent-team/acceptance/v0.1.0/schema.yaml`
+Acceptance schema (binding): `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`
 Scope: local-first permanent applied-economics research team, with adaptive
 coordinator and on-demand expert directory, designed to compose with the
 existing AiPlus plugin stack.
@@ -16,7 +16,7 @@ are specific to applied economics research.
 
 ## 1. One-Line Positioning
 
-`aiplus-econ-agent-team` installs a permanent virtual team of AI research
+`aieconlab` installs a permanent virtual team of AI research
 agents into a project so that an Owner (lead author / PI) can run a
 multi-role applied-economics research organization with two human-facing
 entry points (Advisor and PI) and an adaptive set of internal specialists,
@@ -25,7 +25,7 @@ all without leaving the local machine.
 In plain language:
 
 > A single AI agent in a long session forgets, drifts roles, and pollutes
-> its memory across unrelated tasks. AiPlus Econ Agent Team replaces that
+> its memory across unrelated tasks. AiEconLab replaces that
 > single agent with a small standing research team — Advisor, PI, Theorist,
 > PM, RA-Stata, RA-Python, Referee, Replicator — each with its own
 > workspace, memory, and persona, plus an on-demand expert directory the PI
@@ -67,7 +67,7 @@ The existing AiPlus plugins each address part of the problem:
 - `aiplus-agent-team` is the sibling for software engineering; this is
   the sibling for applied-economics research.
 
-`aiplus-econ-agent-team` is the role-and-execution layer for research.
+`aieconlab` is the role-and-execution layer for research.
 
 ---
 
@@ -378,7 +378,7 @@ Research-specific extensions:
 ## 12. Integration with the Existing AiPlus Stack
 
 ```
-                  aiplus-econ-agent-team             ← orchestration layer
+                  aieconlab             ← orchestration layer
                            ↓ uses
                aiplus-auto-team-consultant           ← decision-support layer
                            ↓ uses
@@ -566,7 +566,7 @@ The PI prepares; the Owner approves.
 
 ## 22. Acceptance Criteria & Auditor
 
-The acceptance schema at `.aiplus/econ-agent-team/acceptance/v0.1.0/schema.yaml`
+The acceptance schema at `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`
 is binding. Every release must pass:
 
 1. All 8 core role `.toml` files load without TOML errors.

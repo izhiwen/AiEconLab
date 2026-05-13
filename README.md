@@ -1,8 +1,32 @@
-# AiPlus Econ Agent Team
+# AiEconLab (AEL)
+
+> **A permanent virtual research team for applied economists.**
+> Eight core agents (Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee, Replicator)
+> plus an eleven-specialist expert directory. Default toolchain: Python + Stata + LaTeX.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 [中文 README](README.zh-CN.md)
+
+## Prerequisites
+
+AiEconLab is built on top of the [AiPlus](https://github.com/izhiwen/aiplus)
+agent substrate. Install AiPlus first:
+
+```bash
+# Install AiPlus (>= 0.5.2)
+# Follow https://github.com/izhiwen/aiplus
+
+# Then add the four substrate modules AiEconLab depends on:
+aiplus add agent-memory          # per-agent project-local memory
+aiplus add compact-reminder      # context recovery after compact
+aiplus add agent-velocity        # per-agent calibration
+aiplus add auto-team-consultant  # consult-before-plan layer
+```
+
+AiEconLab is intentionally a separate project (`github.com/izhiwen/aieconlab`)
+with its own release cycle and audience, even though it uses the AiPlus
+substrate for memory, compact, velocity, and consult-before-plan.
 
 ## The pain
 
@@ -24,11 +48,11 @@ structured.
 
 ### Not these other pains
 
-AiPlus Econ Agent Team is specifically about **role separation and execution**
+AiEconLab is specifically about **role separation and execution**
 for applied-economics research. Other AiPlus plugins solve adjacent but
 different problems:
 
-| Plugin | Pain it solves | Why it is not Econ Agent Team |
+| Plugin | Pain it solves | Why it is not AiEconLab |
 |---|---|---|
 | [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team) | Software-engineering role drift | Same architecture, different roles — that one ships SWE roles, this one ships research roles |
 | [aiplus-agent-memory](https://github.com/izhiwen/aiplus-agent-memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
@@ -36,7 +60,7 @@ different problems:
 | [aiplus-compact-reminder](https://github.com/izhiwen/aiplus-compact-reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
 | [aiplus-agent-velocity](https://github.com/izhiwen/aiplus-agent-velocity) | **mis-bills** — estimates anchor on human hours | Calibrates one agent's estimates; does not structure a team |
 
-Econ Agent Team and [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
+AiEconLab and [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
 are siblings — they can coexist in the same project (e.g. a researcher who
 also maintains a replication package as a software repo).
 
@@ -44,7 +68,7 @@ also maintains a replication package as a software repo).
 
 **Replace single-agent drift with a permanent research team.**
 
-AiPlus Econ Agent Team installs a permanent virtual team of eight core roles
+AiEconLab installs a permanent virtual team of eight core roles
 into your project: Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee,
 and Replicator. Each role has its own persona, workspace, and memory
 namespace. The Owner (you, the lead author) talks only to Advisor and PI; the
@@ -81,7 +105,7 @@ Add the module to your project:
 
 ```bash
 cd MyResearchProject
-aiplus add econ-agent-team
+aiplus add aieconlab
 aiplus install codex          # or: claude-code, opencode, all
 ```
 
@@ -117,7 +141,7 @@ aiplus agent prune-worktrees   # clean up stale worktrees
 ## Architecture overview
 
 ```
-                  aiplus-econ-agent-team             ← orchestration layer
+                  aieconlab             ← orchestration layer
                            ↓ uses
                aiplus-auto-team-consultant           ← decision-support layer
                            ↓ uses
@@ -125,7 +149,7 @@ aiplus agent prune-worktrees   # clean up stale worktrees
                ←——————— shared infrastructure layer ———————→
 ```
 
-Econ Agent Team is the orchestration layer. It sits on top of the four
+AiEconLab is the orchestration layer. It sits on top of the four
 existing AiPlus plugins and uses them as shared infrastructure:
 
 - **aiplus-agent-memory** — each agent gets a namespaced memory under
@@ -175,7 +199,7 @@ and execution for applied-economics research, not software engineering and
 not advisory consulting).
 
 1. **Open an issue first** for anything larger than a typo fix — the
-   `aiplus-econ-agent-team` scope is tightly bounded.
+   `aieconlab` scope is tightly bounded.
 2. **Follow the existing TOML + markdown persona pattern** — per-agent
    config lives in `.aiplus/agents/<role>.toml`, persona prompt in
    `.aiplus/agents/personas/<role>.md`.
@@ -184,12 +208,12 @@ not advisory consulting).
 4. **Run `aiplus agent doctor`** after config changes to validate worktrees,
    memory layout, and TOML schema.
 5. **Acceptance criteria** are binding — see
-   `.aiplus/econ-agent-team/acceptance/v0.1.0/schema.yaml`. Any behavioral change
+   `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`. Any behavioral change
    must update the schema and its sibling `.test.sh`.
 
 ## Safety boundaries
 
-AiPlus Econ Agent Team does not:
+AiEconLab does not:
 
 - upload agent state, persona, memory, or transcript to any service
 - run as a background daemon or persistent process

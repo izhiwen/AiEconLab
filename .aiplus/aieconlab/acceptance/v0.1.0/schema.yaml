@@ -1,6 +1,6 @@
 ---
 # =====================================================================
-# AiPlus Econ Agent Team — Acceptance Criteria Schema v0.1.0
+# AiEconLab — Acceptance Criteria Schema v0.1.0
 # =====================================================================
 # Sibling of agent-team's acceptance schema. This v0.1.0 is intentionally
 # narrower than agent-team's v0.1.4 — it covers the structural invariants

@@ -1,7 +1,7 @@
-# Codex example — Econ Agent Team
+# Codex example — AiEconLab
 
 A synthetic walkthrough of an end-to-end research task routed through the
-Econ Agent Team under the codex runtime.
+AiEconLab under the codex runtime.
 
 ## Scenario
 

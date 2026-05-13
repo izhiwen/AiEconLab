@@ -1,4 +1,4 @@
-# AiPlus Econ Agent Team — codex Adapter
+# AiEconLab — codex Adapter
 
 Placeholder for codex runtime adapter.
 

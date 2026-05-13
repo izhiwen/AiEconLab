@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# AiPlus Econ Agent Team — acceptance test for v0.1.0 schema.
+# AiEconLab — acceptance test for v0.1.0 schema.
 #
 # Validates the structural invariants declared in
 # .aiplus/agent-team/acceptance/v0.1.0/schema.yaml.

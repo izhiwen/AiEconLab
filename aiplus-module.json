@@ -1,10 +1,20 @@
 {
   "schemaVersion": "0.1.0",
-  "name": "econ-agent-team",
-  "displayName": "AiPlus Econ Agent Team",
+  "name": "aieconlab",
+  "displayName": "AiEconLab",
   "version": "0.1.0",
   "source": "bundled",
   "license": "Apache-2.0",
+  "abbreviation": "AEL",
+  "requires": {
+    "aiplus_min_version": "0.5.2",
+    "substrate_modules": [
+      "aiplus-agent-memory",
+      "aiplus-compact-reminder",
+      "aiplus-agent-velocity",
+      "aiplus-auto-team-consultant"
+    ]
+  },
   "requiredFiles": [
     "core/templates/advisor.toml",
     "core/templates/pi.toml",
@@ -18,15 +28,16 @@
     "core/templates/personas/advisor.md"
   ],
   "managedFiles": [
-    ".aiplus/modules/aiplus-econ-agent-team",
+    ".aiplus/modules/aieconlab",
     ".aiplus/agents",
     ".aiplus/agent-memory",
     ".aiplus/agent-workspaces"
   ],
   "runtimeAdapters": ["codex", "claude-code", "opencode"],
   "installHints": [
-    "Install permanent virtual applied-economics research team with 8 core roles and expert directory.",
+    "Install permanent virtual applied-economics research team (AiEconLab / AEL) with 8 core roles and expert directory.",
     "Default toolchain: Python + Stata + LaTeX. Requires git for worktree provisioning.",
+    "Depends on aiplus >= 0.5.2 and the four substrate modules listed in `requires.substrate_modules`.",
     "Sibling to aiplus-agent-team; the two can be installed in the same project."
   ],
   "doctorChecks": [
@@ -65,10 +76,11 @@
     ]
   },
   "legacyStatus": {
-    "status": "new-econ-team-foundation",
+    "status": "new-aieconlab-foundation",
     "notes": [
-      "Introduced as a sibling to aiplus-agent-team for applied-economics research workflows.",
-      "Core 8 roles mirror agent-team's tier structure but are renamed for academic research."
+      "AiEconLab (abbreviation: AEL) introduced as a sibling to aiplus-agent-team for applied-economics research workflows.",
+      "Core 8 roles mirror agent-team's tier structure but are renamed for academic research.",
+      "Brand-decoupled from AiPlus but functionally depends on the AiPlus substrate."
     ]
   }
 }

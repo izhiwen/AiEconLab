@@ -1,4 +1,4 @@
-# AiPlus Econ Agent Team — opencode Adapter
+# AiEconLab — opencode Adapter
 
 Placeholder for opencode runtime adapter.
 

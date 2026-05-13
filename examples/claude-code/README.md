@@ -1,7 +1,7 @@
-# Claude Code example — Econ Agent Team
+# Claude Code example — AiEconLab
 
 A synthetic walkthrough of an end-to-end research task routed through the
-Econ Agent Team under the Claude Code runtime.
+AiEconLab under the Claude Code runtime.
 
 ## Scenario
 

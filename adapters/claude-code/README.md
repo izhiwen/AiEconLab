@@ -1,4 +1,4 @@
-# AiPlus Econ Agent Team — claude-code Adapter
+# AiEconLab — claude-code Adapter
 
 Placeholder for claude-code runtime adapter.
 
