@@ -190,11 +190,18 @@ pass "stop_gates_present_in_pi"
 ct="core/templates/consultant-team.aieconlab.toml"
 [ -f "$ct" ] || fail "missing consultant team TOML: $ct"
 toml_parse "$ct" || fail "TOML parse failure: $ct"
-required_lens_ids=(design contribution reproducibility irb llm_measurement user_referee user_jmp_audience user_replicator)
-for lens in "${required_lens_ids[@]}"; do
-  grep -q "lens_id = \"${lens}\"" "$ct" \
-    || fail "consultant team missing lens_id: $lens"
+required_member_ids=(coordinator design contribution reproducibility irb ai_integration)
+for mid in "${required_member_ids[@]}"; do
+  grep -q "id = \"${mid}\"" "$ct" \
+    || fail "consultant team missing member id: $mid"
 done
+required_persona_ids=(top_tier_referee jmp_audience external_replicator)
+for pid in "${required_persona_ids[@]}"; do
+  grep -q "id = \"${pid}\"" "$ct" \
+    || fail "consultant team missing user_evidence persona: $pid"
+done
+grep -q '^\[user_evidence\]' "$ct" \
+  || fail "consultant team missing [user_evidence] section"
 required_gates=(submission working-paper-post referee-response-send data-share authorship-change)
 for gate in "${required_gates[@]}"; do
   grep -q "id = \"${gate}\"" "$ct" \
@@ -202,7 +209,7 @@ for gate in "${required_gates[@]}"; do
 done
 grep -q 'light.review_mode.*=.*"skip"' "$ct" \
   || fail "consultant team LIGHT tier must skip consult (light.review_mode = \"skip\")"
-pass "consultant_team_present (5 seats + 3 personas + 5 gates, LIGHT skips)"
+pass "consultant_team_present (5 seats + [user_evidence] with 3 personas + 5 gates, LIGHT skips)"
 
 # ---------------------------------------------------------------------
 # done

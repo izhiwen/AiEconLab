@@ -112,19 +112,21 @@ core_invariants:
     parse_as: markdown
 
   - id: consultant_team_present
-    description: "AEL research-tuned consultant team TOML exists and declares all 5 expert seats + 3 personas + 5 owner gates."
+    description: "AEL research-tuned consultant team TOML exists and declares all 5 expert seats (members), 3 user personas ([user_evidence.personas]), and 5 owner gates."
     files_required:
       - "{core_templates_dir}/consultant-team.aieconlab.toml"
     parse_as: toml
-    must_contain_lens_ids:
+    must_contain_member_ids:
+      - coordinator
       - design
       - contribution
       - reproducibility
       - irb
-      - llm_measurement
-      - user_referee
-      - user_jmp_audience
-      - user_replicator
+      - ai_integration
+    must_contain_user_evidence_persona_ids:
+      - top_tier_referee
+      - jmp_audience
+      - external_replicator
     must_contain_owner_gates:
       - submission
       - working-paper-post
