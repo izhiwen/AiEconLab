@@ -2,7 +2,7 @@
 
 > **面向应用经济学家的永久虚拟研究团队。**
 > 8 个核心角色（Advisor / PI / Theorist / PM / RA-Stata / RA-Python / Referee / Replicator）
-> 加 12 位专家。默认工具栈 Python + Stata + LaTeX。
+> 加上 12 位专家。默认工具栈 Python + Stata + LaTeX。
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 

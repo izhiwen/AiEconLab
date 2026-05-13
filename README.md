@@ -2,7 +2,7 @@
 
 > **A permanent virtual research team for applied economists.**
 > Eight core agents (Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee, Replicator)
-> plus an twelve-specialist expert directory. Default toolchain: Python + Stata + LaTeX.
+> plus a twelve-specialist expert directory. Default toolchain: Python + Stata + LaTeX.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
