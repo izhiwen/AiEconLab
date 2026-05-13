@@ -39,13 +39,13 @@ AiEconLab 专门解决**应用经济学研究的角色分工与执行**问题。
 
 | 插件 | 解决的痛 | 为什么不是 AiEconLab |
 |---|---|---|
-| [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team) | 软件工程角色漂移 | 架构相同，角色不同 —— 那个发软件工程角色，这个发研究角色 |
-| [aiplus-agent-memory](https://github.com/izhiwen/aiplus-agent-memory) | **失忆** —— session 之间忘记上下文 | 给单个 agent 记忆；不分角色 |
-| [aiplus-auto-team-consultant](https://github.com/izhiwen/aiplus-auto-team-consultant) | **盲点** —— 规划时漏掉关键风险 | 规划*前*建议；不执行也不持久 |
-| [aiplus-compact-reminder](https://github.com/izhiwen/aiplus-compact-reminder) | **遗忘** —— compact 后丢失上下文 | 单 agent 上下文恢复；不分角色 |
-| [aiplus-agent-velocity](https://github.com/izhiwen/aiplus-agent-velocity) | **估错时** —— 估算锚在人类工时 | 校准单 agent 估算；不构建团队 |
+| [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) | 软件工程角色漂移 | 架构相同，角色不同 —— 那个发软件工程角色，这个发研究角色 |
+| [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **失忆** —— session 之间忘记上下文 | 给单个 agent 记忆；不分角色 |
+| [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **盲点** —— 规划时漏掉关键风险 | 规划*前*建议；不执行也不持久 |
+| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **遗忘** —— compact 后丢失上下文 | 单 agent 上下文恢复；不分角色 |
+| [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **估错时** —— 估算锚在人类工时 | 校准单 agent 估算；不构建团队 |
 
-AiEconLab 和 [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team) 是兄弟模块 —— 可以共存在同一个项目里（比如同时维护 paper 和 replication package 软件仓库的研究者）。
+AiEconLab 和 [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) 是兄弟模块 —— 可以共存在同一个项目里（比如同时维护 paper 和 replication package 软件仓库的研究者）。
 
 ## 解决方案
 
@@ -168,7 +168,7 @@ AiEconLab 不会：
 ## 更多
 
 - 主平台：[aiplus](https://github.com/izhiwen/AiPlus)
-- 兄弟模块：[aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
+- 兄弟模块：[AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
 
 ## 许可证
 

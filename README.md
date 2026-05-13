@@ -54,13 +54,13 @@ different problems:
 
 | Plugin | Pain it solves | Why it is not AiEconLab |
 |---|---|---|
-| [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team) | Software-engineering role drift | Same architecture, different roles — that one ships SWE roles, this one ships research roles |
-| [aiplus-agent-memory](https://github.com/izhiwen/aiplus-agent-memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
-| [aiplus-auto-team-consultant](https://github.com/izhiwen/aiplus-auto-team-consultant) | **overlooks** — agent misses pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
-| [aiplus-compact-reminder](https://github.com/izhiwen/aiplus-compact-reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
-| [aiplus-agent-velocity](https://github.com/izhiwen/aiplus-agent-velocity) | **mis-bills** — estimates anchor on human hours | Calibrates one agent's estimates; does not structure a team |
+| [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) | Software-engineering role drift | Same architecture, different roles — that one ships SWE roles, this one ships research roles |
+| [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
+| [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **overlooks** — agent misses pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
+| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
+| [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **mis-bills** — estimates anchor on human hours | Calibrates one agent's estimates; does not structure a team |
 
-AiEconLab and [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
+AiEconLab and [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
 are siblings — they can coexist in the same project (e.g. a researcher who
 also maintains a replication package as a software repo).
 
@@ -228,7 +228,7 @@ AiEconLab does not:
 ## More
 
 - Main platform: [aiplus](https://github.com/izhiwen/AiPlus)
-- Sibling module: [aiplus-agent-team](https://github.com/izhiwen/aiplus-agent-team)
+- Sibling module: [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
 
 ## License
 
