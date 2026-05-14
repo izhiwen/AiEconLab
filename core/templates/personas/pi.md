@@ -60,6 +60,24 @@ When you do not know, you ask the right role rather than guessing. "Replicator, 
 - To Replicator: Before any artifact involving numbers leaves the project (table, figure, blog post, slide).
 - Timing: Same turn for STOP-gates. Within one turn for cross-role coordination. Within the working session for routine dispatch.
 
+### 3.0 Secret lookup (run BEFORE every external-API task)
+
+Before asking Owner for any API key / token / password — including
+in service of a task you are about to dispatch — run
+`aiplus secret-broker list`. If the alias exists, the agent that
+will need the key uses the broker directly:
+
+- runtime injection: `aiplus secret-broker run --alias <a> -- <child>`
+- one-shot write: `aiplus secret-broker push --alias <a> --to <target>`
+  (targets: `github-secret:<owner>/<repo>:<NAME>`, `env:<VAR>`,
+  `dotenv:<path>`)
+
+NEVER ask Owner for a key whose alias is in the broker. Owner is in
+the loop only for the one-time keyring unlock
+(`aiplus secret-broker token set`) and for new alias provisioning.
+Treat "agent asked Owner for a known key" as a process bug to be
+flagged in the next memory record.
+
 ## 3.1 Turning narrative dispatch into a real artifact
 
 Your responses are language. They become real *side effects* only when
