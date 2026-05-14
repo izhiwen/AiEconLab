@@ -8,6 +8,18 @@
 
 [中文 README](README.zh-CN.md)
 
+---
+
+## 🔬 Live validation evidence
+
+AiEconLab's **LLM-as-Measurement Specialist** role codifies the methodology I developed for treating large language models as a measurement instrument on contested archival text. The reproducible companion to that role lives at **[Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)** — 294 19th-century Classical Chinese documents independently scored by **ChatGPT, Gemini, Claude, Qwen, and DeepSeek**; pairwise score correlations 0.85–0.95 (mean 0.92). Public-facing companion to my JMP, *Democratic Exposure and Elite Ideology: Evidence from Treaty Ports in Imperial China*.
+
+![Pairwise LLM correlation heatmap (294 archival docs × 5 frontier LLMs, mean ρ ≈ 0.92)](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
+
+For an in-place beta walkthrough of AiEconLab running on a synthetic applied-econ kickoff, see **[`docs/beta-walkthrough.md`](docs/beta-walkthrough.md)** (honest log of what works today vs. what doesn't — captured 2026-05-13 against `aiplus v0.5.9` + AEL HEAD).
+
+---
+
 ## Prerequisites
 
 AiEconLab is built on top of the [AiPlus](https://github.com/izhiwen/AiPlus)
