@@ -95,7 +95,7 @@ pass "experts_present (12 expert TOMLs, all parse)"
 # ---------------------------------------------------------------------
 # core invariant: shipped_expert_personas_present
 # ---------------------------------------------------------------------
-shipped_experts=(lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement)
+shipped_experts=(lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement survey-experiment computation coauthor-liaison)
 for expert in "${shipped_experts[@]}"; do
   f="core/templates/personas/${expert}.md"
   [ -f "$f" ] || fail "missing shipped expert persona: $f"
@@ -103,17 +103,16 @@ for expert in "${shipped_experts[@]}"; do
   [ "$size" -ge 500 ] \
     || fail "shipped expert persona too small (<500B): $f ($size bytes)"
 done
-pass "shipped_expert_personas_present (9 shipped, all >=500B)"
+pass "shipped_expert_personas_present (12 shipped, all >=500B)"
 
 # ---------------------------------------------------------------------
-# core invariant: stub_expert_personas_present
+# core invariant: stub_expert_personas — historical placeholder
 # ---------------------------------------------------------------------
-stub_experts=(survey-experiment computation coauthor-liaison)
-for expert in "${stub_experts[@]}"; do
-  f="core/templates/personas/_stubs/${expert}.md"
-  [ -f "$f" ] || fail "missing stub expert persona: $f"
-done
-pass "stub_expert_personas_present (3 stubs)"
+# W5 promoted survey-experiment / computation / coauthor-liaison from
+# `_stubs/` to full shipped personas (see shipped_experts above). The
+# `_stubs/` directory is intentionally empty after W5; future stubs
+# can be added here.
+pass "stub_expert_personas (none — all promoted in W5)"
 
 # ---------------------------------------------------------------------
 # core invariant: module_manifest_present
