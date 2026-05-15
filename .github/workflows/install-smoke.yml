@@ -64,7 +64,18 @@ jobs:
           rsync -a --delete \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='*.gif' \
+            --exclude='*.png' \
+            --exclude='*.jpg' \
+            --exclude='*.mp4' \
+            --exclude='*.mov' \
             aieconlab/ aiplus/assets/aieconlab/
+          # Heavy README assets (demo.gif, screenshots) live in the AEL
+          # repo for GitHub README rendering but are intentionally NOT
+          # vendored into the aiplus CLI binary — aiplus-public/build.rs
+          # enforce_public_asset_policy rejects these extensions to keep
+          # the embedded bundle small. Matches the symmetric exclusion
+          # aiplus-public applies on its own sync side.
           echo "Vendored AEL HEAD into aiplus/assets/aieconlab/"
           ls aiplus/assets/aieconlab/core/templates/experts/ | wc -l
           ls aiplus/assets/aieconlab/core/templates/consultant-team*.toml
