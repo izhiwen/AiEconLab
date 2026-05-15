@@ -1,209 +1,209 @@
 # AiEconLab (AEL)
-
-> **A permanent virtual research team for applied economists.**
-> Eight core agents (Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee, Replicator)
-> plus a twelve-specialist expert directory. Default toolchain: Python + Stata + LaTeX.
-
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 [中文 README](README.zh-CN.md)
 
----
+I've been writing applied-economics papers with AI assistants for over a year
+— mostly Claude Code, sometimes Codex, OpenCode for long replication runs.
+For the first few months it felt magical. Then I noticed the same things
+breaking every paper, every session: I'd ask the agent to clean data on
+Monday, by Friday it had forgotten my variable names. I'd ask the same chat
+to write the intro AND debug Stata, and the intro started reading like
+Stata syntax. When I asked for an identification strategy critique, it gave
+me prose that mixed referee voice with my own. **One agent wearing every
+hat does each hat shallowly — just like one person trying to be PI + RA +
+Theorist + Referee simultaneously would.**
 
-## 🔬 Live validation evidence
+AiEconLab gives your AI a research team structure instead. You get a
+**PI**, two **RAs** (one Stata, one Python), a **Theorist**, a **Referee**,
+a **Replicator**, a **PM**, and an **Advisor** — eight role-separated
+agents, each with its own memory, workspace, and personality, plus 12
+specialist experts (Lit Reviewer, Writer, Econometrician, **LLM-as-
+Measurement Specialist**, Reproducibility Engineer, …) the PI summons when
+the task calls for it. You talk to Advisor and PI; PI handles the rest.
 
-AiEconLab's **LLM-as-Measurement Specialist** role codifies the methodology I developed for treating large language models as a measurement instrument on contested archival text. The reproducible companion to that role lives at **[Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)** — 294 19th-century Classical Chinese documents independently scored by **ChatGPT, Gemini, Claude, Qwen, and DeepSeek**; pairwise score correlations 0.85–0.95 (mean 0.92). Public-facing companion to my JMP, *Democratic Exposure and Elite Ideology: Evidence from Treaty Ports in Imperial China*.
+![AiEconLab 30-second tour](docs/demo.gif)
+
+## The pains an applied-econ AI workflow keeps hitting
+
+If you've been driving an AI assistant through a real research project, these
+probably feel familiar:
+
+1. **The agent forgets your paper between sessions.** Monday you teach it the
+   variable conventions for your panel. Wednesday it asks again. By Friday
+   you have re-explained your identification strategy four times.
+2. **One chat does everything, badly.** You asked the same window to argue
+   the IV exclusion restriction, debug a Stata syntax error, and draft a
+   paragraph for the intro — now the intro paragraph references `gen` and
+   `egen`, and the IV critique is buried under printlns.
+3. **Long projects burn tokens on `/compact`.** Either you `/compact`-ed too
+   late (agent has been re-reading 20K-token history every turn for hours)
+   or too early (next session burns its first 20% re-explaining your
+   identification strategy you already nailed down).
+4. **Plan-time blind spots cost a referee response cycle.** The agent
+   drafted a submission plan that missed IRB renewal, missed data-sharing
+   restrictions on the historical archive, missed a Stata version dependency
+   that breaks AEA reviewer's replication run. You find out in R&R.
+5. **Estimates anchor on human-engineer hours.** Agent says "this takes 5
+   hours" for a robustness table. Twenty minutes later it's done. No one
+   keeps the score, so next time it says 5 hours again.
+6. **Cross-paper amnesia.** Six months tuning the agent to your workflow on
+   Paper A — naming style, identification taste, robustness habits, referee
+   voice. Paper B starts and the agent has never met you.
+
+AEL + the AiPlus substrate it sits on treat all six pains. AEL specifically
+fixes the **role-separation** part (pain #2) and **plan-time blind spots**
+(pain #4) with an applied-econ-tuned consultant team. Memory, compact, key
+storage, velocity calibration, and the cross-project profile bundle come
+from [AiPlus](https://github.com/izhiwen/AiPlus) and its companion
+[AiPlus-Work-with-Me](https://github.com/izhiwen/AiPlus-Work-with-Me).
+
+## What you get — eight roles, each with its own desk
+
+You install AEL into a project once. Then:
+
+- **PI** — your research lead. Owns the high-level plan, decides who
+  works on what, integrates results back. The PI is who you talk to when
+  you say "let's pivot the spec," "what's blocking the submission?",
+  "summarize where we are."
+- **Theorist** — argues identification, instruments, exclusion
+  restrictions, structural assumptions. Doesn't write code; writes
+  critiques of your strategy.
+- **RA-Stata** — does only Stata. Cleans data, runs regressions,
+  produces tables. Its memory is "what your variables mean and how your
+  panel is shaped," not "what your intro paragraph says."
+- **RA-Python** — does only Python. Same role as RA-Stata, different
+  toolchain. Runs in parallel in its own git worktree, so the two RAs
+  can't silently overwrite each other.
+- **Referee** — pre-reads your draft like a real referee would. Catches
+  the IV exclusion holes, the missing first-stage F-stat, the unaddressed
+  reverse-causality story before you submit.
+- **Replicator** — exists to break your replication package. Re-runs
+  your pipeline on a clean machine, surfaces dependency drift, AEA
+  data-editor blockers, missing seed values.
+- **PM** — keeps milestones, deadlines, blockers, and submission
+  calendars. The role you talk to when you ask "what's due Friday?"
+- **Advisor** — meta-reviewer for the project itself. The role you
+  talk to when you're stuck deciding *what* to do, not *how*.
+
+Plus a **12-specialist expert directory** (Lit Reviewer, Writer,
+Econometrician, **LLM-as-Measurement Specialist**, Reproducibility
+Engineer, Historical Sources, Job Talk Coach, Survey-Experiment Designer,
+Computation, Coauthor Liaison, IRB-Disclosure Specialist, Contribution-
+Framing Coach) the PI summons when a task matches their triggers.
+
+Default toolchain: **Python + Stata + LaTeX**. R and Julia supported when
+you declare them in your project config.
+
+### 🔬 The LLM-as-Measurement Specialist (AEL's killer role)
+
+If your paper uses LLMs to score archival or unstructured text — and if
+that scoring is going to drive an empirical result — the validity
+question matters more than the prompt-engineering. AEL's **LLM-as-
+Measurement Specialist** codifies the methodology I developed for treating
+LLMs as a measurement instrument: multi-LLM agreement, held-out
+validation, inter-rater statistics, prompt-version stability.
+
+The reproducible companion to this role:
+[**Multi-LLM-Validation-Demo**](https://github.com/izhiwen/Multi-LLM-Validation-Demo)
+— 294 19th-century Classical Chinese documents independently scored by
+**ChatGPT, Gemini, Claude, Qwen, and DeepSeek**; pairwise score
+correlations 0.85–0.95 (mean 0.92). Public-facing companion to my JMP,
+*Democratic Exposure and Elite Ideology: Evidence from Treaty Ports in
+Imperial China*.
 
 ![Pairwise LLM correlation heatmap (294 archival docs × 5 frontier LLMs, mean ρ ≈ 0.92)](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
 
-For an in-place beta walkthrough of AiEconLab running on a synthetic applied-econ kickoff, see **[`docs/beta-walkthrough.md`](docs/beta-walkthrough.md)** (honest log of what works today vs. what doesn't — captured 2026-05-13 against `aiplus v0.5.9` + AEL HEAD).
+## Install — three commands
 
----
-
-## Prerequisites
-
-AiEconLab is built on top of the [AiPlus](https://github.com/izhiwen/AiPlus)
-agent substrate. Install AiPlus first:
+AEL runs on top of [AiPlus](https://github.com/izhiwen/AiPlus). If you
+haven't installed AiPlus yet:
 
 ```bash
-# Install AiPlus (>= 0.5.2)
-# Follow https://github.com/izhiwen/AiPlus
-
-# Then add the three substrate modules AiEconLab depends on:
-aiplus add agent-memory          # per-agent project-local memory
-aiplus add compact-reminder      # token-saving compact + structured resume
-aiplus add auto-team-consultant  # consult-before-plan layer
-# (velocity calibration is built into the aiplus CLI; no separate add needed)
+curl -fsSL https://raw.githubusercontent.com/izhiwen/AiPlus/main/install.sh | bash
 ```
 
-AiEconLab is intentionally a separate project (`github.com/izhiwen/AiEconLab`)
-with its own release cycle and audience, even though it uses the AiPlus
-substrate for memory, compact, velocity, and consult-before-plan.
-
-## The pain
-
-You ask the agent to scope a paper, then clean the data, then run identification,
-then write the introduction, then prepare a referee response. By the third task
-it has **drifted**: the same prompt history now contains research design
-intuition, Stata syntax, lit-review fragments, and rebuttal language, and the
-output is none of them well.
-
-Worse, the shared context **pollutes** across roles. A theorist's framing leaks
-into the empirical RA's regression spec. Lit-review notes get buried under
-debug printlns from data cleaning. Robustness checks age out of the window
-because of irrelevant scratch.
-
-You try to compensate by giving the agent more hats. But one agent wearing
-PI, Theorist, Econometrician, RA, Referee, and Replicator does each hat
-**shallowly**. Real research projects divide labor because the work *is* that
-structured.
-
-### Not these other pains
-
-AiEconLab is specifically about **role separation and execution**
-for applied-economics research. Other AiPlus plugins solve adjacent but
-different problems:
-
-| Plugin | Pain it solves | Why it is not AiEconLab |
-|---|---|---|
-| [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) | Software-engineering role drift | Same architecture, different roles — that one ships SWE roles, this one ships research roles |
-| [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
-| [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **overlooks** — agent misses pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
-| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **token waste** — long sessions burn tokens reloading the same context | Compact + structured resume saves tokens for one agent; does not separate roles |
-| [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **mis-bills** — estimates anchor on human hours | Calibrates one agent's estimates; does not structure a team |
-
-AiEconLab and [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
-are siblings — they can coexist in the same project (e.g. a researcher who
-also maintains a replication package as a software repo).
-
-## What we do about it
-
-**Replace single-agent drift with a permanent research team.**
-
-AiEconLab installs a permanent virtual team of eight core roles
-into your project: Advisor, PI, Theorist, PM, RA-Stata, RA-Python, Referee,
-and Replicator. Each role has its own persona, workspace, and memory
-namespace. The Owner (you, the lead author) talks only to Advisor and PI; the
-PI orchestrates the rest.
-
-The records cover:
-
-- **Role isolation** — each agent loads only its own persona and personal
-  memory. An RA does not see the Theorist's reasoning, and vice versa.
-- **Git worktree workspaces** — code-touching roles get isolated working
-  directories so RA-Stata and RA-Python can work in parallel without
-  stepping on each other. Conflicts surface through git, not silent overwrites.
-- **Three-layer memory** — personal (per-agent), team (PI-shared), and
-  project (existing `.aiplus/memory/`). Project memory wins on conflict, so
-  a team-of-the-day decision never overrides durable project consensus.
-- **Expert directory** — twelve specialists (Lit Reviewer, Writer,
-  Econometrician, Reproducibility Engineer, Historical Sources, Job Talk
-  Coach, and others) sit dormant until the PI summons them for tasks that
-  match their triggers.
-- **Adaptive routing** — the PI scores each task (LIGHT, MEDIUM, HEAVY) and
-  staffs only the roles that are needed. A quick coding fix gets a single
-  RA; a draft submission gets the full council.
-
-Default toolchain is **Python + Stata + LaTeX**. R and Julia are supported
-when the project declares them.
-
-No daemon. No cloud sync. No upload. Each agent is state-level permanent —
-its files live on disk, but the process is ephemeral, spawned only when the
-PI routes a task.
-
-## Install
-
-There are two paths. Pick whichever fits.
-
-### Path A — bundled (the default, recommended)
-
-If your `aiplus` CLI is recent enough (≥ v0.5.2), AiEconLab ships
-inside the CLI binary as a bundled module. Add it to a project with:
+Then in your research project:
 
 ```bash
-cd MyResearchProject
+cd MyPaperProject
+aiplus install claude-code       # or: codex, opencode, all
 aiplus add aieconlab
-aiplus install codex          # or: claude-code, opencode, all
 ```
 
-This is the simplest path. The version you get is whatever was bundled
-at the time your `aiplus` CLI was built. Run `aiplus self update` first
-if you want the latest bundle.
+That's it. `aiplus agent status` will now show 8 core research roles
+(Advisor / PI / Theorist / PM / RA-Stata / RA-Python / Referee / Replicator)
+plus 12 expert seats sitting dormant on the bench.
 
-### Path B — external from GitHub (live HEAD, requires aiplus ≥ v0.5.4)
-
-If you want the absolute latest AiEconLab without waiting for an
-`aiplus` CLI release, install directly from this repo:
+### Verify
 
 ```bash
-cd MyResearchProject
-aiplus add --from-git https://github.com/izhiwen/AiEconLab
-aiplus install codex          # or: claude-code, opencode, all
+aiplus agent status              # show the team roster
+aiplus agent doctor              # validate worktrees, memory layout, configs
 ```
 
-You can pin to a specific tag, branch, or commit:
+## Daily use — talk to PI, PI talks to the team
+
+Most of the time you just route through the PI:
 
 ```bash
-aiplus add --from-git https://github.com/izhiwen/AiEconLab@v0.1.0
-aiplus add --from-git https://github.com/izhiwen/AiEconLab@main
+aiplus agent route pi "estimate the main IV spec with cluster-robust SEs"
+# PI scores task → picks RA-Stata → returns regression output
+
+aiplus agent route pi "draft the introduction paragraph linking exposure → outcome"
+# PI scores task → picks Writer expert + Theorist → returns prose
+
+aiplus agent route pi "prepare referee response to the IV exogeneity criticism"
+# PI scores task → picks Referee + Theorist + Writer → returns draft response
 ```
 
-When to pick which:
-
-- **Bundled** = stable, fast install, fixed at CLI build time, hardened
-  against breakage in the CLI. **This is the default we recommend.**
-- **`--from-git`** = bleeding edge, picks up AEL repo changes between
-  AiPlus CLI releases. Useful when AEL ships a fix that the next
-  AiPlus release hasn't bundled yet. Slightly slower (clones the repo).
-
-### What the install does
-
-`aiplus add aieconlab` (either path) does three things:
-
-1. Installs all 8 core role configs + personas (Advisor, PI, Theorist, PM,
-   RA-Stata, RA-Python, Referee, Replicator).
-2. Installs all 12 expert configs (9 shipped, 3 v0.2 stubs).
-3. **Replaces** the default SWE consultant team
-   (`.aiplus/consultant-team.toml` from `AiPlus-Auto-Team-Consultant`)
-   with `consultant-team.aieconlab.toml` — 5 expert seats designed from
-   first principles for applied-econ research at plan time, 3 user
-   personas, 5 owner gates mirroring AEL DESIGN §16 STOP-gates, LIGHT
-   tier skips consult by design.
-
-If you also have `aiplus-agent-team` (SWE) installed in the same project,
-the AEL consultant config overwrites the SWE one — coexistence of both
-consultant configs is on the v0.2 roadmap.
-
-## Quick start
+You can also talk to a specific role directly:
 
 ```bash
-aiplus agent status              # Show team roster, active experts, warm bench
-aiplus agent route ra-stata      # Assign task to RA-Stata
-aiplus agent integrate ra-stata  # Merge RA-Stata's branch back into main
-aiplus agent audit run           # Run acceptance audit
+aiplus agent talk ra-stata       # direct chat with RA-Stata
+aiplus agent talk theorist       # direct chat with Theorist
+aiplus agent invite lit-reviewer # bring an expert onto the active roster
+aiplus agent dismiss lit-reviewer
+aiplus agent transcript          # see recent role activity (audit trail)
 ```
 
-Route a task through the PI:
-
-```text
-aiplus agent route "estimate the main IV spec with cluster-robust SEs"
-```
-
-The PI scores the task, picks the right team members, and reports back.
-
-Other everyday commands:
+When work needs integrating back into your main branch:
 
 ```bash
-aiplus agent doctor            # validate configs, worktrees, memory layout
-aiplus agent list              # list all roles (core + expert)
-aiplus agent talk theorist     # direct conversation with one role
-aiplus agent invite lit-reviewer       # add an expert to the active team
-aiplus agent dismiss lit-reviewer      # remove expert from active team
-aiplus agent transcript        # show recent activity for audit
-aiplus agent prune-worktrees   # clean up stale worktrees
+aiplus agent integrate ra-stata  # merge RA-Stata's worktree back
+aiplus agent audit run           # full acceptance audit before submission
 ```
 
-## Architecture overview
+## Why "team" rather than "one smarter agent"
+
+Three concrete reasons, observed across my own paper drafts:
+
+1. **Memory stays clean.** RA-Stata's memory holds your variable
+   conventions and Stata habits. It doesn't get polluted by intro-paragraph
+   experiments or referee tone. When you come back to a Stata task three
+   weeks later, the RA picks up where it left off without a 5-minute
+   re-orientation.
+2. **Two RAs work in parallel without overwriting each other.** Each
+   code-touching role gets its own git worktree, so RA-Stata cleaning
+   the panel and RA-Python plotting figures can both run live. Conflicts
+   surface through git, not through "what happened to my .do file?"
+3. **The Referee actually reads like a referee.** Because the Referee
+   role has only ever seen referee briefs and rebuttal letters in its
+   persona memory — not your debug logs, not your variable definitions —
+   it produces critiques in the right voice and catches what a real
+   referee catches.
+
+There's also a **PI-fires-consultant-before-MEDIUM/HEAVY-tasks** layer that
+runs an applied-econ-tuned 5-seat plan-time review before risky moves:
+identification strategy changes, paper-section rewrites, submission prep,
+data-share decisions, IRB renewals. So the agent stops drafting submission
+plans that miss IRB renewal until the last weekend.
+
+## Architecture at a glance
+
+AEL is the orchestration layer. It sits on top of `auto-team-consultant`
+(plan-time review) and three shared infrastructure plugins from the AiPlus
+substrate:
 
 ```mermaid
 flowchart TB
@@ -225,7 +225,7 @@ flowchart TB
     Consultant -->|"uses"| Velocity
 ```
 
-**Plain-text fallback for renderers without mermaid:**
+Plain-text fallback for renderers without mermaid:
 
 ```
                   aieconlab             ← orchestration layer
@@ -236,97 +236,62 @@ flowchart TB
                ←——————— shared infrastructure layer ———————→
 ```
 
-AiEconLab is the orchestration layer. It sits on top of the four
-existing AiPlus plugins and uses them as shared infrastructure:
+## Co-existence with software-engineering teams
 
-- **AiPlus-Agent-Memory** — each agent gets a namespaced memory under
-  `.aiplus/agent-memory/<role>/`
-- **AiPlus-Compact-Reminder** — each long-running agent runs its own token-saving compact
-  cycle; PI tracks compact state per agent
-- **AiPlus-Agent-Velocity** — each agent has its own velocity records, with
-  research-specific units (regression-spec, table, figure, paper-section)
-- **AiPlus-Auto-Team-Consultant** — PI fires consultant before MEDIUM and
-  HEAVY tasks; consultant findings flow into the staffed team's brief
-
-### Five core design decisions
-
-1. **Permanent core team of 8 roles** — installed automatically when the
-   plugin is added to a project.
-2. **Expert directory** — 12 specialist roles available on-demand, only
-   summoned when triggers match.
-3. **State-level permanence + warm bench** — agent identity lives on disk;
-   process is ephemeral, spawned only when PI routes a task.
-4. **Git worktree workspaces** — each code-touching role gets an isolated
-   working directory so RA-Stata and RA-Python can work in parallel without
-   silent overwrites.
-5. **Three-layer memory** — personal (per-agent), team (PI-shared), and
-   project (existing `.aiplus/memory/`). Project memory wins on conflict.
-
-See [`DESIGN.md`](DESIGN.md) for the full design rationale, routing protocol,
-memory model, worktree policy, and acceptance criteria.
-
-## What's inside
-
-- `core/templates/` — TOML configs for all 8 core roles plus the
-  team-wide `econ-team.toml` and the AEL research-tuned
-  `consultant-team.aieconlab.toml`
-- `core/templates/personas/` — role persona prompts (advisor, pi, theorist,
-  pm, ra-stata, ra-python, referee, replicator) and 9 shipped expert
-  personas
-- `core/templates/personas/_stubs/` — 3 v0.2 expert stubs
-  (survey-experiment, computation, coauthor-liaison)
-- `core/templates/experts/` — 12 expert role configs (9 shipped + 3 stub)
-  including the new **LLM-as-Measurement Specialist** paired with the
-  consultant team's seat 5
-- `adapters/codex/` — Codex plugin and skill assets
-- `adapters/claude-code/` — Claude Code project-local commands and agents
-- `adapters/opencode/` — OpenCode project-local config, commands, and prompts
-- `examples/` — synthetic examples for all three runtimes
-- `tests/acceptance.test.sh` — 15 structural invariants (passes on every push)
-- `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml` — binding acceptance schema
-
-## Contributing
-
-We welcome contributions that stay within the plugin's scope (role separation
-and execution for applied-economics research, not software engineering and
-not advisory consulting).
-
-1. **Open an issue first** for anything larger than a typo fix — the
-   `aieconlab` scope is tightly bounded.
-2. **Follow the existing TOML + markdown persona pattern** — per-agent
-   config lives in `.aiplus/agents/<role>.toml`, persona prompt in
-   `.aiplus/agents/personas/<role>.md`.
-3. **Add adapter parity** — if you change CLI surface, update all three
-   adapters (`adapters/codex/`, `adapters/claude-code/`, `adapters/opencode/`).
-4. **Run `aiplus agent doctor`** after config changes to validate worktrees,
-   memory layout, and TOML schema.
-5. **Acceptance criteria** are binding — see
-   `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`. Any behavioral change
-   must update the schema and its sibling `.test.sh`.
+If you also maintain a software replication package or a code library
+that goes with the paper, AEL's sibling
+[**AiPlus-Agent-Team**](https://github.com/izhiwen/AiPlus-Agent-Team)
+ships a parallel structure with software-engineering roles (Architect,
+Engineer-A, Engineer-B, Reviewer, QA). The two can coexist in the same
+project — `aiplus agent set-team aieconlab` to switch into research mode,
+`aiplus agent set-team agent-team` to switch into engineering mode.
 
 ## Safety boundaries
 
-AiEconLab does not:
+AEL stays inside your project. It does not:
 
-- upload agent state, persona, memory, or transcript to any service
+- upload agent state, persona, memory, or transcript anywhere
 - run as a background daemon or persistent process
 - store secrets, IRB-protected paths, or restricted archive locations in
-  any agent's persona, memory, or workspace
-- modify global agent configuration (~/.codex, ~/.claude, etc.)
+  any role's persona, memory, or workspace
+- modify global agent config (`~/.codex`, `~/.claude`, `~/.opencode`)
 - modify another project's `.aiplus/`
-- automatically approve Owner-gated actions (submit to journal, send referee
-  response, share data, push paper to public archive, claim authorship order)
-- introduce new network calls beyond what the host runtime already makes
+- auto-approve **Owner-gated** actions: submit to journal, send referee
+  response, share data, push paper to public archive, claim authorship
+  order
+- introduce new network calls beyond what your runtime already makes
 
 ## More
 
-- Main platform: [AiPlus](https://github.com/izhiwen/AiPlus)
-- Sibling module (SWE): [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
-- Worked example of AEL's LLM-as-Measurement Specialist validity
-  protocol on real archival data:
+- **Main platform**: [AiPlus](https://github.com/izhiwen/AiPlus)
+- **Sibling team for software engineering**: [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
+- **Cross-project profile bundle**: [AiPlus-Work-with-Me](https://github.com/izhiwen/AiPlus-Work-with-Me)
+- **LLM-as-Measurement worked example**:
   [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)
-  (294 19th-century Classical Chinese documents scored across 5
-  frontier LLMs, pairwise correlations 0.85–0.95)
+  (294 archival docs × 5 frontier LLMs, pairwise ρ 0.85–0.95)
+- **In-place beta walkthrough**: [`docs/beta-walkthrough.md`](docs/beta-walkthrough.md)
+  — honest log of what works today vs what doesn't, against current
+  AiPlus + AEL HEAD
+- **Design rationale, routing protocol, memory model**:
+  [`DESIGN.md`](DESIGN.md)
+- **Acceptance schema** (binding, every behavioral change must update it):
+  `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`
+
+## Contributing
+
+We welcome contributions that stay within AEL's scope: role separation
+and execution for applied-econ research (not software engineering, not
+generic advisory).
+
+1. **Open an issue first** for anything bigger than a typo.
+2. **Follow the existing TOML + markdown persona pattern** — config in
+   `.aiplus/agents/<role>.toml`, persona prompt in
+   `.aiplus/agents/personas/<role>.md`.
+3. **Adapter parity** — if you touch CLI surface, update all three
+   adapters (`adapters/codex/`, `adapters/claude-code/`, `adapters/opencode/`).
+4. **Run `aiplus agent doctor`** after config changes.
+5. **Acceptance criteria are binding** — any behavioral change must
+   update the schema and its sibling `.test.sh`.
 
 ## License
 
