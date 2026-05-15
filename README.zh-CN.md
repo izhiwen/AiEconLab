@@ -1,219 +1,257 @@
 # AiEconLab (AEL)
-
-> **面向应用经济学家的永久虚拟研究团队。**
-> 8 个核心角色（Advisor / PI / Theorist / PM / RA-Stata / RA-Python / Referee / Replicator）
-> 加上 12 位专家。默认工具栈 Python + Stata + LaTeX。
-
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 [English README](README.md)
 
-## 安装前提
+我用 AI 助手写应用经济学论文已经一年多了——平时主要 Claude Code，偶尔 Codex
+拿第二意见，长 replication 任务上 OpenCode。前几个月感觉像魔法。然后我开始发现每篇
+论文每个 session 都在重复踩同样的坑：周一教过它面板数据的变量约定，周五又问；让同一个
+对话窗口**同时**写 intro 和 debug Stata——结果 intro 段落里冒出 `gen` 和 `egen`；
+让它给一个 identification 策略的批评，给我的是混着 referee 口吻和我自己声音的散文。
+**一个 agent 戴所有帽子，每顶帽子都戴得很浅——就跟一个人想同时当 PI + RA + Theorist +
+Referee 一样**。
 
-AiEconLab 建在 [AiPlus](https://github.com/izhiwen/AiPlus) agent substrate 之上。先装 AiPlus：
+AiEconLab 把你的 AI 重新组织成一个研究团队结构。你会拿到一个 **PI**、两个 **RA**
+（一个 Stata、一个 Python）、一个 **Theorist**、一个 **Referee**、一个
+**Replicator**、一个 **PM**、一个 **Advisor**——八个角色分离的 agent，每个都有自己
+的记忆、工作区、人格——再加 12 个专家席（Lit Reviewer / Writer / Econometrician /
+**LLM-as-Measurement Specialist** / Reproducibility Engineer / 历史档案 /
+Job Talk Coach / ...），PI 看任务对口才召唤。你只跟 Advisor 和 PI 对话；PI 调度其余人。
+
+![AiEconLab 30 秒演示](docs/demo.gif)
+
+## 应用经济学 AI 工作流每天都在踩的坑
+
+如果你已经在用 AI 助手跑过几篇真实论文，下面这些可能很熟：
+
+1. **Agent 跨 session 把你的论文忘个干净。** 周一教它你面板的变量约定，周三又问。
+   到周五，identification 策略已经讲过四遍。
+2. **一个对话窗口干所有事，干得都浅。** 同一个窗口你让它论证 IV 排除约束、debug
+   Stata 语法、起草 intro 段落——结果 intro 段落里出现 `gen` 和 `egen`，IV 批评
+   被埋在 printlns 下面。
+3. **长项目在 `/compact` 上烧 token。** 要么 `/compact` 晚了（agent 几小时来每轮
+   都在重读 20K token 历史）；要么 `/compact` 早了（下一个 session 头 20% 重新
+   解释你刚刚定下来的 identification 策略）。
+4. **Plan-time 盲区让你多走一轮 R&R。** Agent 起草的提交计划漏了 IRB 续期、漏了
+   档案的数据共享限制、漏了一个让 AEA 复现 reviewer 跑不通的 Stata 版本依赖。
+   你 R&R 的时候才发现。
+5. **估时锚定"人类工程师小时数"。** Agent 报"做一张 robustness 表 5 小时"，结果
+   20 分钟干完。下次还是报 5 小时。没人记账。
+6. **跨论文失忆。** 你花六个月把 agent 调教成懂你工作流的样子——naming 风格、
+   identification 品味、robustness 习惯、referee 口吻。下一篇论文开张，agent
+   还是从零开始。
+
+AEL + 它底下的 AiPlus 一起治这六件事。AEL 自己专门治**角色分离**（#2）和
+**plan-time 盲区**（#4，用一个应用经济学专调的 consultant 团队）。记忆、compact、
+key 存储、估时校准、跨项目 profile 包来自 [AiPlus](https://github.com/izhiwen/AiPlus)
+和姊妹模板 [AiPlus-Work-with-Me](https://github.com/izhiwen/AiPlus-Work-with-Me)。
+
+## 你拿到什么——8 个角色，每个都有自己的桌子
+
+装一次 AEL 进项目，你就有：
+
+- **PI**——你的研究负责人。管高层 plan，决定谁做什么，把结果整合回来。你说
+  "我们换个 spec 思路"、"提交还差什么"、"现在卡在哪"——都是跟 PI 说。
+- **Theorist**——专门吵 identification、instruments、排除约束、结构性假设。
+  不写代码，写你策略的批评。
+- **RA-Stata**——只做 Stata。清数据、跑回归、出表。它的记忆是"你的变量是什么意思、
+  面板长什么样"，**不是**"你的 intro 段落写到哪儿了"。
+- **RA-Python**——只做 Python。跟 RA-Stata 同角色不同工具链。在自己的 git
+  worktree 里并行跑，两个 RA 不会悄悄覆盖对方的文件。
+- **Referee**——像真 referee 一样预读你的稿子。在你提交之前抓出 IV 排除约束的
+  漏洞、缺的 first-stage F-stat、没回应的 reverse-causality 故事。
+- **Replicator**——存在的目的就是搞砸你的 replication package。在干净机器上
+  重跑你的 pipeline，找出依赖漂移、AEA data editor 会卡的地方、丢的 seed。
+- **PM**——管 milestone、截止日期、blocker、提交日程。你说"周五要交什么"——找 PM。
+- **Advisor**——项目本身的 meta-reviewer。你在纠结**该做什么**（不是**怎么做**）
+  的时候，找 Advisor。
+
+外加 **12 个专家席**（Lit Reviewer / Writer / Econometrician /
+**LLM-as-Measurement Specialist** / Reproducibility Engineer / 历史档案 /
+Job Talk Coach / Survey Experiment Designer / Computation / Coauthor Liaison /
+IRB-Disclosure Specialist / Contribution Framing Coach），任务匹配到触发词时 PI 召唤。
+
+默认工具链：**Python + Stata + LaTeX**。R 和 Julia 在项目里声明后也支持。
+
+### 🔬 LLM-as-Measurement Specialist（AEL 的杀手锏）
+
+如果你的论文用 LLM 给档案文本或非结构化文本打分——并且这个评分要变成 empirical
+结果——**validity 问题**比 prompt engineering 重要得多。AEL 的
+**LLM-as-Measurement Specialist** 把我在 JMP 里发展的方法论编码进 agent：
+multi-LLM agreement、held-out validation、inter-rater statistics、
+prompt-version stability。
+
+这个角色的可复现 demo：[**Multi-LLM-Validation-Demo**](https://github.com/izhiwen/Multi-LLM-Validation-Demo)
+——294 篇 19 世纪文言档案，由 **ChatGPT / Gemini / Claude / Qwen / DeepSeek**
+独立打分；两两相关 0.85–0.95（均值 0.92）。是我 JMP《Democratic Exposure and
+Elite Ideology: Evidence from Treaty Ports in Imperial China》的公开伴生材料。
+
+![两两 LLM 相关性热力图（294 篇档案 × 5 个前沿 LLM，平均 ρ ≈ 0.92）](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
+
+## 安装——三条命令
+
+AEL 跑在 [AiPlus](https://github.com/izhiwen/AiPlus) 上。还没装 AiPlus 的话：
 
 ```bash
-# 安装 AiPlus (>= 0.5.2)
-# 见 https://github.com/izhiwen/AiPlus
-
-# 然后装 AiEconLab 依赖的三个底座模块：
-aiplus add agent-memory          # 每个 agent 的项目本地 memory
-aiplus add compact-reminder      # 节省 token 的 compact + 结构化 resume
-aiplus add auto-team-consultant  # 规划前顾问层
-# (velocity 校准是 aiplus CLI 的内建 subcommand，无需 add 单独模块)
+curl -fsSL https://raw.githubusercontent.com/izhiwen/AiPlus/main/install.sh | bash
 ```
 
-AiEconLab 是独立项目（`github.com/izhiwen/AiEconLab`），有自己的发布节奏和受众，但功能上依赖 AiPlus 提供的 memory、compact、velocity、consult-before-plan 这四层基础设施。
-
-## 痛点
-
-你让 agent 先帮你想 paper 的研究问题，再清洗数据，再做识别策略，再写引言，再写 referee response。第三个任务还没结束，它就**漂移**了：同一段 prompt history 里混着研究 intuition、Stata 语法、文献片段、和驳回意见，结果是哪个都做得不到位。
-
-更糟的是，共享上下文**跨角色污染**。Theorist 的 framing 漏进 RA 的回归 spec；文献 review 的笔记被数据清洗的 debug 输出埋掉；稳健性检查在 context 窗口里被无关 scratch 挤掉。
-
-你想靠让 agent 多戴几顶帽子来弥补。但一个 agent 同时戴 PI、Theorist、Econometrician、RA、Referee、Replicator 帽子，每顶都戴得**浅**。真实研究项目分工是因为工作本身*就*是这么结构化的。
-
-### 不是这些痛
-
-AiEconLab 专门解决**应用经济学研究的角色分工与执行**问题。其它 AiPlus 插件解决相邻但不同的问题：
-
-| 插件 | 解决的痛 | 为什么不是 AiEconLab |
-|---|---|---|
-| [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) | 软件工程角色漂移 | 架构相同，角色不同 —— 那个发软件工程角色，这个发研究角色 |
-| [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **失忆** —— session 之间忘记上下文 | 给单个 agent 记忆；不分角色 |
-| [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **盲点** —— 规划时漏掉关键风险 | 规划*前*建议；不执行也不持久 |
-| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **烧 token** —— 长 session 反复重新加载同样上下文，token 烧得快 | compact + 结构化 resume 给单 agent 省 token；不分角色 |
-| [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **估错时** —— 估算锚在人类工时 | 校准单 agent 估算；不构建团队 |
-
-AiEconLab 和 [AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team) 是兄弟模块 —— 可以共存在同一个项目里（比如同时维护 paper 和 replication package 软件仓库的研究者）。
-
-## 解决方案
-
-**用永久研究团队替代单 agent 漂移。**
-
-AiEconLab 在你的项目中安装一个由 8 个核心角色组成的永久虚拟团队：Advisor（导师顾问）、PI（你 / 主作者）、Theorist（理论建模）、PM（项目管理）、RA-Stata（Stata 助研）、RA-Python（Python 助研）、Referee（内部 referee）、Replicator（复现工程师）。每个角色有自己的 persona、workspace、memory namespace。Owner（你，主作者）只和 Advisor 与 PI 对话；PI 协调其它角色。
-
-具体覆盖：
-
-- **角色隔离** —— 每个 agent 只加载自己的 persona 和个人 memory。RA 看不到 Theorist 的推理，反之亦然。
-- **Git worktree 工作区** —— 涉及代码的角色各自有独立工作目录，RA-Stata 和 RA-Python 可以并行而不互相覆盖。冲突通过 git 暴露，而不是悄悄盖掉。
-- **三层 memory** —— 个人（每 agent）、团队（PI 共享）、项目（已有 `.aiplus/memory/`）。冲突时项目层胜出，临时的团队共识不会覆盖持久项目共识。
-- **专家目录** —— 12 位专家（文献综述员、写作师、计量专家、复现工程师、史料专家、Job Talk Coach 等）默认休眠，PI 在 trigger 命中时召唤。
-- **自适应路由** —— PI 对每个任务打分（LIGHT / MEDIUM / HEAVY），只动员需要的角色。小修小补一个 RA 处理；投稿前 final pass 出动全团队。
-
-默认工具栈 **Python + Stata + LaTeX**。R 和 Julia 在项目声明时支持。
-
-无后台进程、无云端同步、无上传。每个 agent 是 state-level 永久 —— 文件在硬盘上，但进程是临时的，PI 路由任务时才被唤起。
-
-## 安装
-
-两条路径，任选一条。
-
-### 方法 A —— bundled（默认，推荐）
-
-如果你的 `aiplus` CLI 够新（≥ v0.5.2），AiEconLab 就在 CLI 的二进制里作为 bundled 模块直接发出来。一行装上：
+然后在你的论文项目目录里：
 
 ```bash
-cd MyResearchProject
+cd MyPaperProject
+aiplus install claude-code       # 或：codex, opencode, all
 aiplus add aieconlab
-aiplus install codex          # 或: claude-code, opencode, all
 ```
 
-最简单。装到的版本是你的 `aiplus` CLI 当时打包进去的快照。要拿最新 bundle 先 `aiplus self update`。
+就这样。`aiplus agent status` 会显示 8 个研究角色
+（Advisor / PI / Theorist / PM / RA-Stata / RA-Python / Referee / Replicator）
++ 12 个专家席静默 standby。
 
-### 方法 B —— 从 GitHub 直接装（live HEAD，要求 aiplus ≥ v0.5.4）
-
-想要 AEL 仓库的最新代码、不想等 `aiplus` CLI 发新版：
+### 验证
 
 ```bash
-cd MyResearchProject
-aiplus add --from-git https://github.com/izhiwen/AiEconLab
-aiplus install codex          # 或: claude-code, opencode, all
+aiplus agent status              # 看团队 roster
+aiplus agent doctor              # 校验 worktree、内存布局、配置
 ```
 
-可以 pin 到指定 tag / branch / commit：
+## 日常使用——跟 PI 对话，PI 跟团队对话
+
+大多数时候 route 到 PI 就行：
 
 ```bash
-aiplus add --from-git https://github.com/izhiwen/AiEconLab@v0.1.0
-aiplus add --from-git https://github.com/izhiwen/AiEconLab@main
+aiplus agent route pi "用 cluster-robust SE 跑主 IV spec"
+# PI 打分 → 派 RA-Stata → 回报回归输出
+
+aiplus agent route pi "起草 intro 段落把 exposure → outcome 连起来"
+# PI 打分 → 派 Writer 专家 + Theorist → 回报文字
+
+aiplus agent route pi "准备针对 IV 排除约束批评的 referee response"
+# PI 打分 → 派 Referee + Theorist + Writer → 回报草稿
 ```
 
-什么时候选哪个：
-
-- **Bundled** = 稳定、安装快、CLI 构建时锁死、CLI 保护它不出问题。**默认推荐这个。**
-- **`--from-git`** = 最前沿，能拿到 AiPlus CLI 两次发版之间 AEL 仓库的改动。AEL 出了修复但下一版 AiPlus 还没收纳时有用。稍慢一点（要 clone repo）。
-
-### 安装会干什么
-
-`aiplus add aieconlab`（任一路径）做三件事：
-
-1. 装上所有 8 个核心角色配置和 persona（Advisor、PI、Theorist、PM、RA-Stata、RA-Python、Referee、Replicator）。
-2. 装上所有 12 个 expert 配置（9 个 shipped + 3 个 v0.2 stub）。
-3. **替换**默认 SWE consultant 团队（来自 `AiPlus-Auto-Team-Consultant` 的 `.aiplus/consultant-team.toml`）为 `consultant-team.aieconlab.toml` —— 5 个为应用经济学研究 plan-time 量身设计的 expert 席位、3 个 user persona、5 个 owner gate（mirror AEL DESIGN §16 STOP-gates）、LIGHT 任务默认跳过 consult。
-
-如果同一项目里也装了 `aiplus-agent-team`（SWE），AEL 的 consultant 配置会覆盖 SWE 那个 —— 两个 consultant 配置共存放在 v0.2 roadmap。
-
-## 快速开始
+也可以直接跟具体角色聊：
 
 ```bash
-aiplus agent status              # 显示团队名册、激活专家、warm bench
-aiplus agent route ra-stata      # 把任务分给 RA-Stata
-aiplus agent integrate ra-stata  # 把 RA-Stata 的分支合回 main
-aiplus agent audit run           # 跑验收审核
+aiplus agent talk ra-stata       # 直接跟 RA-Stata 对话
+aiplus agent talk theorist       # 直接跟 Theorist 对话
+aiplus agent invite lit-reviewer # 把一个专家请进活跃 roster
+aiplus agent dismiss lit-reviewer
+aiplus agent transcript          # 看最近的角色活动（audit trail）
 ```
 
-通过 PI 派发任务：
-
-```text
-aiplus agent route "用 cluster-robust SE 跑主 IV spec"
-```
-
-PI 给任务打分、挑出对的人、向你汇报。
-
-其它常用命令：
+工作需要整合回主分支时：
 
 ```bash
-aiplus agent doctor            # 检查配置、worktree、memory 布局
-aiplus agent list              # 列出所有角色（核心 + 专家）
-aiplus agent talk theorist     # 直接和某个角色对话
-aiplus agent invite lit-reviewer       # 召唤一位专家进 active team
-aiplus agent dismiss lit-reviewer      # 把专家移出 active team
-aiplus agent transcript        # 显示最近活动用于审计
-aiplus agent prune-worktrees   # 清理过期 worktree
+aiplus agent integrate ra-stata  # 把 RA-Stata 的 worktree merge 回来
+aiplus agent audit run           # 提交前跑完整 acceptance audit
 ```
 
-## 架构概览
+## 为什么是"团队"而不是"一个更聪明的 agent"
+
+三个我自己写论文实测出来的理由：
+
+1. **记忆干净。** RA-Stata 的记忆只装你的变量约定和 Stata 习惯，不会被 intro
+   实验或者 referee 口吻污染。三周后回来跑新的 Stata 任务，RA 直接接着干，
+   不用再 5 分钟重新 orient。
+2. **两个 RA 并行不踩对方。** 每个写代码的角色有自己的 git worktree，所以
+   RA-Stata 清面板 + RA-Python 画图可以同时跑。冲突走 git，不会出现"我的 .do
+   文件去哪儿了"。
+3. **Referee 真的像 referee。** Referee 角色的人格记忆里只见过 referee brief
+   和 rebuttal letter——没见过你的 debug log 和变量定义——所以它的批评是真
+   referee 的口吻，抓的也是真 referee 会抓的东西。
+
+另外还有一层 **PI-fires-consultant-before-MEDIUM/HEAVY-tasks**：风险动作
+（identification 策略变更、论文段落重写、提交准备、数据共享决策、IRB 续期）之前会
+跑一个应用经济学专调的 5-seat plan-time review。所以 agent 不再起草那种"R&R
+最后一周才发现 IRB 没续"的提交计划。
+
+## 架构一览
+
+AEL 是编排层。它坐在 `auto-team-consultant`（plan-time 评审）和 AiPlus 底座的
+三个基础设施 plugin 之上：
+
+```mermaid
+flowchart TB
+    subgraph AEL["**AiEconLab** — 编排层"]
+        direction LR
+        Core["8 个核心角色<br/>Advisor · PI · Theorist · PM<br/>RA-Stata · RA-Python · Referee · Replicator"]
+        Experts["12 个专家<br/>含 LLM-as-Measurement Specialist"]
+    end
+    Consultant["**AiPlus-Auto-Team-Consultant**<br/>决策支持层<br/>（consult-before-plan）"]
+    subgraph Infra["共享基础设施（AiPlus 插件）"]
+        direction LR
+        Memory["Agent-Memory<br/>按角色命名空间的内存"]
+        Compact["Compact-Reminder<br/>省 token 的 compact + resume"]
+        Velocity["Agent-Velocity<br/>按角色校准估时"]
+    end
+    AEL -->|"使用"| Consultant
+    Consultant -->|"使用"| Memory
+    Consultant -->|"使用"| Compact
+    Consultant -->|"使用"| Velocity
+```
+
+不支持 mermaid 的渲染器看这个：
 
 ```
-                  aieconlab             ← 协调层
-                           ↓ uses
+                  aieconlab             ← 编排层
+                           ↓ 使用
                AiPlus-Auto-Team-Consultant           ← 决策支持层
-                           ↓ uses
+                           ↓ 使用
     AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— 共享基础设施层 ———————→
 ```
 
-AiEconLab 是协调层。建在四个已有 AiPlus 插件之上：
+## 跟软件工程团队共存
 
-- **AiPlus-Agent-Memory** —— 每个 agent 在 `.aiplus/agent-memory/<role>/` 下有命名空间 memory
-- **AiPlus-Compact-Reminder** —— 每个长时运行的 agent 跑自己的 token-saving compact 循环；PI 跟踪每个 agent 的 compact 状态
-- **AiPlus-Agent-Velocity** —— 每个 agent 有自己的 velocity 记录，单位是研究专属的（回归 spec、表格、图、paper section）
-- **AiPlus-Auto-Team-Consultant** —— PI 在 MEDIUM 和 HEAVY 任务前触发顾问；顾问发现汇入团队简报
-
-### 五个核心设计决策
-
-1. **8 角色永久核心团队** —— 模块加入项目时自动安装。
-2. **专家目录** —— 12 个 on-demand 专家，trigger 命中才召唤。
-3. **State-level 永久 + warm bench** —— agent 身份在硬盘上；进程临时，PI 路由任务时才生成。
-4. **Git worktree 工作区** —— 每个涉及代码的角色有独立工作目录，RA-Stata 和 RA-Python 可并行无声覆盖风险。
-5. **三层 memory** —— 个人 / 团队 / 项目（已有 `.aiplus/memory/`）。冲突时项目层胜出。
-
-完整设计原理、路由协议、memory 模型、worktree 策略、验收标准请见 [`DESIGN.md`](DESIGN.md)。
-
-## 内容
-
-- `core/templates/` —— 8 个核心角色 TOML 配置，加 team-wide `econ-team.toml` 和 AEL 研究专属 `consultant-team.aieconlab.toml`
-- `core/templates/personas/` —— 角色 persona prompts (advisor, pi, theorist, pm, ra-stata, ra-python, referee, replicator) + 9 个 shipped expert persona
-- `core/templates/personas/_stubs/` —— 3 个 v0.2 stub expert（survey-experiment、computation、coauthor-liaison）
-- `core/templates/experts/` —— 12 个 expert 配置（9 shipped + 3 stub），含与 consultant 团队 seat 5 配对的 **LLM-as-Measurement Specialist**
-- `adapters/codex/` —— Codex 插件和 skill 资产
-- `adapters/claude-code/` —— Claude Code 项目本地命令与 agents
-- `adapters/opencode/` —— OpenCode 项目本地配置、commands、prompts
-- `examples/` —— 三个 runtime 的合成示例
-- `tests/acceptance.test.sh` —— 15 项结构 invariants（每次 push 都跑）
-- `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml` —— 绑定验收 schema
-
-## 贡献
-
-我们欢迎在插件 scope 内（应用经济学研究角色分工与执行，不是软件工程，不是规划顾问）的贡献。
-
-1. **先开 issue** —— 比 typo 大的改动都先开 issue。`aieconlab` 范围紧。
-2. **遵循 TOML + markdown persona 模式** —— 每个 agent 配置在 `.aiplus/agents/<role>.toml`，persona prompt 在 `.aiplus/agents/personas/<role>.md`。
-3. **保持 adapter 对齐** —— 改 CLI 表面必须同步更新三个 adapters。
-4. **配置改完跑 `aiplus agent doctor`** —— 验证 worktree、memory 布局、TOML schema。
-5. **验收标准强制** —— 见 `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`。行为变化必须更新 schema 和配套 `.test.sh`。
+如果你同时还在维护一个伴随论文的 replication package 或代码库，AEL 的姊妹
+[**AiPlus-Agent-Team**](https://github.com/izhiwen/AiPlus-Agent-Team)
+是平行结构的软件工程团队（Architect / Engineer-A / Engineer-B / Reviewer / QA）。
+两个可以共存在同一项目——`aiplus agent set-team aieconlab` 切研究模式，
+`aiplus agent set-team agent-team` 切工程模式。
 
 ## 安全边界
 
-AiEconLab 不会：
+AEL 留在你项目里，**不**：
 
-- 上传 agent state、persona、memory 或 transcript 到任何服务
-- 作为后台进程或常驻服务运行
-- 在 agent 的 persona、memory、workspace 里存 secret、IRB 保护路径、限制档案位置
-- 修改全局 agent 配置（~/.codex、~/.claude 等）
-- 修改其它项目的 `.aiplus/`
-- 自动批准 Owner gate 的操作（投稿、发送 referee response、共享数据、推 paper 到公开 archive、声明作者顺序）
-- 引入新的网络调用（host runtime 已有的除外）
+- 上传 agent 状态、人格、记忆、transcript 到任何服务
+- 后台 daemon 或常驻进程
+- 在任何角色的人格 / 记忆 / 工作区里存 secret、IRB 保护路径、限制档案位置
+- 改全局 agent 配置（`~/.codex`、`~/.claude`、`~/.opencode`）
+- 改其他项目的 `.aiplus/`
+- 自动批准 **Owner-gated** 动作：投稿、发 referee response、共享数据、
+  推论文上公共档案、决定署名顺序
+- 引入比你 runtime 本来就有的更多网络调用
 
 ## 更多
 
-- 主平台：[AiPlus](https://github.com/izhiwen/AiPlus)
-- 兄弟模块（SWE）：[AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
-- AEL LLM-as-Measurement Specialist 验证协议在真实档案数据上的工作样例：
+- **主平台**：[AiPlus](https://github.com/izhiwen/AiPlus)
+- **软件工程姊妹团队**：[AiPlus-Agent-Team](https://github.com/izhiwen/AiPlus-Agent-Team)
+- **跨项目 profile 包**：[AiPlus-Work-with-Me](https://github.com/izhiwen/AiPlus-Work-with-Me)
+- **LLM-as-Measurement worked example**：
   [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)
-  （294 篇 19 世纪古汉语档案文档跨 5 个 frontier LLM 评分，
-  两两相关性 0.85–0.95）
+  （294 篇档案 × 5 个前沿 LLM，两两 ρ 0.85–0.95）
+- **In-place beta walkthrough**：[`docs/beta-walkthrough.md`](docs/beta-walkthrough.md)
+  ——当前 AiPlus + AEL HEAD 上"什么能用、什么不能用"的诚实日志
+- **设计理由、routing 协议、内存模型**：[`DESIGN.md`](DESIGN.md)
+- **Acceptance schema**（binding，行为改动必须同步）：
+  `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml`
 
-## 许可证
+## 贡献
+
+欢迎在 AEL scope 内的贡献：应用经济学研究的角色分离与执行（不是软件工程，不是
+通用 advisory）。
+
+1. **大于 typo 的改动先开 issue。**
+2. **遵循现有 TOML + markdown persona 模式**——config 放
+   `.aiplus/agents/<role>.toml`，persona prompt 放
+   `.aiplus/agents/personas/<role>.md`。
+3. **Adapter parity**——CLI 表面有变更，三个 adapter 都要同步更新
+   （`adapters/codex/`、`adapters/claude-code/`、`adapters/opencode/`）。
+4. **改完跑 `aiplus agent doctor`** 校验 worktree、内存布局、TOML schema。
+5. **Acceptance criteria 有约束力**——任何行为变更必须同步 schema 和它的
+   `.test.sh`。
+
+## License
 
 [Apache-2.0](LICENSE)
