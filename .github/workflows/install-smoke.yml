@@ -391,7 +391,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "aiplus doctor exited with $LASTEXITCODE"
           }
-          if ($doctor -notmatch "(?m)^DOCTOR_STATUS=PASS$") {
+          if ($doctor -notmatch "DOCTOR_STATUS=PASS") {
             throw "aiplus doctor did not report DOCTOR_STATUS=PASS"
           }
 
