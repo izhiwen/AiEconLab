@@ -205,6 +205,28 @@ aiplus agent prune-worktrees   # clean up stale worktrees
 
 ## Architecture overview
 
+```mermaid
+flowchart TB
+    subgraph AEL["**AiEconLab** — orchestration layer"]
+        direction LR
+        Core["8 Core Roles<br/>Advisor · PI · Theorist · PM<br/>RA-Stata · RA-Python · Referee · Replicator"]
+        Experts["12 Experts<br/>incl. LLM-as-Measurement Specialist"]
+    end
+    Consultant["**AiPlus-Auto-Team-Consultant**<br/>decision-support layer<br/>(consult-before-plan)"]
+    subgraph Infra["Shared infrastructure (AiPlus plugins)"]
+        direction LR
+        Memory["Agent-Memory<br/>per-role namespaced memory"]
+        Compact["Compact-Reminder<br/>token-saving compact + resume"]
+        Velocity["Agent-Velocity<br/>per-role estimate calibration"]
+    end
+    AEL -->|"uses"| Consultant
+    Consultant -->|"uses"| Memory
+    Consultant -->|"uses"| Compact
+    Consultant -->|"uses"| Velocity
+```
+
+**Plain-text fallback for renderers without mermaid:**
+
 ```
                   aieconlab             ← orchestration layer
                            ↓ uses
