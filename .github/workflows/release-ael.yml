@@ -1,0 +1,68 @@
+name: Release AEL
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout AEL
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            vendor/aiplus/target
+          key: ${{ runner.os }}-cargo-ael-${{ hashFiles('vendor/aiplus/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-ael-
+
+      - name: Package AEL
+        run: |
+          set -euo pipefail
+          scripts/build-ael.sh --package
+          ls -l dist/*.tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ael-${{ runner.os }}
+          path: dist/*.tar.gz
+
+      - name: Attach to GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || \
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --notes "AEL ${GITHUB_REF_NAME}"
+          gh release upload "${GITHUB_REF_NAME}" dist/*.tar.gz --clobber

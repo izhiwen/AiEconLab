@@ -1,5 +1,6 @@
 .DS_Store
 target/
+dist/
 node_modules/
 *.log
 .aiplus/agent-memory/
