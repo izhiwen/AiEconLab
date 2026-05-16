@@ -1,19 +1,28 @@
 # /aiel-talk — Open a session as a specific AEL role
 
 Use this command to load a specific AEL role's persona as the active
-operating context. Equivalent to spawning the matching subagent
-(`aieconlab-<role>`) but called explicitly so the role swap is logged.
+operating context. It should behave like the matching AEL OpenCode agent
+(`aieconlab-<role>`) while keeping the role swap explicit in the
+conversation log.
 
 ## How it works
 
-1. Resolve the role from the user's argument. Accept any alias from
-   `.aiplus/agents/<role>.toml`'s `chinese_aliases` / `english_aliases`.
-2. Run `aiplus agent talk <role>` to open the role's worktree and load
-   the persona file (`.aiplus/agents/personas/<role>.md`) as system
-   prompt. Read team memory + project memory + the role's personal
-   memory under `.aiplus/agent-memory/<role>/`.
-3. Acknowledge the role switch with the role's display name and voice
+1. Resolve the role from the user's first argument. Accept canonical role
+   names and aliases from `.aiplus/agents/<role>.toml` when available.
+2. Load the persona directly from `.aiplus/agents/personas/<role>.md`.
+   If that file is missing, fall back to
+   `.aiplus/modules/aieconlab/core/templates/personas/<role>.md`.
+3. Read project/team memory only when it exists under `.aiplus/memory/`
+   or `.aiplus/agent-memory/<role>/`.
+4. Acknowledge the role switch with the role's display name and voice
    before continuing.
+5. Treat all text after the role argument as the user's request and answer
+   it in that role using the loaded persona.
+
+Do **not** use the OpenCode `skill` tool for this command. AEL roles are
+project-local personas and OpenCode agents, not OpenCode skills. In
+particular, do not try to load `aiplus-<role>` or `aieconlab-<role>` as
+a skill.
 
 ## Examples
 
