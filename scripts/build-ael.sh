@@ -93,10 +93,10 @@ if [ "$PACKAGE" -eq 1 ]; then
   rm -rf "$package_dir"
   mkdir -p "$package_dir/bin" "$package_dir/libexec"
   cp "$REPO_ROOT/ael" "$package_dir/bin/ael"
-  cp "$VENDOR_ROOT/target/release/aiplus" "$package_dir/libexec/aiplus"
+  cp "$VENDOR_ROOT/target/release/aiplus" "$package_dir/libexec/ael-support"
   cp "$REPO_ROOT/LICENSE" "$package_dir/LICENSE"
   cp "$REPO_ROOT/README.md" "$package_dir/README.md"
-  chmod +x "$package_dir/bin/ael" "$package_dir/libexec/aiplus"
+  chmod +x "$package_dir/bin/ael" "$package_dir/libexec/ael-support"
   tar -C "$DIST_ROOT" -czf "$package_dir.tar.gz" "$(basename "$package_dir")"
   echo "AEL_PACKAGE=$package_dir.tar.gz"
 else
