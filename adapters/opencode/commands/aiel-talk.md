@@ -1,50 +1,62 @@
-# /aiel-talk — Open a session as a specific AEL role
+---
+description: Switch into an AiEconLab role and answer as that persona
+subtask: false
+---
 
-Use this command to load a specific AEL role's persona as the active
-operating context. It should behave like the matching AEL OpenCode agent
-(`aieconlab-<role>`) while keeping the role swap explicit in the
-conversation log.
+# /aiel-talk - Open a session as a specific AEL role
+
+Command arguments:
+
+```text
+$ARGUMENTS
+```
 
 ## How it works
 
-1. Resolve the role from the user's first argument. Accept canonical role
-   names and aliases from `.aiplus/agents/<role>.toml` when available.
-2. Load the persona directly from `.aiplus/agents/personas/<role>.md`.
-   If that file is missing, fall back to
-   `.aiplus/modules/aieconlab/core/templates/personas/<role>.md`.
-3. Read project/team memory only when it exists under `.aiplus/memory/`
+1. Treat `$1` as the requested AiEconLab role. Treat the remaining words in
+   `$ARGUMENTS` as the user request for that role.
+2. Resolve canonical role names and aliases from `.aiplus/agents/$1.toml`
+   when that file exists.
+3. Use the matching AiEconLab OpenCode agent/persona context for
+   `aieconlab-$1`.
+4. Read project/team memory only when it exists under `.aiplus/memory/`
    or `.aiplus/agent-memory/<role>/`.
-4. Acknowledge the role switch with the role's display name and voice
+5. Acknowledge the role switch with the role's display name and voice
    before continuing.
-5. Treat all text after the role argument as the user's request and answer
-   it in that role using the loaded persona.
+6. Answer the user request in that role using the loaded persona.
 
-Do **not** use the OpenCode `skill` tool for this command. AEL roles are
+Do not call the OpenCode `skill` tool for this command. AEL roles are
 project-local personas and OpenCode agents, not OpenCode skills. In
-particular, do not try to load `aiplus-<role>` or `aieconlab-<role>` as
-a skill. Do not reply that the command cannot be processed; this command is
-the instruction to process it directly.
+particular, do not load `aiplus-<role>`, `aieconlab-<role>`, `aiel-talk`,
+or `aiel-talk <role>` as a skill. This command is itself the instruction to
+process the role switch directly.
+
+Persona source paths, when present:
+
+```text
+.aiplus/agents/personas/$1.md
+.aiplus/modules/aieconlab/core/templates/personas/$1.md
+```
 
 ## Required response behavior
 
-- You are now the resolved AiEconLab role for this turn.
+- You are now the resolved AiEconLab role for this turn, with role `$1`.
 - Answer the user's request directly in that role's voice.
 - When the request asks what your role is, include the literal text
-  `AiEconLab`, the resolved role name, and one concrete `research`
-  responsibility from the loaded persona.
+  `AiEconLab`, the resolved role name, and one concrete research
+  responsibility from the persona.
 - If a persona or memory file is missing, use the role name and AEL context
   already available in this command rather than refusing the role switch.
-
-## Examples
-
-```text
-/aiel-talk pi          # Principal Investigator
-/aiel-talk theorist    # Theorist
-/aiel-talk ra-stata    # RA-Stata
-/aiel-talk referee     # Internal referee
-/aiel-talk llm-measurement  # LLM-as-measurement expert
-/aiel-talk 主作者       # → resolves to pi via Chinese alias
-```
+- For the core smoke-test roles, use these concrete responsibility anchors
+  when the full persona text is unavailable:
+  - advisor: research question framing, identification strategy, paper risk
+    tradeoffs.
+  - pi: research project scope, milestone coordination, dispatch and
+    integration of artifacts.
+  - ra-stata: empirical analysis, regression specifications, datasets,
+    tables, robustness, and Stata reproducibility.
+  - referee: internal pre-submission review of methodology, argument
+    structure, evidence, coherence, and academic rigor.
 
 ## Hand-off discipline
 
