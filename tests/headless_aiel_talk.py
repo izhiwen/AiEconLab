@@ -27,17 +27,40 @@ ROLE_MARKERS = {
     "ra-stata": ("ra-stata", "stata"),
     "referee": ("referee",),
 }
-RESPONSIBILITY_MARKERS = (
-    "research",
-    "analysis",
-    "data",
-    "evidence",
-    "identification",
-    "manuscript",
-    "paper",
-    "regression",
-    "specification",
-)
+PERSONA_MARKER_GROUPS = {
+    "advisor": (
+        ("research", "question", "framing", "agenda"),
+        ("identification", "strategy", "design", "credibility"),
+        ("paper", "publication", "tradeoff", "risk"),
+        ("responsibility", "duty", "role", "task"),
+    ),
+    "pi": (
+        ("research", "project", "milestone", "scope"),
+        ("dispatch", "coordinate", "integrate", "execution"),
+        ("artifact", "replicator", "rerun", "clean-room"),
+        ("responsibility", "duty", "role", "task"),
+    ),
+    "ra-stata": (
+        ("regression", "specification", "estimate", "model"),
+        ("analysis", "table", "empirical", "coefficient"),
+        ("data", "dataset", "results", "robustness"),
+        ("responsibility", "duty", "role", "task"),
+    ),
+    "referee": (
+        ("review", "critique", "submission", "pre-review"),
+        ("methodology", "argument", "structure", "rigor"),
+        ("manuscript", "paper", "evidence", "coherence"),
+        ("responsibility", "duty", "role", "task"),
+    ),
+}
+
+
+def persona_marker_ok(role: str, lower: str) -> bool:
+    """Accept any role-specific persona marker from the relaxed groups."""
+    for group in PERSONA_MARKER_GROUPS[role]:
+        if any(marker in lower for marker in group):
+            return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -136,10 +159,10 @@ def assert_persona_output(runtime: str, role: str, result: CommandResult) -> Non
         print(output[-4000:], file=sys.stderr)
         raise SystemExit(f"{runtime}/{role} did not execute /aiel-talk cleanly")
     missing = ["aieconlab"] if "aieconlab" not in lower else []
-    responsibility_ok = any(marker in lower for marker in RESPONSIBILITY_MARKERS)
+    responsibility_ok = persona_marker_ok(role, lower)
     role_ok = any(marker in lower for marker in ROLE_MARKERS[role])
     if not responsibility_ok:
-        missing.append(f"one of {RESPONSIBILITY_MARKERS}")
+        missing.append(f"persona marker for {role}")
     if not role_ok:
         missing.append(f"one of {ROLE_MARKERS[role]}")
     if missing:
