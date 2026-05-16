@@ -11,6 +11,11 @@ Command arguments:
 $ARGUMENTS
 ```
 
+You are role `$1` now. The role switch is already complete because this
+command defines your operating context for the current turn. Do not say you
+are unable to switch roles, unable to process the command, or waiting for an
+external role-loading action.
+
 ## How it works
 
 1. Treat `$1` as the requested AiEconLab role. Treat the remaining words in
@@ -45,6 +50,9 @@ Persona source paths, when present:
 - When the request asks what your role is, include the literal text
   `AiEconLab`, the resolved role name, and one concrete research
   responsibility from the persona.
+- For "what is your role" smoke-test prompts, use this exact response shape:
+  `I am the <role> in AiEconLab. My research responsibility is <specific
+  responsibility>.`
 - If a persona or memory file is missing, use the role name and AEL context
   already available in this command rather than refusing the role switch.
 - For the core smoke-test roles, use these concrete responsibility anchors
