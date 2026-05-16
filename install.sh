@@ -27,7 +27,7 @@ Flags:
 The installer downloads the AEL release package for this platform, verifies the
 package SHA256 sidecar, and installs:
   - ael wrapper to $AEL_INSTALL_DIR/ael
-  - bundled runtime support to $AEL_LIBEXEC_DIR/aiplus
+  - bundled runtime support to $AEL_LIBEXEC_DIR/ael-support
 
 It does not edit shell profiles, require sudo, install project files, upload
 data, collect telemetry, or modify Codex/Claude Code/OpenCode config.
@@ -180,7 +180,7 @@ mkdir -p "$TMP_DIR/extract"
 tar -xzf "$TMP_DIR/$ASSET" -C "$TMP_DIR/extract"
 
 AEL_BIN="$(find "$TMP_DIR/extract" -type f -path "*/bin/ael" | head -n 1)"
-SUPPORT_BIN="$(find "$TMP_DIR/extract" -type f -path "*/libexec/aiplus" | head -n 1)"
+SUPPORT_BIN="$(find "$TMP_DIR/extract" -type f -path "*/libexec/ael-support" | head -n 1)"
 if [ ! -f "$AEL_BIN" ]; then
   echo "ERROR release archive did not contain bin/ael" >&2
   exit 1
@@ -192,8 +192,8 @@ fi
 
 mkdir -p "$INSTALL_DIR" "$LIBEXEC_DIR"
 cp "$AEL_BIN" "$INSTALL_DIR/ael"
-cp "$SUPPORT_BIN" "$LIBEXEC_DIR/aiplus"
-chmod 755 "$INSTALL_DIR/ael" "$LIBEXEC_DIR/aiplus"
+cp "$SUPPORT_BIN" "$LIBEXEC_DIR/ael-support"
+chmod 755 "$INSTALL_DIR/ael" "$LIBEXEC_DIR/ael-support"
 
 echo "INSTALL_STATUS=PASS"
 echo "installed=$INSTALL_DIR/ael"

@@ -25,11 +25,11 @@ cat >"$package_root/bin/ael" <<'SH'
 #!/usr/bin/env bash
 echo "fake ael"
 SH
-cat >"$package_root/libexec/aiplus" <<'SH'
+cat >"$package_root/libexec/ael-support" <<'SH'
 #!/usr/bin/env bash
 echo "fake support"
 SH
-chmod +x "$package_root/bin/ael" "$package_root/libexec/aiplus"
+chmod +x "$package_root/bin/ael" "$package_root/libexec/ael-support"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -67,7 +67,7 @@ esac
   echo "::error::ael wrapper not installed"
   exit 1
 }
-[ -x "$install_root/libexec/aiplus" ] || {
+[ -x "$install_root/libexec/ael-support" ] || {
   echo "::error::support binary not installed"
   exit 1
 }

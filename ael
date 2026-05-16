@@ -65,6 +65,9 @@ substrate_bin() {
     candidates+=("$AEL_AIPLUS_BIN")
   fi
   candidates+=(
+    "$AEL_BIN_DIR/libexec/ael-support"
+    "$AEL_BIN_DIR/../libexec/ael-support"
+    "$AEL_ROOT/libexec/ael-support"
     "$AEL_BIN_DIR/libexec/$exe"
     "$AEL_BIN_DIR/../libexec/$exe"
     "$AEL_ROOT/libexec/$exe"
