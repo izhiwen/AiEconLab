@@ -9,6 +9,7 @@ public_files=(
   README.md
   README.zh-CN.md
   landing/index.html
+  landing/install.sh
   install.sh
 )
 
@@ -30,6 +31,18 @@ grep -q 'landing/demo.gif' README.md || {
 }
 grep -q 'ael install' landing/index.html || {
   echo "::error::landing page missing ael install command"
+  exit 1
+}
+cmp -s install.sh landing/install.sh || {
+  echo "::error::landing/install.sh must match root install.sh"
+  exit 1
+}
+grep -q 'https://ael.zhiwen-wang.com/install.sh' README.md || {
+  echo "::error::README.md must use branded install URL"
+  exit 1
+}
+grep -q 'https://ael.zhiwen-wang.com/install.sh' landing/index.html || {
+  echo "::error::landing page must use branded install URL"
   exit 1
 }
 
