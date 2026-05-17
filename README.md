@@ -10,7 +10,7 @@ once, AEL gives each role a separate persona, workspace boundary, and set of
 responsibilities.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | sh
+curl -fsSL https://ael.zhiwen-wang.com/install.sh | sh
 cd MyPaperProject
 ael install
 ael talk advisor "What is your role?"
@@ -55,7 +55,7 @@ talks, and coauthor coordination.
 Install the CLI:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | sh
+curl -fsSL https://ael.zhiwen-wang.com/install.sh | sh
 ```
 
 If the installer says the target directory is not on `PATH`, add it:
