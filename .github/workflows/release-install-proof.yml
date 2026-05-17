@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-22.04
     container: ubuntu:22.04
     timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Install base tools
