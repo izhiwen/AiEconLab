@@ -9,7 +9,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.1.0" ] || {
+[ "$version" = "AEL 0.1.3" ] || {
   echo "::error::unexpected ael version output: $version"
   exit 1
 }
