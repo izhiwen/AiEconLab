@@ -3,6 +3,7 @@ set -eu
 
 REPO="izhiwen/AiEconLab"
 AEL_VERSION_VALUE="${AEL_VERSION:-}"
+AEL_DEFAULT_VERSION="v0.1.0"
 INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$INSTALL_DIR")/libexec}"
 DRY_RUN=0
@@ -15,7 +16,7 @@ Usage:
   sh install.sh [--dry-run]
 
 Environment:
-  AEL_VERSION      Release version to install, default latest GitHub release
+  AEL_VERSION      Release version to install, default v0.1.0
   AEL_INSTALL_DIR  Install directory for the ael wrapper, default $HOME/.local/bin
   AEL_LIBEXEC_DIR  Install directory for bundled runtime support, default ../libexec
   AEL_BASE_URL     Override release base URL for tests/mirrors
@@ -64,24 +65,7 @@ resolve_version() {
     echo "$AEL_VERSION_VALUE"
     return 0
   fi
-  if command -v gh >/dev/null 2>&1; then
-    version="$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || echo "")"
-    if [ -n "$version" ]; then
-      echo "$version"
-      return 0
-    fi
-  fi
-  if command -v curl >/dev/null 2>&1; then
-    version="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
-      | grep -m1 '"tag_name"' \
-      | sed 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/' \
-      || echo "")"
-    if [ -n "$version" ]; then
-      echo "$version"
-      return 0
-    fi
-  fi
-  echo "v0.1.0"
+  echo "$AEL_DEFAULT_VERSION"
 }
 
 detect_asset() {
