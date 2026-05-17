@@ -2,7 +2,7 @@
 # AiEconLab — acceptance test for v0.1.0 schema.
 #
 # Validates the structural invariants declared in
-# .aiplus/agent-team/acceptance/v0.1.0/schema.yaml.
+# acceptance/v0.1.0/schema.yaml.
 # Exits 0 on pass, non-zero on first failure.
 
 set -euo pipefail

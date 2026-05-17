@@ -46,3 +46,15 @@ jobs:
               bash "$f" || exit 1
             done
           fi
+
+  regression-15-install-no-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install AiPlus CLI
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/izhiwen/aiplus/main/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: "Run #15 dogfood install safety regression"
+        run: bash tests/regression_15_install_no_delete.sh
