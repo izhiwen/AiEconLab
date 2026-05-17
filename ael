@@ -44,6 +44,7 @@ Usage:
   ael status
   ael doctor [--fix]
   ael route <role> <task...>
+  ael telemetry [enable|disable|status]
   ael invite|dismiss|integrate <role>
   ael --version
 
@@ -103,6 +104,102 @@ run_substrate_visible() {
   local bin
   bin="$(substrate_bin)"
   "$bin" "$@" 2>&1 | sanitize_substrate_output
+}
+
+telemetry_config_path() {
+  if [ -n "${AEL_TELEMETRY_PATH:-}" ]; then
+    printf '%s\n' "$AEL_TELEMETRY_PATH"
+  else
+    printf '%s\n' "$PWD/.ael/telemetry.json"
+  fi
+}
+
+telemetry_write_config() {
+  local enabled="$1"
+  local config_path
+  config_path="$(telemetry_config_path)"
+  mkdir -p "$(dirname "$config_path")"
+  python3 - "$config_path" "$enabled" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+path = Path(sys.argv[1])
+enabled = sys.argv[2] == "true"
+payload = {
+    "schema_version": "v0.2.1",
+    "enabled": enabled,
+    "mode": "local-json",
+    "hosted_endpoint": None,
+    "events_path": ".ael/telemetry-events.jsonl",
+    "event_payload": {
+        "expert": "string",
+        "task_class": "LIGHT|MEDIUM|HEAVY|unknown",
+        "outcome": "success|failure|unknown",
+        "timestamp": "RFC3339",
+    },
+    "updated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+}
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+}
+
+telemetry_enabled_state() {
+  local config_path
+  config_path="$(telemetry_config_path)"
+  python3 - "$config_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.exists():
+    print("false")
+    raise SystemExit(0)
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    print("invalid")
+    raise SystemExit(0)
+print("true" if data.get("enabled") is True else "false")
+PY
+}
+
+telemetry_cmd() {
+  local action="${1:-status}"
+  case "$action" in
+    enable)
+      telemetry_write_config true
+      printf 'AEL telemetry enabled\n'
+      printf 'mode=local-json\n'
+      printf 'config=%s\n' "$(telemetry_config_path)"
+      printf 'hosted_endpoint=none\n'
+      ;;
+    disable)
+      telemetry_write_config false
+      printf 'AEL telemetry disabled\n'
+      printf 'mode=local-json\n'
+      printf 'config=%s\n' "$(telemetry_config_path)"
+      printf 'hosted_endpoint=none\n'
+      ;;
+    status)
+      local state
+      state="$(telemetry_enabled_state)"
+      [ "$state" != "invalid" ] || die "telemetry config is invalid JSON: $(telemetry_config_path)"
+      if [ "$state" = "true" ]; then
+        printf 'AEL telemetry status: enabled\n'
+      else
+        printf 'AEL telemetry status: disabled\n'
+      fi
+      printf 'mode=local-json\n'
+      printf 'config=%s\n' "$(telemetry_config_path)"
+      printf 'hosted_endpoint=none\n'
+      ;;
+    *)
+      die "usage: ael telemetry [enable|disable|status]"
+      ;;
+  esac
 }
 
 detect_runtime() {
@@ -416,6 +513,10 @@ main() {
     route)
       shift
       run_substrate_visible agent route "$@"
+      ;;
+    telemetry)
+      shift
+      telemetry_cmd "$@"
       ;;
     invite|dismiss|integrate)
       local sub="$cmd"
