@@ -9,6 +9,14 @@ bash -n install.sh
 
 dry_run="$(sh install.sh --dry-run)"
 case "$dry_run" in
+  *"version=v0.1.0"*) ;;
+  *)
+    echo "::error::install.sh default version must be v0.1.0"
+    printf '%s\n' "$dry_run"
+    exit 1
+    ;;
+esac
+case "$dry_run" in
   *AiPlus*|*aiplus*|*AIPLUS*)
     echo "::error::install.sh dry-run leaks substrate branding"
     printf '%s\n' "$dry_run"
