@@ -235,8 +235,8 @@ jobs:
 
           agents = sorted((root / ".opencode/agents").glob("aieconlab-*.md"))
           commands = sorted((root / ".opencode/commands").glob("aiel-*.md"))
-          if len(agents) != 20:
-              raise SystemExit(f"expected 20 OpenCode AEL agents, found {len(agents)}")
+          if len(agents) != 22:
+              raise SystemExit(f"expected 22 OpenCode AEL agents, found {len(agents)}")
           if {p.name for p in commands} != {
               "aiel-fire-consultant.md",
               "aiel-route.md",
