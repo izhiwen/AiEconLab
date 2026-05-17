@@ -146,7 +146,7 @@ jobs:
             fi
           done
 
-          # All 12 expert TOMLs
+          # Expert TOMLs currently propagated by the AiPlus install path.
           for expert in lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement survey-experiment computation coauthor-liaison; do
             if [ ! -f ".aiplus/agents/experts/$expert.toml" ]; then
               echo "::error::missing AEL expert: $expert"
