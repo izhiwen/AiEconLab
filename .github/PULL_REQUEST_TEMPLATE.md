@@ -29,7 +29,7 @@
       adapter READMEs
 - [ ] If a structural contract changed (number of roles/experts,
       consultant team layout), I updated
-      `.aiplus/aieconlab/acceptance/v0.1.0/schema.yaml` and
+      `acceptance/v0.1.0/schema.yaml` and
       `tests/acceptance.test.sh` together
 - [ ] No secrets, IRB-protected paths, or restricted-archive paths in
       any of the new content
