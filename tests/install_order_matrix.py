@@ -41,6 +41,8 @@ EXPERTS = [
     "survey-experiment",
     "computation",
     "coauthor-liaison",
+    "dof-auditor",
+    "rr-strategist",
 ]
 
 AEL_AGENT_NAMES = CORE_ROLES + EXPERTS
