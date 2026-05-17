@@ -1,13 +1,13 @@
 # VHS tape for AiEconLab 30-second tour. Generate with:
 #   cd aieconlab && vhs docs/demo.tape
-# Output: docs/demo.gif (referenced from the main README).
+# Output: demo.gif (referenced from the main README).
 #
 # Mirrors aiplus-public/docs/demo.tape pattern: VHS gives a single
 # declarative script that re-renders identically on any machine, so the
 # README demo looks the same on author's M2 as on a CI runner that
 # regenerates it later.
 
-Output docs/demo.gif
+Output demo.gif
 
 Set FontSize 14
 Set Width 1000

@@ -10,7 +10,7 @@ once, AEL gives each role a separate persona, workspace boundary, and set of
 responsibilities.
 
 ```bash
-curl -fsSL https://ael.zhiwen-wang.com/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
 cd MyPaperProject
 ael install
 ael talk advisor "What is your role?"
@@ -20,7 +20,9 @@ The first command installs the `ael` CLI. Inside a paper or replication
 project, `ael install` sets up the economics research team for your local AI
 runtime. `ael talk advisor ...` opens a role-specific conversation.
 
-![AiEconLab demo](landing/demo.gif)
+## Demo
+
+![AiEconLab demo](demo.gif)
 
 ## What AEL Adds
 
@@ -55,7 +57,7 @@ talks, and coauthor coordination.
 Install the CLI:
 
 ```bash
-curl -fsSL https://ael.zhiwen-wang.com/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
 ```
 
 If the installer says the target directory is not on `PATH`, add it:
@@ -170,6 +172,11 @@ scripts/build-ael.sh --package
 
 The release workflow publishes platform tarballs and SHA256 sidecars for the
 installer.
+
+## Advanced
+
+AEL is built on the AiPlus agent substrate; the supported user-facing product
+surface is the `ael` CLI and this repository.
 
 ## License
 

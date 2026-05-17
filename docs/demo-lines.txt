@@ -18,8 +18,8 @@
 #       [![asciinema 30s tour](https://asciinema.org/a/<ID>.svg)](https://asciinema.org/a/<ID>)
 #
 # Or convert to GIF and commit to repo:
-#       agg --theme monokai ../demo.cast docs/demo.gif
-#       git add docs/demo.gif && git commit -m "docs: add 30s demo GIF"
+#       agg --theme monokai ../demo.cast demo.gif
+#       git add demo.gif && git commit -m "docs: add 30s demo GIF"
 
 # ─────────────────────────────────────────────
 # STEP 1 (0-5 sec) — setup
