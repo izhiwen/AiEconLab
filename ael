@@ -39,19 +39,28 @@ usage() {
 AEL 0.1.4
 
 Usage:
-  ael install [codex|claude-code|opencode|all] [options]
-  ael talk [--runtime codex|claude-code|opencode] <role> [prompt...]
-  ael status
-  ael doctor [--fix]
+  ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
+  ael                                            (recommended) chat with PI in plain language
+  ael chat                                       same as no-arg ael
+  ael status                                     show installed team + active runtime
+  ael doctor [--fix]                             self-check and fix common drift
+
+Advanced (you rarely need these once you are in chat):
+  ael talk [--runtime RUNTIME] <role> [prompt...]
   ael route <role> <task...>
   ael telemetry [enable|disable|status]
   ael invite|dismiss|integrate <role>
   ael --version
 
+Recommended flow:
+  ael install                       # once per project
+  ael                               # then describe what you need in plain English / Chinese
+                                    # PI dispatches to advisor, writer, RA, referee, etc.
+
 Examples:
   ael install
-  ael talk advisor "What is your role?"
-  ael route pi "scope the next empirical milestone"
+  ael                               # opens chat with PI
+  ael status
 EOF
 }
 
@@ -104,6 +113,17 @@ run_substrate_visible() {
   local bin
   bin="$(substrate_bin)"
   "$bin" "$@" 2>&1 | sanitize_substrate_output
+}
+
+run_substrate_interactive() {
+  # Hand the TTY directly to the substrate so codex / claude / opencode can
+  # enter interactive REPL mode. Piping through sanitize_substrate_output
+  # would make stdout a pipe and force those runtimes into non-interactive
+  # mode. The PI / advisor / etc. persona content is already AEL-flavored;
+  # only the runtime's own banner is visible here.
+  local bin
+  bin="$(substrate_bin)"
+  exec "$bin" "$@"
 }
 
 telemetry_config_path() {
@@ -478,17 +498,45 @@ talk_cmd() {
     local bin
     bin="$(runtime_binary "$runtime")"
     command -v "$bin" >/dev/null 2>&1 || die "$bin CLI not found on PATH"
-    run_substrate_visible agent talk --runtime "$runtime" "$role"
+    run_substrate_interactive agent talk --runtime "$runtime" "$role"
     return 0
   fi
 
   headless_talk "$runtime" "$role" "$*"
 }
 
+chat_default() {
+  # The natural-language entry point: chat with PI (your project manager).
+  # PI loads the team persona, understands plain English / Chinese, and
+  # ends each dispatch with the exact shell command to commit it.
+  if [ ! -f "$PWD/.aiplus/manifest.json" ]; then
+    cat >&2 <<'EOF'
+ael: this project is not set up yet.
+
+Run this once to install the research team:
+  ael install
+
+Then run "ael" to chat with your team in plain language.
+EOF
+    exit 1
+  fi
+  printf 'AEL — chatting with PI (your project manager).\n'
+  printf 'Tell me what you want to do, in plain English or Chinese.\n'
+  printf 'Type exit / Ctrl-D to leave.\n\n'
+  talk_cmd pi
+}
+
 main() {
   local cmd="${1:-}"
   case "$cmd" in
-    ""|-h|--help|help)
+    "")
+      chat_default
+      ;;
+    chat)
+      shift
+      chat_default
+      ;;
+    -h|--help|help)
       usage
       ;;
     -V|--version|version)

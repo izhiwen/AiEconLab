@@ -71,4 +71,30 @@ grep -q "0.1.4" scripts/build-ael.sh || {
   exit 1
 }
 
+# `ael` with no args in a non-installed project must emit a friendly hint
+# (not a stack trace, not substrate leak) and exit non-zero. The check uses
+# a fresh empty tempdir as CWD so .aiplus/manifest.json is guaranteed absent.
+no_args_dir="$(mktemp -d)"
+no_args_stderr="$(mktemp)"
+ael_abs="$(cd "$(dirname "$0")/.." && pwd)/ael"
+if ( cd "$no_args_dir" && "$ael_abs" ) >/dev/null 2>"$no_args_stderr"; then
+  echo "::error::ael with no args in an empty project should fail (no manifest)"
+  exit 1
+fi
+case "$(cat "$no_args_stderr")" in
+  *"ael install"*) ;;
+  *)
+    echo "::error::ael no-args hint must point user to 'ael install'"
+    cat "$no_args_stderr"
+    exit 1
+    ;;
+esac
+case "$(cat "$no_args_stderr")" in
+  *AiPlus*|*aiplus*|*AIPLUS*)
+    echo "::error::ael no-args hint leaks substrate branding"
+    cat "$no_args_stderr"
+    exit 1
+    ;;
+esac
+
 echo "AEL_WRAPPER_TEST=PASS"
