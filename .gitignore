@@ -5,6 +5,8 @@ node_modules/
 *.log
 .aiplus/agent-memory/
 .aiplus/agent-workspaces/
+.aiplus/agents/
+.aiplus/velocity/
 *.tmp
 *.bak
 
