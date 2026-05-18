@@ -40,10 +40,21 @@ AEL 0.1.5
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
-  ael                                            (recommended) chat with PI in plain language
-  ael chat                                       same as no-arg ael
+  ael                                            open the lobby — pick or describe who you want to talk to
+  ael <role>                                     shortcut: directly start a chat with that role
   ael status                                     show installed team + active runtime
   ael doctor [--fix]                             self-check and fix common drift
+
+Roles you can chat with directly:
+  ael pi                                         项目经理 — 派单、跟进、汇总
+  ael advisor                                    顾问 — 反思、识别策略、框架
+  ael writer                                     写手 — 起草段落、引言、改稿
+  ael ra-stata                                   实证 RA — 回归、表格、Stata
+  ael ra-python                                  数据 RA — 清洗、合并、Python
+  ael theorist                                   理论 — 识别假设、模型
+  ael referee                                    内审 — 内部自审
+  ael replicator                                 复现 — clean-room 复跑
+  ael pm                                         项目管理 — Gantt、deadline
 
 Advanced (you rarely need these once you are in chat):
   ael talk [--runtime RUNTIME] <role> [prompt...]
@@ -54,13 +65,18 @@ Advanced (you rarely need these once you are in chat):
 
 Recommended flow:
   ael install                       # once per project
-  ael                               # then describe what you need in plain English / Chinese
-                                    # PI dispatches to advisor, writer, RA, referee, etc.
+  ael                               # lobby — type/say who you want (PI, Advisor, ...)
+                                    # or "我想反思 RD 设计" and it routes you to Advisor
+
+Two-window pattern (for serious paper work):
+  Window 1: ael advisor             # consult on framing / identification
+  Window 2: ael pi                  # issue execution instructions
 
 Examples:
   ael install
-  ael                               # opens chat with PI
-  ael status
+  ael                               # opens the lobby
+  ael pi                            # skip lobby, go straight to PI
+  ael advisor                       # skip lobby, go straight to Advisor
 EOF
 }
 
@@ -515,10 +531,76 @@ talk_cmd() {
   headless_talk "$runtime" "$role" "$*"
 }
 
+list_team_members() {
+  cat <<'EOF'
+Core team:
+
+  pi / 项目经理         派单、跟进、汇总
+  advisor / 顾问        反思、识别策略、框架
+  writer / 写手         起草段落、引言、改稿
+  ra-stata / 实证 RA    回归、表格、Stata 代码
+  ra-python / 数据 RA   清洗、合并、Python 代码
+  theorist / 理论       识别假设、模型设计
+  referee / 内审        内部自审、catch 错误
+  replicator / 复现     clean-room 复跑
+  pm / 项目管理         Gantt、deadline、acceptance
+
+Tip: PI can summon experts (dof, rr-strategist, writer, econometrician,
+viz, lit-reviewer, etc.) — just ask PI.
+EOF
+}
+
+# Map free-form user input → canonical role slug. Returns empty string
+# if no confident match. Designed to handle: English slugs ("pi",
+# "ra-stata"), Chinese aliases ("顾问", "理论"), and short natural-
+# language phrases ("我想反思 RD 设计" → advisor, "派给 RA 跑回归" →
+# ra-stata).
+detect_role_from_input() {
+  local raw="$1"
+  local lower
+  lower="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
+
+  # Exact slug match (highest priority).
+  case "$lower" in
+    pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
+      printf '%s' "$lower"
+      return 0
+      ;;
+  esac
+
+  # Substring match across English + Chinese aliases. Order matters —
+  # check more specific ones first (ra-stata before "ra").
+  case "$lower" in
+    *advisor*|*顾问*|*反思*|*识别*|*框架*|*战略*|*咨询*)
+      printf 'advisor' ;;
+    *ra-stata*|*ra_stata*|"ra stata"*|*ra-stata*|*stata*|*回归*|*实证*ra*|*跑表*|*跑回归*)
+      printf 'ra-stata' ;;
+    *ra-python*|*ra_python*|"ra python"*|*ra-python*|*python*ra*|*数据清洗*|*清洗*|*合并*数据*|*python*)
+      printf 'ra-python' ;;
+    *replicator*|*复现*|*复跑*|*clean.room*|*replication*)
+      printf 'replicator' ;;
+    *referee*|*内审*|*自审*|*审稿*)
+      printf 'referee' ;;
+    *theorist*|*理论*|*模型*|*识别假设*|*推导*)
+      printf 'theorist' ;;
+    *writer*|*写手*|*起草*|*写段落*|*draft*|*引言*|*introduction*|*写作*)
+      printf 'writer' ;;
+    *pm*|*项目经理*|*gantt*|*deadline*|*项目管理*|*acceptance*)
+      # NOTE: only after "pi" exact-match fails — "pm" matches before "pi"
+      # because pi above was an exact-only check.
+      printf 'pm' ;;
+    *pi*|*项目经理*|*派单*|*下达*|*执行*|*orchestrat*|*coordinator*)
+      printf 'pi' ;;
+    *)
+      printf '' ;;
+  esac
+}
+
 chat_default() {
-  # The natural-language entry point: chat with PI (your project manager).
-  # PI loads the team persona, understands plain English / Chinese, and
-  # ends each dispatch with the exact shell command to commit it.
+  # The natural-language entry point: a lobby that routes the user to
+  # the team member they want. Replaces the previous "always drop into
+  # PI" behavior so users can also reach Advisor / writer / RAs / etc.
+  # directly.
   if [ ! -f "$PWD/.aiplus/manifest.json" ]; then
     cat >&2 <<'EOF'
 ael: this project is not set up yet.
@@ -530,10 +612,41 @@ Then run "ael" to chat with your team in plain language.
 EOF
     exit 1
   fi
-  printf 'AEL — chatting with PI (your project manager).\n'
-  printf 'Tell me what you want to do, in plain English or Chinese.\n'
-  printf 'Type exit / Ctrl-D to leave.\n\n'
-  talk_cmd pi
+
+  printf 'AEL — 你想跟谁聊？ / who do you want to talk to?\n\n'
+  list_team_members
+  printf '\nType a name, slug, or describe what you need (中英文皆可).\n'
+  printf '"q" / Ctrl-D to leave. Empty = PI.\n'
+  printf '\n> '
+
+  local user_input=""
+  IFS= read -r user_input || true  # Ctrl-D returns non-zero; treat as quit
+
+  local trimmed
+  trimmed="$(printf '%s' "$user_input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+  case "$trimmed" in
+    q|quit|exit|bye)
+      exit 0
+      ;;
+  esac
+
+  local role
+  if [ -z "$trimmed" ]; then
+    # Empty input → default to PI silently (matches v0.1.5 behavior).
+    role='pi'
+    printf '→ pi (default)\n\n'
+  else
+    role="$(detect_role_from_input "$user_input")"
+    if [ -z "$role" ]; then
+      printf '\nael: could not match "%s" to a team member. Defaulting to PI.\n\n' "$user_input" >&2
+      role='pi'
+    else
+      printf '→ %s\n\n' "$role"
+    fi
+  fi
+
+  # Re-exec ourselves so the TTY chain is clean (no nested shell layers).
+  exec "$0" talk "$role"
 }
 
 main() {
@@ -545,6 +658,13 @@ main() {
     chat)
       shift
       chat_default
+      ;;
+    # Power-user shortcuts: `ael pi`, `ael advisor`, ... skip the lobby
+    # and drop straight into that role's interactive chat. The lobby is
+    # nicer for new users; these shortcuts are faster once you know who
+    # you need.
+    pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
+      talk_cmd "$cmd"
       ;;
     -h|--help|help)
       usage

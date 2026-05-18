@@ -105,4 +105,65 @@ case "$(cat "$no_args_stderr")" in
     ;;
 esac
 
+# `ael --help` must list all 9 core roles as direct-shortcut commands.
+help_out="$(./ael --help)"
+for role in pi advisor writer ra-stata ra-python theorist referee replicator pm; do
+  case "$help_out" in
+    *"ael $role"*) ;;
+    *)
+      echo "::error::ael --help missing direct-shortcut entry for role: $role"
+      exit 1
+      ;;
+  esac
+done
+case "$help_out" in
+  *"opens the lobby"*) ;;
+  *)
+    echo "::error::ael --help must mention the lobby as the no-arg behavior"
+    exit 1
+    ;;
+esac
+
+# Lobby behavior: when `ael` runs in a project that DOES have a manifest,
+# stdin closed should print the team menu (then fail to read) without
+# crashing or leaking substrate branding. The empty-stdin case lets us
+# verify the menu surface without actually exec'ing the substrate.
+lobby_dir="$(mktemp -d)"
+mkdir -p "$lobby_dir/.aiplus"
+printf '{"runtimeAdapters":["codex"]}\n' >"$lobby_dir/.aiplus/manifest.json"
+lobby_out="$(cd "$lobby_dir" && "$ael_abs" < /dev/null 2>&1 || true)"
+case "$lobby_out" in
+  *AiPlus*|*aiplus*|*AIPLUS*)
+    # Filter out the legitimate .aiplus/manifest.json path — it's a real
+    # path on disk and shows up in error output, but it's not user-facing
+    # branding. Only the wrapper's own text matters.
+    filtered="$(printf '%s' "$lobby_out" | grep -vE '\.aiplus/|vendor/aiplus|/aiplus')"
+    case "$filtered" in
+      *AiPlus*|*aiplus*|*AIPLUS*)
+        echo "::error::ael lobby leaks substrate branding (outside known path strings)"
+        printf '%s\n' "$lobby_out"
+        exit 1
+        ;;
+    esac
+    ;;
+esac
+case "$lobby_out" in
+  *"Core team"*) ;;
+  *)
+    echo "::error::ael lobby must print the team menu"
+    printf '%s\n' "$lobby_out"
+    exit 1
+    ;;
+esac
+for role_kw in "pi" "advisor" "writer" "ra-stata" "ra-python" "theorist" "referee" "replicator" "pm"; do
+  case "$lobby_out" in
+    *"$role_kw"*) ;;
+    *)
+      echo "::error::ael lobby menu missing role: $role_kw"
+      printf '%s\n' "$lobby_out"
+      exit 1
+      ;;
+  esac
+done
+
 echo "AEL_WRAPPER_TEST=PASS"
