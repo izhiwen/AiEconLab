@@ -298,6 +298,7 @@ install_cmd() {
     printf '  would bootstrap the project runtime adapter\n'
     printf '  would install the AiEconLab research team\n'
     printf '  would set AiEconLab as the active team\n'
+    printf '  would register the MCP server with %s (native tool-use for chat)\n' "$runtime"
     printf 'AEL_DRY_RUN=PASS\n'
     return 0
   fi
@@ -309,8 +310,17 @@ install_cmd() {
   fi
   run_substrate_quiet add aieconlab
   run_substrate_quiet agent set-team aieconlab
-  printf 'AEL installed for runtime=%s\n' "$runtime"
-  printf 'Next: ael talk advisor "What is your role?"\n'
+  # Register the MCP server so PI inside chat can call agent_route /
+  # agent_status / agent_set_team as native tool-use instead of emitting
+  # bash blocks the user has to click. Fail-soft: if MCP registration
+  # doesn't take (e.g. corrupted runtime config, runtime not supported on
+  # this platform), chat still works via the bash-block fallback.
+  if run_substrate_quiet mcp-register --runtime "$runtime"; then
+    printf 'AEL installed for runtime=%s (chat tools registered)\n' "$runtime"
+  else
+    printf 'AEL installed for runtime=%s (chat tools not registered; bash-block fallback active)\n' "$runtime" >&2
+  fi
+  printf 'Next: ael                  # chat with your team in plain English / Chinese\n'
 }
 
 persona_path_for() {
