@@ -9,9 +9,9 @@ bash -n install.sh
 
 dry_run="$(sh install.sh --dry-run)"
 case "$dry_run" in
-  *"version=v0.1.4"*) ;;
+  *"version=v0.1.5"*) ;;
   *)
-    echo "::error::install.sh default version must be v0.1.4"
+    echo "::error::install.sh default version must be v0.1.5"
     printf '%s\n' "$dry_run"
     exit 1
     ;;
