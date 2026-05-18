@@ -43,6 +43,15 @@ this directory will hold:
 - Codex-specific managed block templates for `AGENTS.md` so the
   AEL roles appear as a discoverable virtual team in long sessions
 
+## Role switching from natural language
+
+Codex recognizes role switches like "you are PI" or "switch to
+RA-Stata" without explicit CLI invocation. The `subagents.toml`
+manifest gives each AEL role a routing description that Codex
+matches against the active prompt; mid-session, you can re-bind
+the active persona by saying the role's name in natural language.
+Verified at 10/10 on the AiPlus G1 test matrix.
+
 ## Why this isn't blocked on v0.1 usage
 
 Everything an AEL user needs today works through `aiplus agent

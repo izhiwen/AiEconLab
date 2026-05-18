@@ -43,3 +43,12 @@ aiplus doctor
 Expected result: `.opencode/agents/` contains 22 prefixed AEL agent
 files, `.opencode/commands/` contains the four `/aiel-*` commands, and
 `aiplus doctor` reports `DOCTOR_STATUS=PASS`.
+
+## Role switching from natural language
+
+OpenCode's interactive TUI recognizes role switches like "you are PI"
+or "switch to the Referee" without explicit slash-command invocation.
+The `subagents.toml` description gives OpenCode's agent picker enough
+signal to re-bind the active persona mid-session. Note: in
+non-interactive `opencode run` mode, this is currently limited by
+OpenCode itself — we're tracking the upstream fix.

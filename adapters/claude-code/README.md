@@ -58,6 +58,15 @@ the research-team layer on top.
 4. `aiplus doctor` verifies all 22 subagents, slash commands, and the
    AEL managed block are present.
 
+## Role switching from natural language
+
+Claude Code recognizes role switches like "you are PI" or "take the
+referee role" without explicit slash-command invocation. The
+`subagents.toml` description and YAML frontmatter on each
+`.claude/agents/aieconlab-*.md` give Claude Code's auto-router enough
+signal to re-bind the active persona when you name a role mid-session.
+Verified at 10/10 on the AiPlus G1 test matrix.
+
 ## Uninstall
 
 `aiplus uninstall --yes` strips the AEL managed block from `CLAUDE.md`

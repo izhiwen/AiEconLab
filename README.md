@@ -49,8 +49,30 @@ It gives you:
 
 There are also specialist roles for literature review, writing, econometrics,
 LLM-as-measurement validation, reproducibility engineering, historical sources,
-IRB/sensitive-data review, visualization, computation, survey experiments, job
-talks, and coauthor coordination.
+IRB/sensitive-data review, visualization, computation, survey experiments,
+degrees-of-freedom auditing, R&R strategy, job talks, and coauthor coordination.
+
+## How the Team Works in Your Runtime
+
+- **Switch roles in plain language.** Mid-session, say "you are PI",
+  "take the referee role", or "switch to RA-Stata" and the agent
+  responds as that role, with that role's research memory loaded.
+  No CLI command. Works in Codex, Claude Code, and OpenCode
+  interactive mode.
+
+- **Intent-aware guardrails when PI delegates.** Before PI hands
+  off anything risky to an RA — deleting files, modifying live
+  data, publishing changes — the coordinator understands what
+  you're actually asking for, not just the words you typed.
+  Rephrasing or putting things in quotes can't slip a destructive
+  command through. Especially useful when replication scripts
+  touch shared archives or paper drafts.
+
+- **Parallel review and QA for fast PI → RA → Referee cycles.**
+  Review and QA steps run side by side, and each role's workspace
+  stays warm between tasks. A typical robustness-table iteration
+  lands in ~8-10 min instead of ~15-20, same quality bar. AEL
+  inherits this from the underlying AiPlus.
 
 ## Install
 
@@ -146,6 +168,8 @@ stability, and measurement-error implications for the empirical result.
 
 Companion example:
 [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo).
+
+![Pairwise LLM correlation heatmap (294 archival docs × 5 frontier LLMs, mean ρ ≈ 0.92)](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
 
 ## Safety
 
