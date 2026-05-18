@@ -5,7 +5,7 @@
 This adapter ships OpenCode-native AEL assets. After a project installs
 OpenCode support and opts into AiEconLab, AiPlus writes:
 
-- 20 AEL subagents to `.opencode/agents/aieconlab-*.md`
+- 22 AEL subagents to `.opencode/agents/aieconlab-*.md`
 - 4 slash commands to `.opencode/commands/aiel-*.md`
 - project-local AEL module assets under `.aiplus/modules/aieconlab/`
 
@@ -26,7 +26,7 @@ agent surface.
 
 | File | Purpose |
 | --- | --- |
-| `subagents.toml` | Manifest of 20 OpenCode subagents: name, routing description, and source persona. |
+| `subagents.toml` | Manifest of 22 OpenCode subagents: name, routing description, and source persona. |
 | `commands/aiel-route.md` | Explicit PI-style routing command. |
 | `commands/aiel-talk.md` | Role-switch command for opening a specific AEL persona. |
 | `commands/aiel-fire-consultant.md` | Research consultant-table command for non-trivial plans. |
@@ -40,6 +40,6 @@ aiplus add aieconlab
 aiplus doctor
 ```
 
-Expected result: `.opencode/agents/` contains 20 prefixed AEL agent
+Expected result: `.opencode/agents/` contains 22 prefixed AEL agent
 files, `.opencode/commands/` contains the four `/aiel-*` commands, and
 `aiplus doctor` reports `DOCTOR_STATUS=PASS`.

@@ -101,8 +101,8 @@ if missing_required:
 
 expert_tomls = sorted((ROOT / "core/templates/experts").glob("*.toml"))
 expert_roles = [path.stem for path in expert_tomls]
-if len(expert_roles) != 12:
-    fail(f"expected 12 expert specs, found {len(expert_roles)}")
+if len(expert_roles) != 14:
+    fail(f"expected 14 expert specs, found {len(expert_roles)}")
 
 expected_roles = CORE_ROLES + expert_roles
 
@@ -157,6 +157,23 @@ for adapter in ["claude-code", "opencode"]:
             fail(f"{path}: {name} persona_file mismatch: {persona_file}")
         if not entry.get("description", "").strip():
             fail(f"{path}: {name} missing description")
+
+codex_mirror_path = ROOT / "adapters/codex/subagents.toml"
+codex_entries = load_subagents(codex_mirror_path)
+codex_new_names = {entry.get("name") for entry in codex_entries}
+expected_new_names = {"aieconlab-dof-auditor", "aieconlab-rr-strategist"}
+if codex_new_names != expected_new_names:
+    fail(
+        f"{codex_mirror_path}: v0.2.1 beta mirror mismatch "
+        f"missing={sorted(expected_new_names - codex_new_names)} "
+        f"extra={sorted(codex_new_names - expected_new_names)}"
+    )
+for entry in codex_entries:
+    name = entry["name"]
+    if entry.get("persona_file") != expected_personas[name]:
+        fail(f"{codex_mirror_path}: {name} persona_file mismatch")
+    if not entry.get("description", "").strip():
+        fail(f"{codex_mirror_path}: {name} missing description")
 
 alias_owner: dict[str, str] = {}
 for role, path in zip(expert_roles, expert_tomls):

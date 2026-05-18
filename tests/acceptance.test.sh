@@ -83,19 +83,19 @@ pass "personas_present (8 core personas, all >=500B)"
 # ---------------------------------------------------------------------
 # core invariant: experts_present
 # ---------------------------------------------------------------------
-experts=(lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist survey-experiment computation ethics-irb coauthor-liaison llm-measurement)
+experts=(lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist survey-experiment computation ethics-irb coauthor-liaison llm-measurement dof-auditor rr-strategist)
 for expert in "${experts[@]}"; do
   f="core/templates/experts/${expert}.toml"
   [ -f "$f" ] || fail "missing expert TOML: $f"
   toml_parse "$f" \
     || fail "TOML parse failure: $f"
 done
-pass "experts_present (12 expert TOMLs, all parse)"
+pass "experts_present (14 expert TOMLs, all parse)"
 
 # ---------------------------------------------------------------------
 # core invariant: shipped_expert_personas_present
 # ---------------------------------------------------------------------
-shipped_experts=(lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement survey-experiment computation coauthor-liaison)
+shipped_experts=(lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement survey-experiment computation coauthor-liaison dof-auditor rr-strategist)
 for expert in "${shipped_experts[@]}"; do
   f="core/templates/personas/${expert}.md"
   [ -f "$f" ] || fail "missing shipped expert persona: $f"
@@ -103,7 +103,7 @@ for expert in "${shipped_experts[@]}"; do
   [ "$size" -ge 500 ] \
     || fail "shipped expert persona too small (<500B): $f ($size bytes)"
 done
-pass "shipped_expert_personas_present (12 shipped, all >=500B)"
+pass "shipped_expert_personas_present (14 shipped, all >=500B)"
 
 # ---------------------------------------------------------------------
 # core invariant: stub_expert_personas — historical placeholder

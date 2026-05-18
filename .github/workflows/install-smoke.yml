@@ -146,7 +146,7 @@ jobs:
             fi
           done
 
-          # All 12 expert TOMLs
+          # Expert TOMLs currently propagated by the AiPlus install path.
           for expert in lit-reviewer writer econometrician reproducibility historical-sources job-talk-coach viz-specialist ethics-irb llm-measurement survey-experiment computation coauthor-liaison; do
             if [ ! -f ".aiplus/agents/experts/$expert.toml" ]; then
               echo "::error::missing AEL expert: $expert"
@@ -235,8 +235,8 @@ jobs:
 
           agents = sorted((root / ".opencode/agents").glob("aieconlab-*.md"))
           commands = sorted((root / ".opencode/commands").glob("aiel-*.md"))
-          if len(agents) != 20:
-              raise SystemExit(f"expected 20 OpenCode AEL agents, found {len(agents)}")
+          if len(agents) != 22:
+              raise SystemExit(f"expected 22 OpenCode AEL agents, found {len(agents)}")
           if {p.name for p in commands} != {
               "aiel-fire-consultant.md",
               "aiel-route.md",

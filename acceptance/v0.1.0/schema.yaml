@@ -72,7 +72,7 @@ core_invariants:
     min_size_bytes: 500
 
   - id: experts_present
-    description: "All 12 expert TOML files exist and parse."
+    description: "All 14 expert TOML files exist and parse."
     files_required:
       - "{experts_dir}/lit-reviewer.toml"
       - "{experts_dir}/writer.toml"
@@ -86,10 +86,12 @@ core_invariants:
       - "{experts_dir}/ethics-irb.toml"
       - "{experts_dir}/coauthor-liaison.toml"
       - "{experts_dir}/llm-measurement.toml"
+      - "{experts_dir}/dof-auditor.toml"
+      - "{experts_dir}/rr-strategist.toml"
     parse_as: toml
 
   - id: shipped_expert_personas_present
-    description: "All 9 shipped expert personas exist and are non-empty."
+    description: "All 14 shipped expert personas exist and are non-empty."
     files_required:
       - "{personas_dir}/lit-reviewer.md"
       - "{personas_dir}/writer.md"
@@ -100,15 +102,17 @@ core_invariants:
       - "{personas_dir}/viz-specialist.md"
       - "{personas_dir}/ethics-irb.md"
       - "{personas_dir}/llm-measurement.md"
+      - "{personas_dir}/survey-experiment.md"
+      - "{personas_dir}/computation.md"
+      - "{personas_dir}/coauthor-liaison.md"
+      - "{personas_dir}/dof-auditor.md"
+      - "{personas_dir}/rr-strategist.md"
     parse_as: markdown
     min_size_bytes: 500
 
   - id: stub_expert_personas_present
-    description: "All 3 stub expert personas exist."
-    files_required:
-      - "{personas_dir}/_stubs/survey-experiment.md"
-      - "{personas_dir}/_stubs/computation.md"
-      - "{personas_dir}/_stubs/coauthor-liaison.md"
+    description: "No stub expert personas are required after W5 promotion."
+    files_required: []
     parse_as: markdown
 
   - id: consultant_team_present
