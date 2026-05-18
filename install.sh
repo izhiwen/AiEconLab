@@ -194,5 +194,5 @@ esac
 
 echo "Next:"
 echo "  cd MyProject"
-echo "  ael install"
-echo "  ael talk advisor \"What is your role?\""
+echo "  ael install                  # once per project — sets up the research team"
+echo "  ael                          # then chat with your team in plain English / Chinese"
