@@ -30,6 +30,14 @@ case "$dry_run" in
     exit 1
     ;;
 esac
+case "$dry_run" in
+  *"would register the MCP server"*) ;;
+  *)
+    echo "::error::ael install dry-run must mention MCP registration step"
+    printf '%s\n' "$dry_run"
+    exit 1
+    ;;
+esac
 
 fake_bin="$(mktemp -d)"
 cat >"$fake_bin/codex" <<'SH'
