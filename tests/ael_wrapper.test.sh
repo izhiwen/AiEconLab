@@ -48,6 +48,33 @@ case "$dry_run" in
     ;;
 esac
 
+all_dry_run="$(./ael install all --dry-run)"
+case "$all_dry_run" in
+  *"runtime=all"*)
+    echo "::error::ael install all --dry-run must not plan a literal all runtime"
+    printf '%s\n' "$all_dry_run"
+    exit 1
+    ;;
+esac
+for runtime in codex claude-code opencode; do
+  case "$all_dry_run" in
+    *"runtime=$runtime"*) ;;
+    *)
+      echo "::error::ael install all --dry-run must mention runtime: $runtime"
+      printf '%s\n' "$all_dry_run"
+      exit 1
+      ;;
+  esac
+  case "$all_dry_run" in
+    *"would register the MCP server with $runtime"*) ;;
+    *)
+      echo "::error::ael install all --dry-run must mention MCP registration for runtime: $runtime"
+      printf '%s\n' "$all_dry_run"
+      exit 1
+      ;;
+  esac
+done
+
 fake_bin="$(mktemp -d)"
 cat >"$fake_bin/codex" <<'SH'
 #!/usr/bin/env bash
@@ -160,6 +187,58 @@ case "$install_suppressed" in
   *"Quick start (your team is ready):"*)
     echo "::error::AEL_NO_ONBOARDING=1 must suppress install onboarding"
     printf '%s\n' "$install_suppressed"
+    exit 1
+    ;;
+esac
+
+all_support="$(mktemp)"
+all_support_log="$(mktemp)"
+all_support_out="$(mktemp)"
+cat >"$all_support" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$AEL_SUPPORT_LOG"
+if [ "${1:-}" = "--help" ]; then
+  printf 'Usage: ael-support\nCommands:\n  install\n  add\n  agent\n  mcp-register\n'
+  exit 0
+fi
+if [ "${1:-}" = "install" ] && [ "${2:-}" = "opencode" ]; then
+  printf 'opencode CLI not on PATH\n' >&2
+  exit 42
+fi
+exit 0
+SH
+chmod +x "$all_support"
+if AEL_AIPLUS_BIN="$all_support" AEL_SUPPORT_LOG="$all_support_log" ./ael install all >"$all_support_out" 2>&1; then
+  echo "::error::ael install all must exit non-zero when one runtime fails"
+  cat "$all_support_out"
+  exit 1
+fi
+case "$(cat "$all_support_log")" in
+  *"install all"*)
+    echo "::error::ael install all must not pass literal all to the substrate"
+    cat "$all_support_log"
+    exit 1
+    ;;
+esac
+for runtime in codex claude-code opencode; do
+  case "$(cat "$all_support_log")" in
+    *"install $runtime --allow-version-skew"*) ;;
+    *)
+      echo "::error::ael install all did not attempt runtime: $runtime"
+      cat "$all_support_log"
+      exit 1
+      ;;
+  esac
+done
+case "$(cat "$all_support_out")" in
+  *"AEL install runtime=codex status=PASS"*\
+*"AEL install runtime=claude-code status=PASS"*\
+*"AEL install runtime=opencode status=FAIL"*\
+*"AEL installed: codex ✓, claude-code ✓, opencode ✗ (CLI not on PATH)"*) ;;
+  *)
+    echo "::error::ael install all must print clear per-runtime status and final summary"
+    cat "$all_support_out"
     exit 1
     ;;
 esac

@@ -235,6 +235,26 @@ run_substrate_visible() {
   "$bin" "$@" 2>&1 | sanitize_substrate_output
 }
 
+run_substrate_capture() {
+  local __out_var="$1"
+  shift
+  local bin tmp status captured
+  bin="$(substrate_bin)"
+  tmp="$(mktemp)"
+  if "$bin" "$@" >"$tmp" 2>&1; then
+    captured="$(sanitize_substrate_output <"$tmp")"
+    printf -v "$__out_var" '%s' "$captured"
+    rm -f "$tmp"
+    return 0
+  else
+    status=$?
+    captured="$(sanitize_substrate_output <"$tmp")"
+    printf -v "$__out_var" '%s' "$captured"
+    rm -f "$tmp"
+    return "$status"
+  fi
+}
+
 run_substrate_interactive() {
   # Hand the TTY directly to the substrate so codex / claude / opencode can
   # enter interactive REPL mode. Piping through sanitize_substrate_output
@@ -548,6 +568,78 @@ for preferred in ("codex", "claude-code", "opencode"):
 PY
 }
 
+install_failure_reason() {
+  local output="$1" first_line
+  if grep -Eiq 'not on PATH|command not found|not found|No such file|missing .*CLI|CLI .*missing' <<<"$output"; then
+    printf 'CLI not on PATH'
+    return 0
+  fi
+
+  first_line="$(printf '%s\n' "$output" | sed -n '/[^[:space:]]/ { s/^[[:space:]]*//; s/[[:space:]]*$//; p; q; }')"
+  if [ -n "$first_line" ]; then
+    printf '%s' "$first_line" | cut -c 1-120
+  else
+    printf 'failed'
+  fi
+}
+
+join_install_summary() {
+  local first="1" item
+  for item in "$@"; do
+    if [ "$first" = "1" ]; then
+      first="0"
+    else
+      printf ', '
+    fi
+    printf '%s' "$item"
+  done
+}
+
+print_install_dry_run_for_runtime() {
+  local runtime="$1"
+  printf '  runtime=%s\n' "$runtime"
+  printf '    would bootstrap the project runtime adapter\n'
+  printf '    would install the AiEconLab research team\n'
+  printf '    would set AiEconLab as the active team\n'
+  printf '    would register the MCP server with %s (native tool-use for chat)\n' "$runtime"
+}
+
+install_runtime_flow() {
+  local runtime="$1"
+  shift
+  local output step
+  AEL_INSTALL_FAILURE_REASON=""
+  AEL_INSTALL_FAILURE_STEP=""
+
+  step="install"
+  if ! run_substrate_capture output install "$runtime" --allow-version-skew "$@"; then
+    AEL_INSTALL_FAILURE_STEP="$step"
+    AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
+    return 1
+  fi
+
+  step="add"
+  if ! run_substrate_capture output add aieconlab; then
+    AEL_INSTALL_FAILURE_STEP="$step"
+    AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
+    return 1
+  fi
+
+  step="set-team"
+  if ! run_substrate_capture output agent set-team aieconlab; then
+    AEL_INSTALL_FAILURE_STEP="$step"
+    AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
+    return 1
+  fi
+
+  step="mcp-register"
+  if ! run_substrate_capture output mcp-register --runtime "$runtime"; then
+    AEL_INSTALL_FAILURE_STEP="$step"
+    AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
+    return 1
+  fi
+}
+
 install_cmd() {
   local runtime="" dry_run="0"
   local -a args=()
@@ -589,13 +681,54 @@ install_cmd() {
 
   if [ "$dry_run" = "1" ]; then
     printf 'AEL install dry-run\n'
-    printf '  runtime=%s\n' "$runtime"
-    printf '  would bootstrap the project runtime adapter\n'
-    printf '  would install the AiEconLab research team\n'
-    printf '  would set AiEconLab as the active team\n'
-    printf '  would register the MCP server with %s (native tool-use for chat)\n' "$runtime"
+    if [ "$runtime" = "all" ]; then
+      local dry_runtime
+      for dry_runtime in codex claude-code opencode; do
+        print_install_dry_run_for_runtime "$dry_runtime"
+      done
+    else
+      print_install_dry_run_for_runtime "$runtime"
+    fi
     printf 'AEL_DRY_RUN=PASS\n'
     return 0
+  fi
+
+  if [ "$runtime" = "all" ]; then
+    local install_runtime failures=0 install_success
+    local -a summary=()
+    for install_runtime in codex claude-code opencode; do
+      if [ "${#args[@]}" -gt 0 ]; then
+        if install_runtime_flow "$install_runtime" "${args[@]}"; then
+          install_success="1"
+        else
+          install_success="0"
+        fi
+      else
+        if install_runtime_flow "$install_runtime"; then
+          install_success="1"
+        else
+          install_success="0"
+        fi
+      fi
+      if [ "$install_success" = "1" ]; then
+        printf 'AEL install runtime=%s status=PASS\n' "$install_runtime"
+        summary+=("$install_runtime ✓")
+      else
+        failures=$((failures + 1))
+        printf 'AEL install runtime=%s status=FAIL step=%s reason=%s\n' \
+          "$install_runtime" "$AEL_INSTALL_FAILURE_STEP" "$AEL_INSTALL_FAILURE_REASON" >&2
+        summary+=("$install_runtime ✗ ($AEL_INSTALL_FAILURE_REASON)")
+      fi
+    done
+    printf 'AEL installed: '
+    join_install_summary "${summary[@]}"
+    printf '\n'
+    if [ "$failures" -eq 0 ]; then
+      printf 'Next: ael                  # chat with your team in plain English / Chinese\n'
+      print_onboarding_hint
+      return 0
+    fi
+    return 1
   fi
 
   if [ "${#args[@]}" -gt 0 ]; then
