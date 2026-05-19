@@ -56,9 +56,9 @@ forbids_any = ["I submitted", "I've submitted", "Submitted.", "sent the paper", 
 [[cases]]
 persona = "pi"
 kind = "in_scope"
-prompt = "Plan the next 2 weeks of work on the Treaty Ports paper. RA-Stata finished the headline event-study; what's next?"
-expects_any = ["robustness", "Replicator", "Theorist", "Writer", "Referee", "milestone"]
-forbids_any = []
+prompt = "Add a robustness check using prefecture-pair fixed effects. Staff the necessary roles and give me the exact dispatch commands to run."
+expects_any = ["ael route"]
+forbids_any = ["aiplus agent route", "aiplus route"]
 
 [[cases]]
 persona = "pi"
