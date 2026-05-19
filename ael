@@ -44,6 +44,7 @@ AEL 0.1.5
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
   ael update [--dry-run]                          update the installed ael CLI
+  ael uninstall [--purge] [--yes]                 remove the installed ael CLI
   ael                                            open the lobby — pick or describe who you want to talk to
   ael <role>                                     shortcut: directly start a chat with that role
   ael status                                     show installed team + active runtime
@@ -66,6 +67,7 @@ Advanced (you rarely need these once you are in chat):
   ael telemetry [enable|disable|status]
   ael invite|dismiss|integrate <role>
   ael update [--dry-run]
+  ael uninstall [--purge] [--yes]
   ael --version
 
 Recommended flow:
@@ -80,6 +82,7 @@ Two-window pattern (for serious paper work):
 Examples:
   ael install
   ael update --dry-run                # preview an available CLI update
+  ael uninstall --yes                 # remove the installed CLI, keep project files
   ael                               # opens the lobby
   ael pi                            # skip lobby, go straight to PI
   ael advisor                       # skip lobby, go straight to Advisor
@@ -323,6 +326,83 @@ update_cmd() {
   rm -rf "$tmp_dir"
   printf 'UPDATE_STATUS=PASS\n'
   printf 'installed=%s/ael\n' "$target_install_dir"
+}
+
+confirm_uninstall() {
+  local purge="$1"
+  printf 'Remove AEL from this machine'
+  if [ "$purge" = "1" ]; then
+    printf ' and purge this project .aiplus directory'
+  fi
+  printf '? [y/N] '
+  local answer=""
+  IFS= read -r answer || true
+  case "$answer" in
+    y|Y|yes|YES) return 0 ;;
+    *)
+      printf 'UNINSTALL_STATUS=CANCELLED\n'
+      return 1
+      ;;
+  esac
+}
+
+uninstall_cmd() {
+  local purge="0" yes="0"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --purge)
+        purge="1"
+        ;;
+      --yes|-y)
+        yes="1"
+        ;;
+      -h|--help)
+        printf 'Usage: ael uninstall [--purge] [--yes]\n'
+        return 0
+        ;;
+      *)
+        die "usage: ael uninstall [--purge] [--yes]"
+        ;;
+    esac
+    shift
+  done
+
+  if [ "$yes" != "1" ]; then
+    confirm_uninstall "$purge"
+  fi
+
+  local removed=0 target_install_dir target_libexec_dir
+  target_install_dir="$(install_dir)"
+  target_libexec_dir="$(libexec_dir)"
+  printf 'AEL uninstall\n'
+  if [ -e "$target_install_dir/ael" ]; then
+    rm -f "$target_install_dir/ael"
+    printf 'removed=%s/ael\n' "$target_install_dir"
+    removed=1
+  else
+    printf 'not_found=%s/ael\n' "$target_install_dir"
+  fi
+  if [ -e "$target_libexec_dir/ael-support" ]; then
+    rm -f "$target_libexec_dir/ael-support"
+    printf 'removed=%s/ael-support\n' "$target_libexec_dir"
+    removed=1
+  else
+    printf 'not_found=%s/ael-support\n' "$target_libexec_dir"
+  fi
+  if [ "$purge" = "1" ] && [ -d "$PWD/.aiplus" ]; then
+    rm -rf "$PWD/.aiplus"
+    printf 'removed=%s/.aiplus\n' "$PWD"
+    removed=1
+  elif [ "$purge" = "1" ]; then
+    printf 'not_found=%s/.aiplus\n' "$PWD"
+  fi
+  if [ "$removed" = "0" ]; then
+    printf 'removed=none\n'
+  fi
+  if [ "$purge" != "1" ]; then
+    printf 'preserved=%s/.aiplus\n' "$PWD"
+  fi
+  printf 'UNINSTALL_STATUS=PASS\n'
 }
 
 telemetry_config_path() {
@@ -880,6 +960,10 @@ main() {
     update)
       shift
       update_cmd "$@"
+      ;;
+    uninstall)
+      shift
+      uninstall_cmd "$@"
       ;;
     route)
       shift
