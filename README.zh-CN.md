@@ -17,7 +17,8 @@ ael talk advisor "What is your role?"
 
 ## 演示
 
-![AiEconLab demo](demo.gif)
+<!-- demo 录屏暂时移出仓库以减小 clone 体积；将以外链形式在 v0.2.x 重新发布 -->
+*(demo 录屏正在重新制作，下个版本会以外链托管的形式回归)*
 
 ## 角色
 

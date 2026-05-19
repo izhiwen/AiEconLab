@@ -7,7 +7,191 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-(no unreleased changes yet — last released cut was v0.1.1)
+(see [0.2.0] in this file once cut)
+
+## [0.1.9] — 2026-05-19
+
+PI auto-dispatches via the `agent_route` MCP tool instead of asking the
+Owner to copy `ael route ...` bash commands. The natural-language UX
+loop is now closed: Owner speaks, PI invokes tools, side effects happen.
+
+### Changed
+
+- **PI persona §3.1 rewritten**: calls `agent_route` MCP tool directly
+  for dispatch and `agent_status` MCP tool for status questions. The old
+  "end every dispatch with a fenced bash block" pattern is now a
+  fallback used only when MCP tools are unavailable in the runtime.
+  Trade-off explicitly accepted: efficiency over upfront confirmation,
+  per Owner directive. Owner retains control via post-hoc `agent reset`
+  rather than per-command approval.
+- HEAVY-task `author-critic-fixer` workflow now passed as
+  `workflow="author-critic-fixer"` arg to `agent_route` rather than as a
+  separate `--workflow` shell flag.
+
+### Fixed
+
+- `tests/persona_behavior/test_cases.toml`: PI in_scope fixture updated
+  to check semantic dispatch signal (scoring, role names) rather than
+  the literal `ael route` substring that no longer appears in PI output
+  when MCP tools are used.
+
+## [0.1.8] — 2026-05-19
+
+Fixes a path bug shipped in v0.1.7 that broke the new "personas read
+the AEL CLI reference" feature in practice.
+
+### Fixed
+
+- `core/templates/personas/{pi.md,advisor.md}`: corrected the install
+  path for `ael-cli-reference.md` from `.aiplus/aieconlab/...` to
+  `.aiplus/modules/aieconlab/...`. The v0.1.7 personas pointed at a
+  non-existent file, defeating the v0.1.7 feature on first contact.
+  E2E install test confirms the corrected path is populated by
+  `aiplus add aieconlab`.
+
+## [0.1.7] — 2026-05-19
+
+Teaches PI and Advisor about user-facing AEL CLI commands via a single
+source of truth, so Owner asking "how do I upgrade?" or "I want to talk
+to writer directly" gets an accurate quoted command instead of an
+invented one.
+
+### Added
+
+- `core/templates/ael-cli-reference.md`: canonical CLI reference
+  organized by user intent ("how do I ___?" → command). Covers lobby
+  entry, 9 role shortcuts, install setup, status / doctor, update,
+  uninstall, telemetry. Includes anti-patterns ("don't invent commands
+  like `ael upgrade`").
+- PI persona §7 and Advisor persona section pointing to the reference
+  file. Personas read it via the runtime's native file-read tool each
+  chat session.
+
+### Fixed (CI)
+
+- `regression-15-install-no-delete` now builds aiplus from the
+  vendored submodule instead of `curl https://.../aiplus install.sh |
+  bash`. aiplus upstream commit `59af425` narrowed pre-built binary
+  support to ARM Mac + Windows; the curl path broke on Linux CI.
+
+## [0.1.6] — 2026-05-19
+
+Three-track v0.2.2 sprint shipped via three parallel CEO sessions.
+Adds user-facing commands (`update`, `uninstall`, `--add-to-path`)
+plus brand polish (PI emits `ael route` not `aiplus agent route`) plus
+release pipeline ergonomics (auto-detect latest version).
+
+### Added
+
+- `ael update [--dry-run]`: in-place upgrade to the latest release
+  with atomic replacement and dry-run preview.
+- `ael uninstall [--purge] [--yes]`: clean removal. `--purge` also
+  removes project-level `.aiplus/`.
+- `install.sh --add-to-path`: opt-in flag that appends the install dir
+  to the user's shell profile (zsh / bash / fish detected).
+- First-run onboarding: post-`ael install` prints a 3-step quick start;
+  first `ael` invocation in a project prints a one-line welcome.
+- `install.sh` auto-resolves the latest release from
+  `/releases/latest` redirect; no more hardcoded version constant.
+
+### Changed
+
+- PI persona §3.1 example dispatch commands use `ael route ...` not
+  `aiplus agent route ...`. Substrate name is no longer leaked when
+  PI offers a dispatch command (legacy code path; current `agent_route`
+  tool-use path was added in 0.1.9).
+- OpenCode runtime default model bumped `openai/gpt-4o-mini` →
+  `openai/gpt-4o` for parity with claude-code's `sonnet` default.
+- `persona-behavior` test wraps each assertion in a retry-up-to-3 loop
+  so a single LLM flake (e.g. one stray forbidden substring) no longer
+  fails CI; per-attempt status appears in the CI step summary.
+
+### Fixed (CI)
+
+- Drift workflow ignores commits whose subjects match
+  `(ci|docs|chore\(release\)|chore\(vendor\)|chore\(deps\)|chore\(assets\)|chore\(agent-team\))` —
+  routine upstream housekeeping no longer raises the drift alarm.
+
+## [0.1.5] — 2026-05-18
+
+Two structural changes: `ael` (no args) opens a lobby for role
+selection, and `ael install` auto-registers the MCP server with the
+runtime so PI in chat can call native tools.
+
+### Added
+
+- **Lobby + 9 role shortcuts**: `ael` (no args) prints a team menu and
+  reads one line of input; matches it against role slugs (English),
+  Chinese aliases (顾问 / 理论 / 内审 / ...), or free-form intent (`我想反思
+  → advisor`). Recognized role re-execs into `ael talk <role>`.
+  Power-user shortcuts `ael pi` / `ael advisor` / `ael writer` /
+  `ael ra-stata` / `ael ra-python` / `ael theorist` / `ael referee` /
+  `ael replicator` / `ael pm` skip the lobby.
+- **MCP server auto-registration** during `ael install`: runs
+  `aiplus mcp-register --runtime <runtime>` after the runtime adapter
+  install + team add. Fail-soft — if MCP registration fails, the
+  install still reports success and falls back to bash-block dispatch.
+- `run_substrate_interactive()` helper that `exec`s the substrate
+  binary directly (no `| sanitize` pipe) so codex / claude / opencode
+  get a real TTY for REPL mode. Previously the pipe through
+  `sanitize_substrate_output` killed interactive mode silently.
+
+### Changed
+
+- `vendor/aiplus` bumped to `0e7a057` (v0.6.0 era). Brings in
+  `aiplus#7579366 preserve active team on runtime install`.
+
+## [0.1.4] — 2026-05-18
+
+Ships the v0.2.1 sprint — Author/Critic/Fixer workflow primitive, two
+new experts (DOF, RR-Strategist), persona contract harness, telemetry
+scaffold.
+
+### Added
+
+- **Author/Critic/Fixer workflow** (`ael route --workflow author-critic-fixer`):
+  3-phase pipeline where the dispatched role drafts as Author, an
+  independent Critic (referee, separate agent_id) reviews, and the
+  original role returns as Fixer to incorporate critique. Audit log at
+  `.aiplus/agents/workflow-log.jsonl`. Use for HEAVY drafts (rebuttals,
+  introduction sections, structural model write-ups).
+- **DOF expert**: degrees-of-freedom auditor. Persona at
+  `core/templates/personas/dof-auditor.md`.
+- **RR-Strategist expert**: R&R revision planning. Persona at
+  `core/templates/personas/rr-strategist.md`.
+- **Persona contract harness**: `tests/persona-behavior/` runs each
+  persona through in-scope / boundary / stop-gate prompts and asserts
+  forbidden-substring / required-substring policies via LLM judge.
+- **Telemetry scaffold**: `ael telemetry [enable|disable|status]`.
+  Strict local JSON only (`.ael/telemetry-events.jsonl`); no hosted
+  endpoint.
+
+### Changed
+
+- PI persona §3.1 now suggests `--workflow author-critic-fixer` for
+  HEAVY externally-read drafts.
+
+## [0.1.3] — 2026-05-18
+
+Mid-cycle release containing the v0.5.28 substrate fix and release
+pipeline repair.
+
+### Fixed
+
+- `aiplus-core/build.rs` (vendor): split asset filtering into
+  `is_skip_embed_asset` (silently skip binary blobs like `.gif`/`.png`)
+  and `enforce_public_asset_policy` (panic on private fragments only).
+  Fixes a regression where `assets/aieconlab/demo.gif` made the v0.5.28
+  build panic on all platforms.
+
+## [0.1.2] — 2026-05-15
+
+Hotfix release.
+
+### Fixed
+
+- `install.sh` no longer attempts to remove user-tracked files during
+  the team install reconcile pass. See parent issue #15.
 
 ## [0.1.1] — 2026-05-13
 
