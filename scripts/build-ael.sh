@@ -57,19 +57,27 @@ cleanup_synced_asset() {
 trap cleanup_synced_asset EXIT
 
 sync_ael_asset() {
+  # tar pipe instead of rsync — rsync is not available on Windows
+  # git-bash runners, but tar always is (we rely on it for packaging
+  # anyway). Same exclude semantics: skip .git/.github/vendor/dist/
+  # target subtrees and any media asset files.
+  rm -rf "$VENDOR_ROOT/assets/aieconlab"
   mkdir -p "$VENDOR_ROOT/assets/aieconlab"
-  rsync -a --delete \
-    --exclude='.git' \
-    --exclude='.github' \
-    --exclude='vendor' \
-    --exclude='dist' \
-    --exclude='target' \
-    --exclude='*.gif' \
-    --exclude='*.png' \
-    --exclude='*.jpg' \
-    --exclude='*.mp4' \
-    --exclude='*.mov' \
-    "$REPO_ROOT/" "$VENDOR_ROOT/assets/aieconlab/"
+  (
+    cd "$REPO_ROOT"
+    tar -cf - \
+      --exclude='./.git' \
+      --exclude='./.github' \
+      --exclude='./vendor' \
+      --exclude='./dist' \
+      --exclude='./target' \
+      --exclude='*.gif' \
+      --exclude='*.png' \
+      --exclude='*.jpg' \
+      --exclude='*.mp4' \
+      --exclude='*.mov' \
+      .
+  ) | (cd "$VENDOR_ROOT/assets/aieconlab" && tar -xf -)
 }
 
 host_triple() {
