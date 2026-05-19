@@ -114,6 +114,56 @@ case "$(cat "$no_args_stderr")" in
     ;;
 esac
 
+support_bin="$(mktemp)"
+cat >"$support_bin" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+chmod +x "$support_bin"
+
+install_onboarding="$(AEL_AIPLUS_BIN="$support_bin" ./ael install codex)"
+case "$install_onboarding" in
+  *"Next: ael"*) ;;
+  *)
+    echo "::error::ael install must print Next: ael"
+    printf '%s\n' "$install_onboarding"
+    exit 1
+    ;;
+esac
+case "$install_onboarding" in
+  *"Quick start (your team is ready):"*) ;;
+  *)
+    echo "::error::ael install must print onboarding quick start"
+    printf '%s\n' "$install_onboarding"
+    exit 1
+    ;;
+esac
+case "$install_onboarding" in
+  *"ael advisor"*) ;;
+  *)
+    echo "::error::ael install onboarding must include advisor hint"
+    printf '%s\n' "$install_onboarding"
+    exit 1
+    ;;
+esac
+case "$install_onboarding" in
+  *"More: ael --help"*) ;;
+  *)
+    echo "::error::ael install onboarding must include help hint"
+    printf '%s\n' "$install_onboarding"
+    exit 1
+    ;;
+esac
+
+install_suppressed="$(AEL_AIPLUS_BIN="$support_bin" AEL_NO_ONBOARDING=1 ./ael install codex)"
+case "$install_suppressed" in
+  *"Quick start (your team is ready):"*)
+    echo "::error::AEL_NO_ONBOARDING=1 must suppress install onboarding"
+    printf '%s\n' "$install_suppressed"
+    exit 1
+    ;;
+esac
+
 update_tmp="$(mktemp -d)"
 update_release="$update_tmp/release"
 update_pkg="$update_tmp/pkg/ael-v9.9.9-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
@@ -323,6 +373,18 @@ mkdir -p "$lobby_dir/.aiplus"
 printf '{"runtimeAdapters":["codex"]}\n' >"$lobby_dir/.aiplus/manifest.json"
 lobby_out="$(cd "$lobby_dir" && "$ael_abs" < /dev/null 2>&1 || true)"
 case "$lobby_out" in
+  *"Welcome to AEL"*) ;;
+  *)
+    echo "::error::first ael lobby run must print welcome"
+    printf '%s\n' "$lobby_out"
+    exit 1
+    ;;
+esac
+[ -f "$lobby_dir/.aiplus/.ael-greeted" ] || {
+  echo "::error::first ael lobby run must create greeted marker"
+  exit 1
+}
+case "$lobby_out" in
   *AiPlus*|*aiplus*|*AIPLUS*)
     # Filter out the legitimate .aiplus/manifest.json path — it's a real
     # path on disk and shows up in error output, but it's not user-facing
@@ -337,6 +399,29 @@ case "$lobby_out" in
     esac
     ;;
 esac
+second_lobby_out="$(cd "$lobby_dir" && printf 'q\n' | "$ael_abs" 2>&1 || true)"
+case "$second_lobby_out" in
+  *"Welcome to AEL"*)
+    echo "::error::subsequent ael lobby invocation must skip the welcome"
+    printf '%s\n' "$second_lobby_out"
+    exit 1
+    ;;
+esac
+suppressed_lobby_dir="$(mktemp -d)"
+mkdir -p "$suppressed_lobby_dir/.aiplus"
+printf '{"runtimeAdapters":["codex"]}\n' >"$suppressed_lobby_dir/.aiplus/manifest.json"
+suppressed_lobby_out="$(cd "$suppressed_lobby_dir" && printf 'q\n' | AEL_NO_ONBOARDING=1 "$ael_abs" 2>&1 || true)"
+case "$suppressed_lobby_out" in
+  *"Welcome to AEL"*)
+    echo "::error::AEL_NO_ONBOARDING=1 must suppress first-run welcome"
+    printf '%s\n' "$suppressed_lobby_out"
+    exit 1
+    ;;
+esac
+[ ! -e "$suppressed_lobby_dir/.aiplus/.ael-greeted" ] || {
+  echo "::error::AEL_NO_ONBOARDING=1 should not create greeted marker"
+  exit 1
+}
 case "$lobby_out" in
   *"Core team"*) ;;
   *)
