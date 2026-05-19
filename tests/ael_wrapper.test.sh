@@ -487,6 +487,138 @@ esac
   exit 1
 }
 
+doctor_tmp="$(mktemp -d)"
+doctor_project="$doctor_tmp/project"
+doctor_path_bin="$doctor_tmp/bin"
+doctor_support="$doctor_tmp/ael-support"
+mkdir -p "$doctor_project/.aiplus" "$doctor_path_bin"
+printf 'installed agent instructions\n' >"$doctor_project/.aiplus/AGENTS.aiplus.md"
+cat >"$doctor_path_bin/aiplus" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  --version)
+    printf 'aiplus 0.5.22\n'
+    ;;
+  identity)
+    if [ "${2:-}" = "--help" ]; then
+      printf 'Usage: aiplus identity [--role ROLE]\n'
+      exit 0
+    fi
+    printf 'unexpected old identity args: %s\n' "$*" >&2
+    exit 2
+    ;;
+  *)
+    printf 'unexpected old aiplus command: %s\n' "$*" >&2
+    exit 2
+    ;;
+esac
+SH
+cat >"$doctor_support" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  --version)
+    printf 'aiplus 0.6.8\n'
+    ;;
+  identity)
+    if [ "${2:-}" = "--help" ]; then
+      printf 'Usage: aiplus identity --role ROLE --runtime RUNTIME --with-memory --emit-role-activated\n'
+      exit 0
+    fi
+    printf 'IDENTITY_CONTEXT\n'
+    ;;
+  doctor)
+    printf 'DOCTOR_STATUS=PASS\n'
+    ;;
+  *)
+    printf 'unexpected support command: %s\n' "$*" >&2
+    exit 2
+    ;;
+esac
+SH
+chmod +x "$doctor_path_bin/aiplus" "$doctor_support"
+doctor_out="$(
+  cd "$doctor_project" && \
+    PATH="$doctor_path_bin:$PATH" \
+    AEL_AIPLUS_BIN="$doctor_support" \
+    "$ael_abs" doctor 2>&1
+)" && {
+  echo "::error::ael doctor must exit non-zero when PATH aiplus differs from bundled support"
+  printf '%s\n' "$doctor_out"
+  exit 1
+}
+case "$doctor_out" in
+  *"DOCTOR_STATUS=PASS"*\
+*"NEEDS_FIX aiplus_version_mismatch"*\
+*"version=0.5.22"*\
+*"bundled_version=0.6.8"*\
+*"NEEDS_FIX aiplus_identity_flag_missing"*) ;;
+  *)
+    echo "::error::ael doctor must report PATH aiplus version/identity flag mismatch"
+    printf '%s\n' "$doctor_out"
+    exit 1
+    ;;
+esac
+doctor_hint_out="$(
+  cd "$doctor_project" && \
+    PATH="$doctor_path_bin:$PATH" \
+    AEL_AIPLUS_BIN="$doctor_support" \
+    "$ael_abs" doctor --fix 2>&1 || true
+)"
+case "$doctor_hint_out" in
+  *"PRINT_HINT aiplus_version_mismatch"*\
+*"ael doctor --fix --yes"*) ;;
+  *)
+    echo "::error::ael doctor --fix without --yes must print the bounded write hint"
+    printf '%s\n' "$doctor_hint_out"
+    exit 1
+    ;;
+esac
+[ "$("$doctor_path_bin/aiplus" --version)" = "aiplus 0.5.22" ] || {
+  echo "::error::ael doctor --fix without --yes must not overwrite PATH aiplus"
+  exit 1
+}
+doctor_fix_out="$(
+  cd "$doctor_project" && \
+    PATH="$doctor_path_bin:$PATH" \
+    AEL_AIPLUS_BIN="$doctor_support" \
+    "$ael_abs" doctor --fix --yes 2>&1
+)"
+case "$doctor_fix_out" in
+  *"FIX_STATUS=PASS aiplus_version_mismatch"*\
+*"version=0.6.8"*) ;;
+  *)
+    echo "::error::ael doctor --fix --yes must replace PATH aiplus with bundled support"
+    printf '%s\n' "$doctor_fix_out"
+    exit 1
+    ;;
+esac
+[ "$("$doctor_path_bin/aiplus" --version)" = "aiplus 0.6.8" ] || {
+  echo "::error::ael doctor --fix --yes did not update PATH aiplus version"
+  exit 1
+}
+"$doctor_path_bin/aiplus" identity --help | grep -q -- '--with-memory' || {
+  echo "::error::ael doctor --fix --yes did not restore identity --with-memory support"
+  exit 1
+}
+missing_agents_project="$doctor_tmp/missing-agents"
+mkdir -p "$missing_agents_project"
+missing_agents_out="$(
+  cd "$missing_agents_project" && \
+    PATH="$doctor_path_bin:$PATH" \
+    AEL_AIPLUS_BIN="$doctor_support" \
+    "$ael_abs" doctor 2>&1
+)"
+case "$missing_agents_out" in
+  *"WARNING AGENTS.aiplus.md missing"*) ;;
+  *)
+    echo "::error::ael doctor must warn when .aiplus/AGENTS.aiplus.md is missing"
+    printf '%s\n' "$missing_agents_out"
+    exit 1
+    ;;
+esac
+
 # `ael --help` must list all 9 core roles as direct-shortcut commands.
 help_out="$(./ael --help)"
 for role in pi advisor writer ra-stata ra-python theorist referee replicator pm; do

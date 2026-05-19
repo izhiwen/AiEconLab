@@ -48,7 +48,7 @@ Usage:
   ael                                            open the lobby — pick or describe who you want to talk to
   ael <role>                                     shortcut: directly start a chat with that role
   ael status                                     show installed team + active runtime
-  ael doctor [--fix]                             self-check and fix common drift
+  ael doctor [--fix] [--yes]                     self-check and fix common drift
 
 Roles you can chat with directly:
   ael pi                                         项目经理 — 派单、跟进、汇总
@@ -266,6 +266,10 @@ run_substrate_interactive() {
   exec "$bin" "$@"
 }
 
+extract_version_token() {
+  sed -nE 's/.*([0-9]+[.][0-9]+[.][0-9]+([-+._A-Za-z0-9]*)?).*/\1/p' | head -n 1
+}
+
 command_output_first_line() {
   local cmd="$1"
   shift
@@ -279,7 +283,9 @@ command_output_first_line() {
 
 supports_identity_with_memory() {
   local bin="$1"
-  "$bin" identity --help 2>&1 | grep -q -- '--with-memory'
+  local out
+  out="$("$bin" identity --help 2>&1 || true)"
+  grep -q -- '--with-memory' <<<"$out"
 }
 
 update_cmd() {
@@ -995,6 +1001,137 @@ shortcut_talk_cmd() {
   fi
 }
 
+aiplus_path_is_safe_to_overwrite() {
+  local path="$1"
+  [ "$(basename "$path")" = "aiplus" ] || return 1
+  case "$path" in
+    *dev*|*target/*)
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+confirm_aiplus_fix() {
+  local support_path="$1" path_bin="$2"
+  printf 'ael doctor --fix would write to %s from %s. Proceed? [y/N] ' "$path_bin" "$support_path"
+  local answer=""
+  IFS= read -r answer || true
+  case "$answer" in
+    y|Y|yes|YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+doctor_aiplus_path_check() {
+  local fix="$1" yes="$2"
+
+  case "${OS:-$(uname -s 2>/dev/null || printf unknown)}" in
+    Windows_NT|MINGW*|MSYS*|CYGWIN*)
+      return 0
+      ;;
+  esac
+
+  if [ ! -f "$PWD/.aiplus/AGENTS.aiplus.md" ]; then
+    printf 'WARNING AGENTS.aiplus.md missing (run ael install to regenerate project agent instructions)\n'
+  fi
+
+  local support_path path_bin path_version_raw support_version_raw path_version support_version needs_fix=0 missing_flag=0
+  support_path="$(substrate_bin)"
+  path_bin="$(command -v aiplus 2>/dev/null || true)"
+  if [ -z "$path_bin" ]; then
+    printf 'NEEDS_FIX aiplus_path_missing bundled_path=%s\n' "$support_path"
+    return 1
+  fi
+
+  path_version_raw="$(command_output_first_line "$path_bin" --version || printf 'unknown')"
+  support_version_raw="$(command_output_first_line "$support_path" --version || printf 'unknown')"
+  path_version="$(printf '%s\n' "$path_version_raw" | extract_version_token)"
+  support_version="$(printf '%s\n' "$support_version_raw" | extract_version_token)"
+  [ -n "$path_version" ] || path_version="$path_version_raw"
+  [ -n "$support_version" ] || support_version="$support_version_raw"
+
+  if [ "$path_version" != "$support_version" ]; then
+    printf 'NEEDS_FIX aiplus_version_mismatch path=%s version=%s bundled_path=%s bundled_version=%s\n' \
+      "$path_bin" "$path_version" "$support_path" "$support_version"
+    needs_fix=1
+  fi
+
+  if ! supports_identity_with_memory "$path_bin"; then
+    printf 'NEEDS_FIX aiplus_identity_flag_missing path=%s\n' "$path_bin"
+    needs_fix=1
+    missing_flag=1
+  fi
+
+  [ "$needs_fix" = "1" ] || return 0
+  [ "$fix" = "1" ] || return 1
+
+  if ! aiplus_path_is_safe_to_overwrite "$path_bin"; then
+    printf 'FIX_BLOCKED aiplus_path_unsafe path=%s\n' "$path_bin" >&2
+    return 1
+  fi
+
+  if [ "$yes" != "1" ] && ! confirm_aiplus_fix "$support_path" "$path_bin"; then
+    printf 'PRINT_HINT aiplus_version_mismatch would_write=%s rerun_with="ael doctor --fix --yes"\n' "$path_bin"
+    return 1
+  fi
+
+  if ! install -m 755 "$support_path" "$path_bin"; then
+    printf 'FIX_STATUS=FAIL aiplus_version_mismatch path=%s manual_command=%s\n' "$path_bin" "install -m 755 $support_path $path_bin" >&2
+    return 1
+  fi
+
+  path_version_raw="$(command_output_first_line "$path_bin" --version || printf 'unknown')"
+  path_version="$(printf '%s\n' "$path_version_raw" | extract_version_token)"
+  [ -n "$path_version" ] || path_version="$path_version_raw"
+  if [ "$path_version" != "$support_version" ]; then
+    printf 'FIX_STATUS=FAIL aiplus_version_mismatch path=%s version=%s bundled_version=%s\n' \
+      "$path_bin" "$path_version" "$support_version" >&2
+    return 1
+  fi
+  if ! supports_identity_with_memory "$path_bin"; then
+    printf 'FIX_STATUS=FAIL aiplus_identity_flag_missing path=%s\n' "$path_bin" >&2
+    return 1
+  fi
+
+  if [ "$missing_flag" = "1" ]; then
+    printf 'FIX_STATUS=PASS aiplus_identity_flag_missing path=%s\n' "$path_bin"
+  fi
+  printf 'FIX_STATUS=PASS aiplus_version_mismatch path=%s version=%s\n' "$path_bin" "$path_version"
+  return 0
+}
+
+doctor_cmd() {
+  local fix="0" yes="0" status=0
+  local -a substrate_args=()
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --fix)
+        fix="1"
+        substrate_args+=("$1")
+        shift
+        ;;
+      --yes|-y)
+        yes="1"
+        shift
+        ;;
+      *)
+        substrate_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [ "${#substrate_args[@]}" -gt 0 ]; then
+    run_substrate_visible doctor "${substrate_args[@]}" || status=$?
+  else
+    run_substrate_visible doctor || status=$?
+  fi
+  doctor_aiplus_path_check "$fix" "$yes" || status=$?
+  return "$status"
+}
+
 list_team_members() {
   cat <<'EOF'
 Core team:
@@ -1162,7 +1299,7 @@ main() {
       ;;
     doctor)
       shift
-      run_substrate_visible doctor "$@"
+      doctor_cmd "$@"
       ;;
     update)
       shift
