@@ -22,6 +22,7 @@ once and every persona automatically learns it.
 | "How do I install AEL on a new machine?" | `curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh \| bash` |
 | "I installed but `ael` is not found" | `curl ... \| bash` again with `--add-to-path` flag, OR add `~/.local/bin` to PATH manually |
 | "How do I set up AEL in this paper project?" | `cd MyPaperProject && ael install` |
+| "How do I set up every supported runtime in this project?" | `cd MyPaperProject && ael install all` (installs codex, claude-code, and opencode in sequence; the final summary shows which runtimes succeeded) |
 
 ## Day-to-day — once you are running
 
