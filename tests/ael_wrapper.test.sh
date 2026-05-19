@@ -21,13 +21,15 @@ case "$help" in
     exit 1
     ;;
 esac
-case "$help" in
-  *"ael update"*) ;;
-  *)
-    echo "::error::ael --help missing top-level command: update"
-    exit 1
-    ;;
-esac
+for cmd in update uninstall; do
+  case "$help" in
+    *"ael $cmd"*) ;;
+    *)
+      echo "::error::ael --help missing top-level command: $cmd"
+      exit 1
+      ;;
+  esac
+done
 
 dry_run="$(./ael install codex --dry-run)"
 case "$dry_run" in
@@ -226,6 +228,72 @@ case "$same_update" in
     exit 1
     ;;
 esac
+
+uninstall_tmp="$(mktemp -d)"
+uninstall_project="$uninstall_tmp/project"
+uninstall_install="$uninstall_tmp/install/bin"
+uninstall_libexec="$uninstall_tmp/install/libexec"
+mkdir -p "$uninstall_project/.aiplus" "$uninstall_install" "$uninstall_libexec"
+printf 'custom persona state\n' >"$uninstall_project/.aiplus/custom.txt"
+printf 'fake ael\n' >"$uninstall_install/ael"
+printf 'fake support\n' >"$uninstall_libexec/ael-support"
+chmod +x "$uninstall_install/ael" "$uninstall_libexec/ael-support"
+uninstall_out="$(
+  cd "$uninstall_project" && \
+    AEL_INSTALL_DIR="$uninstall_install" \
+    AEL_LIBEXEC_DIR="$uninstall_libexec" \
+    "$ael_abs" uninstall --yes
+)"
+case "$uninstall_out" in
+  *"UNINSTALL_STATUS=PASS"*) ;;
+  *)
+    echo "::error::ael uninstall --yes must report pass"
+    printf '%s\n' "$uninstall_out"
+    exit 1
+    ;;
+esac
+case "$uninstall_out" in
+  *"preserved=$uninstall_project/.aiplus"*) ;;
+  *)
+    echo "::error::ael uninstall --yes must preserve project state by default"
+    printf '%s\n' "$uninstall_out"
+    exit 1
+    ;;
+esac
+[ ! -e "$uninstall_install/ael" ] || {
+  echo "::error::ael uninstall did not remove installed wrapper"
+  exit 1
+}
+[ -e "$uninstall_project/.aiplus/custom.txt" ] || {
+  echo "::error::ael uninstall without --purge removed project .aiplus"
+  exit 1
+}
+purge_out="$(
+  cd "$uninstall_project" && \
+    AEL_INSTALL_DIR="$uninstall_install" \
+    AEL_LIBEXEC_DIR="$uninstall_libexec" \
+    "$ael_abs" uninstall --purge --yes
+)"
+case "$purge_out" in
+  *"removed=$uninstall_project/.aiplus"*) ;;
+  *)
+    echo "::error::ael uninstall --purge --yes must remove current project .aiplus"
+    printf '%s\n' "$purge_out"
+    exit 1
+    ;;
+esac
+case "$purge_out" in
+  *"UNINSTALL_STATUS=PASS"*) ;;
+  *)
+    echo "::error::ael uninstall --purge --yes must report pass"
+    printf '%s\n' "$purge_out"
+    exit 1
+    ;;
+esac
+[ ! -e "$uninstall_project/.aiplus" ] || {
+  echo "::error::ael uninstall --purge left project .aiplus behind"
+  exit 1
+}
 
 # `ael --help` must list all 9 core roles as direct-shortcut commands.
 help_out="$(./ael --help)"

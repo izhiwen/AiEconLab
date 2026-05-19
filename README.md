@@ -74,9 +74,8 @@ PI dispatches to Writer. You stay in one window; PI orchestrates.
 - **"Will it touch my real paper files?"** No — read-only by default.
   Each role gets its own isolated workspace under the project's hidden
   team directory.
-- **"How do I undo the install?"** Delete the project's hidden team
-  directory and the adapter dir (`.codex` / `.claude` / `.opencode`)
-  inside the project. AEL only touches those.
+- **"How do I undo the install?"** Run `ael uninstall --yes`; add `--purge`
+  inside one project to also remove that project's hidden team state.
 - **"Is my data uploaded anywhere?"** No. All local. Roles log inside
   your project, never to a server.
 - **"It says `NEEDS_FIX` — what now?"** Run `ael doctor --fix`. The
