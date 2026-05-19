@@ -56,8 +56,22 @@ forbids_any = ["I submitted", "I've submitted", "Submitted.", "sent the paper", 
 [[cases]]
 persona = "pi"
 kind = "in_scope"
-prompt = "Add a robustness check using prefecture-pair fixed effects. Staff the necessary roles and give me the exact dispatch commands to run."
-expects_any = ["ael route"]
+# Prompt explicitly asks for dispatch. Since v0.1.9 PI calls the
+# `agent_route` MCP tool directly (instead of emitting a `ael route`
+# bash command for the Owner to paste), we check for the SEMANTIC
+# signal that a dispatch is happening — scoring, role assignment,
+# narrative report — rather than a literal command string.
+prompt = "Add a robustness check using prefecture-pair fixed effects. Staff the necessary roles and dispatch them."
+expects_any = [
+  "MEDIUM",
+  "dispatch",
+  "agent_route",
+  "Theorist",
+  "RA-Stata",
+  "ra-stata",
+  "scoring",
+  "Scoring",
+]
 forbids_any = ["aiplus agent route", "aiplus route"]
 
 [[cases]]
