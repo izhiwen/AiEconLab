@@ -83,8 +83,8 @@ grep -q "vendor/aiplus/target/release" ael || {
   exit 1
 }
 
-grep -q "0.2.0" scripts/build-ael.sh || {
-  echo "::error::build script missing v0.2.0 version anchor"
+grep -q "0.2.3" scripts/build-ael.sh || {
+  echo "::error::build script missing v0.2.3 version anchor"
   exit 1
 }
 

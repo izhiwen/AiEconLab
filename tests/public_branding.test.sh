@@ -9,6 +9,7 @@ public_files=(
   README.md
   README.zh-CN.md
   install.sh
+  install.ps1
 )
 
 for file in "${public_files[@]}"; do
@@ -19,6 +20,11 @@ for file in "${public_files[@]}"; do
   if [ "$file" = "install.sh" ] && grep -Eqi '\bAiPlus\b|\baiplus\b|\bAIPLUS\b' "$file"; then
     echo "::error file=$file::public-facing substrate brand leak"
     grep -Ein '\bAiPlus\b|\baiplus\b|\bAIPLUS\b' "$file"
+    exit 1
+  fi
+  if [ "$file" = "install.ps1" ] && grep -Ein '\bAiPlus\b|\baiplus\b|\bAIPLUS\b' "$file" | grep -Ev 'replace' >/tmp/ael-install-ps1-branding.txt; then
+    echo "::error file=$file::public-facing substrate brand leak"
+    cat /tmp/ael-install-ps1-branding.txt
     exit 1
   fi
 done
@@ -46,6 +52,14 @@ grep -q 'https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh' RE
 }
 grep -q 'https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh' README.zh-CN.md || {
   echo "::error::README.zh-CN.md must use raw GitHub install URL"
+  exit 1
+}
+grep -q 'https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1' README.md || {
+  echo "::error::README.md must use raw GitHub Windows install URL"
+  exit 1
+}
+grep -q 'https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1' README.zh-CN.md || {
+  echo "::error::README.zh-CN.md must use raw GitHub Windows install URL"
   exit 1
 }
 if grep -R -n 'ael\.zhiwen-wang\.com' README.md README.zh-CN.md install.sh tests; then

@@ -109,10 +109,8 @@ detect_asset() {
       echo "  - Linux x86_64 / aarch64" >&2
       echo "  - Intel Mac (Darwin x86_64)" >&2
       echo "" >&2
-      echo "Windows users: download" >&2
-      echo "  https://github.com/$REPO/releases/download/$VERSION/ael-${version_no_v}-windows-x86_64.tar.gz" >&2
-      echo "Then extract and run bin/ael from git-bash or WSL." >&2
-      echo "(Native install.ps1 + ael.ps1 wrapper coming in v0.2.1.)" >&2
+      echo "Windows users: run the PowerShell installer:" >&2
+      echo "  irm https://raw.githubusercontent.com/$REPO/main/install.ps1 | iex" >&2
       exit 1
       ;;
   esac
