@@ -16,6 +16,15 @@ ael install
 ael                              # then chat with your research team in plain English / Chinese
 ```
 
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex
+cd MyPaperProject
+ael install
+ael
+```
+
 The first command installs the `ael` CLI. Inside a paper or replication
 project, `ael install` sets up the economics research team for your local AI
 runtime. Just running `ael` after that opens a chat with PI (your project
@@ -42,11 +51,16 @@ adding AEL on top.
 
 ### Step 2: Install AEL
 
-Open the macOS Terminal app (or Linux / Windows terminal), paste this
-**one line**, and press Enter:
+Open the macOS Terminal app, paste this **one line**, and press Enter:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
+```
+
+On Windows, open PowerShell and run:
+
+```powershell
+irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex
 ```
 
 If it says "command not added to PATH," follow the one-line fix it
@@ -149,11 +163,20 @@ Install the CLI:
 curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
 ```
 
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex
+```
+
 If the installer says the target directory is not on `PATH`, add it:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 ```
+
+On Windows, the installer prints a one-line PowerShell command when
+the install directory is not on `PATH`.
 
 Then install AEL into a project:
 

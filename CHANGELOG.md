@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-(see [0.2.0] in this file once cut)
+### Added
+
+- v0.2.3 Windows-native install path: `install.ps1` installs `ael.cmd`,
+  `ael.ps1`, and `ael-support.exe` under the user's local app data
+  directory without requiring WSL or git-bash.
+- Windows `ael` wrapper with the same top-level commands, role
+  shortcuts, lobby routing, first-run onboarding, substrate output
+  sanitization, update/uninstall, telemetry, and headless role chat
+  surface as the existing bash wrapper.
+- Pester coverage for the PowerShell installer and wrapper, plus a
+  Windows CI smoke path that installs from a local release package and
+  checks `ael --version`, `ael --help`, `ael install codex`, lobby
+  routing, and sanitized `ael talk`.
+
+### Changed
+
+- Windows release packages now contain `install.ps1`, `bin/ael.cmd`,
+  `bin/ael.ps1`, and `libexec/ael-support.exe`; they no longer ship
+  the bash wrapper as the Windows entry point.
+- README install sections now show the Windows PowerShell one-liner
+  directly below the macOS/Linux install command.
 
 ## [0.1.9] — 2026-05-19
 

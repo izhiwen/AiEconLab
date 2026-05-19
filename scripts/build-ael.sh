@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.2.0}"
+AEL_VERSION="${AEL_VERSION:-0.2.3}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VENDOR_ROOT="$REPO_ROOT/vendor/aiplus"
 DIST_ROOT="$REPO_ROOT/dist"
@@ -115,17 +115,15 @@ if [ "$PACKAGE" -eq 1 ]; then
   package_dir="$DIST_ROOT/ael-v$AEL_VERSION-$triple"
   rm -rf "$package_dir"
   mkdir -p "$package_dir/bin" "$package_dir/libexec"
-  # Bash wrapper. On Windows native it requires git-bash / WSL to run;
-  # shipped anyway so the package layout stays uniform across platforms.
-  # Phase-2 work (next sprint) will add a native ael.ps1 / ael.cmd
-  # alongside this file.
-  cp "$REPO_ROOT/ael" "$package_dir/bin/ael"
-  # Substrate binary keeps its OS-native suffix inside the package so
-  # the ael wrapper's substrate_bin() lookup (which appends .exe on
-  # Windows) resolves it correctly without further translation.
   if is_windows_host; then
+    cp "$REPO_ROOT/install.ps1" "$package_dir/install.ps1"
+    cp "$REPO_ROOT/bin/ael.cmd" "$package_dir/bin/ael.cmd"
+    cp "$REPO_ROOT/bin/ael.ps1" "$package_dir/bin/ael.ps1"
     cp "$binary_path" "$package_dir/libexec/ael-support.exe"
   else
+    # Bash wrapper remains the Mac/Linux artifact. Windows ships only
+    # the native PowerShell wrapper and cmd.exe shim.
+    cp "$REPO_ROOT/ael" "$package_dir/bin/ael"
     cp "$binary_path" "$package_dir/libexec/ael-support"
   fi
   cp "$REPO_ROOT/LICENSE" "$package_dir/LICENSE"

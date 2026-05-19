@@ -11,7 +11,7 @@ bash -n install.sh
 # install.sh now legitimately refuses. We split the assertions:
 #
 #   1. Negative path (no fake): on real Linux, install.sh exits non-zero
-#      with the "dropped" message AND a useful Windows download URL.
+#      with the "dropped" message AND the Windows PowerShell installer URL.
 #   2. Positive path (with fake uname): install.sh proceeds as if on
 #      Darwin arm64. Exercises version resolution, fallback, --add-to-path.
 
@@ -34,9 +34,9 @@ case "$(/usr/bin/uname -s):$(/usr/bin/uname -m)" in
         ;;
     esac
     case "$real_drop_out" in
-      *"windows-x86_64.tar.gz"*) ;;
+      *"irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex"*) ;;
       *)
-        echo "::error::install.sh dropped-platform message must point Windows users at the right asset URL"
+        echo "::error::install.sh dropped-platform message must point Windows users at install.ps1"
         printf '%s\n' "$real_drop_out"
         exit 1
         ;;
