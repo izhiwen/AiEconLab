@@ -28,17 +28,16 @@ if [ -d landing ]; then
   exit 1
 fi
 
-[ -f demo.gif ] || {
-  echo "::error::demo.gif must live at repo root"
+# demo.gif was removed from the repo root in v0.2.0 (1.9 MB binary that
+# every clone had to pull). Replacement is a hosted asset coming in
+# v0.2.x. README sections are still required to exist — they just no
+# longer point at a tracked binary.
+[ ! -f demo.gif ] || {
+  echo "::error::demo.gif should not be in repo (removed v0.2.0; use hosted asset)"
   exit 1
 }
-
-grep -q '!\[AiEconLab demo\](demo.gif)' README.md || {
-  echo "::error::README.md must point at root demo.gif"
-  exit 1
-}
-grep -q '!\[AiEconLab demo\](demo.gif)' README.zh-CN.md || {
-  echo "::error::README.zh-CN.md must point at root demo.gif"
+grep -Eq '^## Demo$|^## 演示$' README.md README.zh-CN.md || {
+  echo "::error::README must keep a Demo section heading"
   exit 1
 }
 grep -q 'https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh' README.md || {
