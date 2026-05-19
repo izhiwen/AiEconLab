@@ -70,6 +70,14 @@ case "$output" in
     exit 1
     ;;
 esac
+case "$output" in
+  *"PATH_NOTICE=$install_root/bin is not on PATH"*) ;;
+  *)
+    echo "::error::install.sh without --add-to-path should keep manual PATH notice behavior"
+    printf '%s\n' "$output"
+    exit 1
+    ;;
+esac
 
 [ -x "$install_root/bin/ael" ] || {
   echo "::error::ael wrapper not installed"
@@ -77,6 +85,56 @@ esac
 }
 [ -x "$install_root/libexec/ael-support" ] || {
   echo "::error::support binary not installed"
+  exit 1
+}
+
+path_home="$tmp/path-home"
+mkdir -p "$path_home"
+path_output_1="$(
+  HOME="$path_home" \
+  SHELL="/bin/zsh" \
+  PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AEL_VERSION=v9.9.9 \
+  AEL_BASE_URL="file://$release_dir" \
+  sh install.sh --add-to-path
+)"
+case "$path_output_1" in
+  *"PATH_PROFILE_APPENDED=~/.zshrc"*) ;;
+  *)
+    echo "::error::install.sh --add-to-path must append to zsh profile"
+    printf '%s\n' "$path_output_1"
+    exit 1
+    ;;
+esac
+case "$path_output_1" in
+  *"restart your shell or run: source ~/.zshrc"*) ;;
+  *)
+    echo "::error::install.sh --add-to-path must print source hint"
+    printf '%s\n' "$path_output_1"
+    exit 1
+    ;;
+esac
+path_output_2="$(
+  HOME="$path_home" \
+  SHELL="/bin/zsh" \
+  PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+  AEL_VERSION=v9.9.9 \
+  AEL_BASE_URL="file://$release_dir" \
+  sh install.sh --add-to-path
+)"
+case "$path_output_2" in
+  *"PATH_PROFILE_ALREADY_CONFIGURED=~/.zshrc"*) ;;
+  *)
+    echo "::error::install.sh --add-to-path must be idempotent"
+    printf '%s\n' "$path_output_2"
+    exit 1
+    ;;
+esac
+expected_path_line="export PATH=\"$path_home/.local/bin:\$PATH\""
+path_line_count="$(grep -Fxc "$expected_path_line" "$path_home/.zshrc")"
+[ "$path_line_count" = "1" ] || {
+  echo "::error::install.sh --add-to-path should append exactly one PATH line, got $path_line_count"
+  cat "$path_home/.zshrc"
   exit 1
 }
 
