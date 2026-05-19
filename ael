@@ -929,7 +929,7 @@ EOF
 
   local role
   if [ -z "$trimmed" ]; then
-    # Empty input → default to PI silently (matches v0.1.5 behavior).
+    # Empty input → default to PI silently (matches the original lobby behavior).
     role='pi'
     printf '→ pi (default)\n\n'
   else
