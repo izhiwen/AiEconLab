@@ -7,13 +7,14 @@ AEL_DEFAULT_VERSION="v0.1.5"
 INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$INSTALL_DIR")/libexec}"
 DRY_RUN=0
+ADD_TO_PATH=0
 
 usage() {
   cat <<'USAGE'
 Install the ael command.
 
 Usage:
-  sh install.sh [--dry-run]
+  sh install.sh [--dry-run] [--add-to-path]
 
 Environment:
   AEL_VERSION      Release version to install, default v0.1.5
@@ -23,6 +24,7 @@ Environment:
 
 Flags:
   --dry-run        Print what would happen without writing
+  --add-to-path    Append the install directory to your shell profile if needed
   -h, --help       Show this help
 
 The installer downloads the AEL release package for this platform, verifies the
@@ -30,8 +32,9 @@ package SHA256 sidecar, and installs:
   - ael wrapper to $AEL_INSTALL_DIR/ael
   - bundled runtime support to $AEL_LIBEXEC_DIR/ael-support
 
-It does not edit shell profiles, require sudo, install project files, upload
-data, collect telemetry, or modify Codex/Claude Code/OpenCode config.
+It does not require sudo, install project files, upload data, collect telemetry,
+or modify Codex/Claude Code/OpenCode config. It edits shell profiles only when
+--add-to-path is set.
 USAGE
 }
 
@@ -39,6 +42,9 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run)
       DRY_RUN=1
+      ;;
+    --add-to-path)
+      ADD_TO_PATH=1
       ;;
     -h|--help)
       usage
@@ -104,6 +110,59 @@ fetch() {
   fi
 }
 
+profile_display() {
+  path="$1"
+  case "$path" in
+    "$HOME"/*)
+      echo "~/${path#"$HOME"/}"
+      ;;
+    *)
+      echo "$path"
+      ;;
+  esac
+}
+
+append_path_to_profile() {
+  shell_name="$(basename "${SHELL:-}")"
+  case "$shell_name" in
+    zsh)
+      profile="$HOME/.zshrc"
+      line="export PATH=\"$INSTALL_DIR:\$PATH\""
+      source_hint="source ~/.zshrc"
+      ;;
+    bash)
+      profile="$HOME/.bashrc"
+      line="export PATH=\"$INSTALL_DIR:\$PATH\""
+      source_hint="source ~/.bashrc"
+      ;;
+    fish)
+      profile="$HOME/.config/fish/config.fish"
+      line="set -gx PATH \"$INSTALL_DIR\" \$PATH"
+      source_hint="source ~/.config/fish/config.fish"
+      mkdir -p "$(dirname "$profile")"
+      ;;
+    *)
+      echo "ERROR unsupported shell for --add-to-path: ${SHELL:-unknown}" >&2
+      echo "Add this to your shell profile manually:" >&2
+      echo "  export PATH=\"$INSTALL_DIR:\$PATH\"" >&2
+      exit 1
+      ;;
+  esac
+
+  touch "$profile"
+  display="$(profile_display "$profile")"
+  if grep -Fqx "$line" "$profile"; then
+    echo "PATH_PROFILE_ALREADY_CONFIGURED=$display"
+    echo "$display already contains the AEL PATH line"
+    echo "restart your shell or run: $source_hint"
+    return 0
+  fi
+  printf '%s\n' "$line" >> "$profile"
+  echo "PATH_PROFILE_APPENDED=$display"
+  echo "appended to $display"
+  echo "restart your shell or run: $source_hint"
+}
+
 sha256_verify() {
   sidecar="$1"
   asset="$2"
@@ -146,13 +205,20 @@ echo "asset=$ASSET"
 echo "install_dir=$INSTALL_DIR"
 echo "libexec_dir=$LIBEXEC_DIR"
 echo "writes=$INSTALL_DIR/ael"
-echo "shell_profile_edits=none"
+if [ "$ADD_TO_PATH" -eq 1 ]; then
+  echo "shell_profile_edits=opt-in"
+else
+  echo "shell_profile_edits=none"
+fi
 echo "telemetry=none"
 
 if [ "$DRY_RUN" -eq 1 ]; then
   echo "DRY_RUN=YES"
   echo "download=$BASE_URL/$ASSET"
   echo "checksum=$BASE_URL/$ASSET.sha256"
+  if [ "$ADD_TO_PATH" -eq 1 ]; then
+    echo "add_to_path=would_update_profile_if_needed"
+  fi
   exit 0
 fi
 
@@ -186,9 +252,13 @@ case ":$PATH:" in
   *":$INSTALL_DIR:"*)
     ;;
   *)
-    echo "PATH_NOTICE=$INSTALL_DIR is not on PATH"
-    echo "Add this to your shell profile if you want to run ael from any terminal:"
-    echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+    if [ "$ADD_TO_PATH" -eq 1 ]; then
+      append_path_to_profile
+    else
+      echo "PATH_NOTICE=$INSTALL_DIR is not on PATH"
+      echo "Add this to your shell profile if you want to run ael from any terminal:"
+      echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+    fi
     ;;
 esac
 
