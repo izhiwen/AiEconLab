@@ -467,9 +467,15 @@ headless_talk() {
       ;;
     opencode)
       command -v opencode >/dev/null 2>&1 || die "opencode CLI not found on PATH"
+      # Default to a mid-tier model so the user experience is comparable
+      # to claude-code's default (sonnet). The previous default
+      # `openai/gpt-4o-mini` was noticeably weaker, making OpenCode users
+      # feel the AEL personas were less capable than they actually are.
+      # Users who want the smaller (cheaper) model can still set
+      # AEL_OPENCODE_MODEL=openai/gpt-4o-mini explicitly.
       local -a opencode_cmd=(
         opencode run --dir "$PWD"
-        --model "${AEL_OPENCODE_MODEL:-openai/gpt-4o-mini}" \
+        --model "${AEL_OPENCODE_MODEL:-openai/gpt-4o}" \
         --dangerously-skip-permissions
       )
       local opencode_out opencode_status
