@@ -105,22 +105,27 @@ case "$talk_output" in
     ;;
 esac
 
+shortcut_runtime_bin="$(mktemp -d)"
 shortcut_support="$(mktemp)"
 shortcut_log="$(mktemp)"
+cat >"$shortcut_runtime_bin/claude" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
 cat >"$shortcut_support" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >"$AEL_SUPPORT_LOG"
 SH
-chmod +x "$shortcut_support"
-AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$shortcut_log" ./ael pi --runtime claude-code >/dev/null
+chmod +x "$shortcut_runtime_bin/claude" "$shortcut_support"
+PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$shortcut_log" ./ael pi --runtime claude-code >/dev/null
 [ "$(cat "$shortcut_log")" = "agent talk --runtime claude-code pi" ] || {
   echo "::error::ael role shortcut must forward --runtime before role"
   cat "$shortcut_log"
   exit 1
 }
 talk_log="$(mktemp)"
-AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$talk_log" ./ael talk --runtime claude-code pi >/dev/null
+PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$talk_log" ./ael talk --runtime claude-code pi >/dev/null
 cmp -s "$shortcut_log" "$talk_log" || {
   echo "::error::ael pi --runtime claude-code must match ael talk --runtime claude-code pi"
   printf 'shortcut: %s\n' "$(cat "$shortcut_log")"
