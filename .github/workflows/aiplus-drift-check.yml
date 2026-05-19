@@ -45,17 +45,49 @@ jobs:
           set -euo pipefail
           pin="$(git rev-parse HEAD)"
           head="$(git rev-parse origin/main)"
-          count="$(git rev-list --count HEAD..origin/main)"
+          raw_count="$(git rev-list --count HEAD..origin/main)"
+
+          # Ignore-list: commits whose subject matches these regexes are
+          # treated as "no user-impact noise" — CI/release-pipeline/docs
+          # changes that don't change AEL behavior. They still get listed
+          # in the issue body for audit but they don't fire the "drift
+          # alarm" count, so Owner isn't pestered by upstream housekeeping.
+          ignore_re='^(ci|docs|chore\(release\)|chore\(vendor\)|chore\(deps\)|chore\(assets\)|chore\(agent-team\))[(:]'
+
+          if [ "$raw_count" -gt 0 ]; then
+            git log --oneline --no-decorate HEAD..origin/main > /tmp/drift-all.txt
+            grep -Ev "  $ignore_re" /tmp/drift-all.txt > /tmp/drift-commits.txt || true
+            grep -E  "  $ignore_re" /tmp/drift-all.txt > /tmp/drift-ignored.txt || true
+            # The grep regex above only matches the subject (after the SHA
+            # + space). `git log --oneline` format is `<sha> <subject>`,
+            # so we anchor on two spaces — no wait, oneline uses one
+            # space. Switch to a saner approach: cut the subject.
+            : > /tmp/drift-commits.txt
+            : > /tmp/drift-ignored.txt
+            while IFS= read -r line; do
+              subject="${line#* }"  # strip leading SHA + space
+              if printf '%s' "$subject" | grep -Eq "$ignore_re"; then
+                printf '%s\n' "$line" >> /tmp/drift-ignored.txt
+              else
+                printf '%s\n' "$line" >> /tmp/drift-commits.txt
+              fi
+            done < /tmp/drift-all.txt
+          else
+            : > /tmp/drift-all.txt
+            : > /tmp/drift-commits.txt
+            : > /tmp/drift-ignored.txt
+          fi
+
+          count="$(wc -l < /tmp/drift-commits.txt | tr -d ' ')"
+          ignored_count="$(wc -l < /tmp/drift-ignored.txt | tr -d ' ')"
+
           {
             echo "pin=$pin"
             echo "head=$head"
             echo "count=$count"
+            echo "raw_count=$raw_count"
+            echo "ignored_count=$ignored_count"
           } >> "$GITHUB_OUTPUT"
-          if [ "$count" -gt 0 ]; then
-            git log --oneline --no-decorate HEAD..origin/main > /tmp/drift-commits.txt
-          else
-            : > /tmp/drift-commits.txt
-          fi
 
       - name: Build drift issue body
         if: steps.drift.outputs.count != '0'
@@ -64,18 +96,28 @@ jobs:
           {
             echo "## AEL ↔ aiplus drift — $(date -u +%Y-%m-%dT%H:%MZ)"
             echo
-            echo "AEL's \`vendor/aiplus\` submodule is **${{ steps.drift.outputs.count }} commits behind** aiplus \`origin/main\`."
+            echo "AEL's \`vendor/aiplus\` submodule is **${{ steps.drift.outputs.count }} user-relevant commits behind** aiplus \`origin/main\` (plus ${{ steps.drift.outputs.ignored_count }} ignored ci/docs/release-prep commits)."
             echo
             echo "| | commit |"
             echo "|---|---|"
             echo "| AEL vendor pin | \`${{ steps.drift.outputs.pin }}\` |"
             echo "| aiplus origin/main | \`${{ steps.drift.outputs.head }}\` |"
             echo
-            echo "### Commits AEL has not vendored yet"
+            echo "### User-relevant commits AEL has not vendored yet"
             echo
             echo '```'
             cat /tmp/drift-commits.txt
             echo '```'
+            if [ -s /tmp/drift-ignored.txt ]; then
+              echo
+              echo "### Ignored (CI / docs / release-prep)"
+              echo
+              echo "These commits do not change AEL behavior. Listed for audit only — they do not contribute to the drift count."
+              echo
+              echo '```'
+              cat /tmp/drift-ignored.txt
+              echo '```'
+            fi
             echo
             echo "### Suggested next steps"
             echo
