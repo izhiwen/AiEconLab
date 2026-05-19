@@ -7,11 +7,28 @@ cd "$repo_root"
 
 bash -n install.sh
 
-dry_run="$(sh install.sh --dry-run)"
+latest_tmp="$(mktemp -d)"
+latest_fake_bin="$latest_tmp/bin"
+latest_count="$latest_tmp/curl.count"
+mkdir -p "$latest_fake_bin"
+cat >"$latest_fake_bin/curl" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+: "${AEL_TEST_CURL_COUNT:?}"
+count=0
+if [ -f "$AEL_TEST_CURL_COUNT" ]; then
+  count="$(cat "$AEL_TEST_CURL_COUNT")"
+fi
+printf '%s\n' "$((count + 1))" > "$AEL_TEST_CURL_COUNT"
+printf 'https://github.com/izhiwen/AiEconLab/releases/tag/v9.9.9'
+SH
+chmod +x "$latest_fake_bin/curl"
+
+dry_run="$(PATH="$latest_fake_bin:$PATH" AEL_TEST_CURL_COUNT="$latest_count" sh install.sh --dry-run)"
 case "$dry_run" in
-  *"version=v0.1.5"*) ;;
+  *"version=v9.9.9"*) ;;
   *)
-    echo "::error::install.sh default version must be v0.1.5"
+    echo "::error::install.sh default version must resolve latest release"
     printf '%s\n' "$dry_run"
     exit 1
     ;;
@@ -23,6 +40,31 @@ case "$dry_run" in
     exit 1
     ;;
 esac
+latest_calls="$(cat "$latest_count")"
+[ "$latest_calls" = "1" ] || {
+  echo "::error::install.sh latest release lookup should call curl once, got $latest_calls"
+  exit 1
+}
+fallback_fake_bin="$latest_tmp/fallback-bin"
+mkdir -p "$fallback_fake_bin"
+cat >"$fallback_fake_bin/curl" <<'SH'
+#!/usr/bin/env bash
+exit 22
+SH
+chmod +x "$fallback_fake_bin/curl"
+fallback_output="$(PATH="$fallback_fake_bin:/usr/bin:/bin:/usr/sbin:/sbin" AEL_MINIMUM_SUPPORTED_VERSION=v0.1.4 sh install.sh --dry-run 2>&1 || true)"
+case "$fallback_output" in
+  *"version=v0.1.4"*"WARN could not resolve latest AEL release"*|*"WARN could not resolve latest AEL release"*"version=v0.1.4"*) ;;
+  *)
+    echo "::error::install.sh must fall back clearly when latest lookup fails"
+    printf '%s\n' "$fallback_output"
+    exit 1
+    ;;
+esac
+if grep -Eq 'AEL_DEFAULT_VERSION|v0\.1\.' install.sh; then
+  echo "::error::install.sh must not contain hardcoded v0.1.x default literals"
+  exit 1
+fi
 
 tmp="$(mktemp -d)"
 release_dir="$tmp/release"

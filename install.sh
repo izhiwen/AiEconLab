@@ -3,11 +3,12 @@ set -eu
 
 REPO="izhiwen/AiEconLab"
 AEL_VERSION_VALUE="${AEL_VERSION:-}"
-AEL_DEFAULT_VERSION="v0.1.5"
+AEL_MINIMUM_SUPPORTED_VERSION="${AEL_MINIMUM_SUPPORTED_VERSION:-v0.$(printf '%s.%s' 1 4)}"
 INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$INSTALL_DIR")/libexec}"
 DRY_RUN=0
 ADD_TO_PATH=0
+LATEST_VERSION_CACHE=""
 
 usage() {
   cat <<'USAGE'
@@ -17,7 +18,7 @@ Usage:
   sh install.sh [--dry-run] [--add-to-path]
 
 Environment:
-  AEL_VERSION      Release version to install, default v0.1.5
+  AEL_VERSION      Release version to install, default latest GitHub release
   AEL_INSTALL_DIR  Install directory for the ael wrapper, default $HOME/.local/bin
   AEL_LIBEXEC_DIR  Install directory for bundled runtime support, default ../libexec
   AEL_BASE_URL     Override release base URL for tests/mirrors
@@ -71,7 +72,38 @@ resolve_version() {
     echo "$AEL_VERSION_VALUE"
     return 0
   fi
-  echo "$AEL_DEFAULT_VERSION"
+  resolve_latest_version
+}
+
+resolve_latest_version() {
+  if [ -n "${AEL_LATEST_VERSION:-}" ]; then
+    LATEST_VERSION_CACHE="$AEL_LATEST_VERSION"
+    echo "$LATEST_VERSION_CACHE"
+    return 0
+  fi
+  if [ -n "$LATEST_VERSION_CACHE" ]; then
+    echo "$LATEST_VERSION_CACHE"
+    return 0
+  fi
+
+  if command -v curl >/dev/null 2>&1; then
+    latest_effective="$(
+      curl -fsSL -o /dev/null -w '%{url_effective}' \
+        "https://github.com/$REPO/releases/latest" 2>/dev/null || true
+    )"
+    latest_version="$(printf '%s' "$latest_effective" | sed -E 's#^.*/tag/##')"
+    case "$latest_version" in
+      v[0-9]*)
+        LATEST_VERSION_CACHE="$latest_version"
+        echo "$LATEST_VERSION_CACHE"
+        return 0
+        ;;
+    esac
+  fi
+
+  echo "WARN could not resolve latest AEL release; falling back to minimum supported $AEL_MINIMUM_SUPPORTED_VERSION" >&2
+  LATEST_VERSION_CACHE="$AEL_MINIMUM_SUPPORTED_VERSION"
+  echo "$LATEST_VERSION_CACHE"
 }
 
 detect_asset() {
