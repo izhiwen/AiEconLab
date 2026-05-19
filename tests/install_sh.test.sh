@@ -7,6 +7,56 @@ cd "$repo_root"
 
 bash -n install.sh
 
+# v0.2.0 dropped Linux x86_64. CI runs this test on ubuntu-latest, where
+# install.sh now legitimately refuses. We split the assertions:
+#
+#   1. Negative path (no fake): on real Linux, install.sh exits non-zero
+#      with the "dropped" message AND a useful Windows download URL.
+#   2. Positive path (with fake uname): install.sh proceeds as if on
+#      Darwin arm64. Exercises version resolution, fallback, --add-to-path.
+
+# === Negative path: only assertable on a dropped platform ===
+# Skip if we're running on a SUPPORTED platform (Darwin arm64) since
+# install.sh will succeed there. The negative path is exercised by
+# the Linux CI runner, which is the platform we explicitly dropped.
+case "$(/usr/bin/uname -s):$(/usr/bin/uname -m)" in
+  Darwin:arm64)
+    : # supported platform — skip negative assertion
+    ;;
+  *)
+    real_drop_out="$(sh install.sh --dry-run 2>&1 || true)"
+    case "$real_drop_out" in
+      *"Dropped platforms in v0.2.0"*) ;;
+      *)
+        echo "::error::install.sh on dropped platform must print 'Dropped platforms in v0.2.0' message"
+        printf '%s\n' "$real_drop_out"
+        exit 1
+        ;;
+    esac
+    case "$real_drop_out" in
+      *"windows-x86_64.tar.gz"*) ;;
+      *)
+        echo "::error::install.sh dropped-platform message must point Windows users at the right asset URL"
+        printf '%s\n' "$real_drop_out"
+        exit 1
+        ;;
+    esac
+    ;;
+esac
+
+# === Set up fake uname for the rest of the test ===
+fake_bin="$(mktemp -d)"
+cat > "$fake_bin/uname" <<'FAKE'
+#!/bin/sh
+case "$1" in
+  -s) echo "Darwin" ;;
+  -m) echo "arm64" ;;
+  *) /usr/bin/uname "$@" ;;
+esac
+FAKE
+chmod +x "$fake_bin/uname"
+export PATH="$fake_bin:$PATH"
+
 latest_root="$(mktemp -d)"
 mkdir -p "$latest_root/tag/v9.9.9"
 : > "$latest_root/tag/v9.9.9/index.html"
