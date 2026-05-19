@@ -51,10 +51,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install AiPlus CLI
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux build deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: vendor/aiplus
+          key: regression-15-aiplus
+      - name: Build aiplus from vendored source
+        # aiplus upstream narrowed pre-built binary support to Apple Silicon
+        # Mac + Windows (their install.sh now refuses Linux x86_64). We can't
+        # `curl install.sh | bash` aiplus on the ubuntu runner anymore.
+        # Build aiplus from the vendored submodule instead — matches the
+        # pattern in install-smoke.yml.
         run: |
           set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/izhiwen/aiplus/main/install.sh | bash
+          cd vendor/aiplus
+          cargo build --release --bin aiplus
+          mkdir -p "$HOME/.local/bin"
+          cp target/release/aiplus "$HOME/.local/bin/aiplus"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/aiplus" --version
       - name: "Run #15 dogfood install safety regression"
         run: bash tests/regression_15_install_no_delete.sh
