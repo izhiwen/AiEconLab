@@ -98,12 +98,21 @@ detect_asset() {
     Darwin:aarch64|Darwin:x86_64)
       echo "ael-v$version_no_v-darwin-$arch.tar.gz"
       ;;
-    Linux:aarch64|Linux:x86_64)
-      echo "ael-v$version_no_v-linux-$arch.tar.gz"
-      ;;
     *)
       echo "ERROR no AEL $VERSION package for: $os $arch" >&2
-      echo "Supported platforms: macOS arm64/x86_64 and Linux arm64/x86_64." >&2
+      echo "" >&2
+      echo "Supported platforms (v0.2.0+):" >&2
+      echo "  - macOS Apple Silicon (Darwin arm64)" >&2
+      echo "  - Intel Windows (preview — manual download, see release page)" >&2
+      echo "" >&2
+      echo "Dropped platforms in v0.2.0 (matching upstream substrate decision):" >&2
+      echo "  - Linux x86_64 / aarch64" >&2
+      echo "  - Intel Mac (Darwin x86_64)" >&2
+      echo "" >&2
+      echo "Windows users: download" >&2
+      echo "  https://github.com/$REPO/releases/download/$VERSION/ael-${version_no_v}-windows-x86_64.tar.gz" >&2
+      echo "Then extract and run bin/ael from git-bash or WSL." >&2
+      echo "(Native install.ps1 + ael.ps1 wrapper coming in v0.2.1.)" >&2
       exit 1
       ;;
   esac

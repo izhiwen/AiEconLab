@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.1.9}"
+AEL_VERSION="${AEL_VERSION:-0.2.0}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VENDOR_ROOT="$REPO_ROOT/vendor/aiplus"
 DIST_ROOT="$REPO_ROOT/dist"
@@ -80,23 +80,51 @@ host_triple() {
     x86_64|amd64) arch="x86_64" ;;
     arm64|aarch64) arch="aarch64" ;;
   esac
+  case "$os" in
+    mingw*|msys*|cygwin*) os="windows" ;;
+  esac
   printf '%s-%s\n' "$os" "$arch"
+}
+
+is_windows_host() {
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+binary_basename() {
+  if is_windows_host; then echo "aiplus.exe"; else echo "aiplus"; fi
 }
 
 sync_ael_asset
 cargo build --release --bin aiplus --manifest-path "$VENDOR_ROOT/Cargo.toml"
-"$VENDOR_ROOT/target/release/aiplus" --version
+binary_path="$VENDOR_ROOT/target/release/$(binary_basename)"
+"$binary_path" --version
 
 if [ "$PACKAGE" -eq 1 ]; then
   triple="$(host_triple)"
   package_dir="$DIST_ROOT/ael-v$AEL_VERSION-$triple"
   rm -rf "$package_dir"
   mkdir -p "$package_dir/bin" "$package_dir/libexec"
+  # Bash wrapper. On Windows native it requires git-bash / WSL to run;
+  # shipped anyway so the package layout stays uniform across platforms.
+  # Phase-2 work (next sprint) will add a native ael.ps1 / ael.cmd
+  # alongside this file.
   cp "$REPO_ROOT/ael" "$package_dir/bin/ael"
-  cp "$VENDOR_ROOT/target/release/aiplus" "$package_dir/libexec/ael-support"
+  # Substrate binary keeps its OS-native suffix inside the package so
+  # the ael wrapper's substrate_bin() lookup (which appends .exe on
+  # Windows) resolves it correctly without further translation.
+  if is_windows_host; then
+    cp "$binary_path" "$package_dir/libexec/ael-support.exe"
+  else
+    cp "$binary_path" "$package_dir/libexec/ael-support"
+  fi
   cp "$REPO_ROOT/LICENSE" "$package_dir/LICENSE"
   cp "$REPO_ROOT/README.md" "$package_dir/README.md"
-  chmod +x "$package_dir/bin/ael" "$package_dir/libexec/ael-support"
+  if ! is_windows_host; then
+    chmod +x "$package_dir/bin/ael" "$package_dir/libexec/ael-support"
+  fi
   tar -C "$DIST_ROOT" -czf "$package_dir.tar.gz" "$(basename "$package_dir")"
   echo "AEL_PACKAGE=$package_dir.tar.gz"
 else
