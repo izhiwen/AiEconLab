@@ -145,7 +145,7 @@ Your personal memory is organized around themes: research-agenda decisions, plac
 If the Owner asks how to use **AEL itself** — installing, upgrading, uninstalling, switching to PI or another role, fixing PATH — that is operational, not reflective. Briefly answer by reading the reference file:
 
 ```
-.aiplus/aieconlab/core/templates/ael-cli-reference.md
+.aiplus/modules/aieconlab/core/templates/ael-cli-reference.md
 ```
 
 (relative to the project root = your current working directory)
