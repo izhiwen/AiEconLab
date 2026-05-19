@@ -3,7 +3,11 @@ set -eu
 
 REPO="izhiwen/AiEconLab"
 AEL_VERSION_VALUE="${AEL_VERSION:-}"
-AEL_DEFAULT_VERSION="v0.1.5"
+AEL_RELEASES_LATEST_URL="${AEL_RELEASES_LATEST_URL:-https://github.com/$REPO/releases/latest}"
+AEL_MINIMUM_SUPPORTED_MAJOR="${AEL_MINIMUM_SUPPORTED_MAJOR:-0}"
+AEL_MINIMUM_SUPPORTED_MINOR="${AEL_MINIMUM_SUPPORTED_MINOR:-1}"
+AEL_MINIMUM_SUPPORTED_PATCH="${AEL_MINIMUM_SUPPORTED_PATCH:-0}"
+AEL_MINIMUM_SUPPORTED_VERSION="${AEL_MINIMUM_SUPPORTED_VERSION:-v$AEL_MINIMUM_SUPPORTED_MAJOR.$AEL_MINIMUM_SUPPORTED_MINOR.$AEL_MINIMUM_SUPPORTED_PATCH}"
 INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$INSTALL_DIR")/libexec}"
 DRY_RUN=0
@@ -17,7 +21,7 @@ Usage:
   sh install.sh [--dry-run] [--add-to-path]
 
 Environment:
-  AEL_VERSION      Release version to install, default v0.1.5
+  AEL_VERSION      Release version to install, default latest GitHub release
   AEL_INSTALL_DIR  Install directory for the ael wrapper, default $HOME/.local/bin
   AEL_LIBEXEC_DIR  Install directory for bundled runtime support, default ../libexec
   AEL_BASE_URL     Override release base URL for tests/mirrors
@@ -71,7 +75,15 @@ resolve_version() {
     echo "$AEL_VERSION_VALUE"
     return 0
   fi
-  echo "$AEL_DEFAULT_VERSION"
+  if version_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' "$AEL_RELEASES_LATEST_URL" 2>/dev/null)"; then
+    version="$(printf '%s' "$version_url" | sed -E 's#^.*/tag/##')"
+    if [ -n "$version" ] && [ "$version" != "$version_url" ]; then
+      echo "$version"
+      return 0
+    fi
+  fi
+  echo "WARNING could not resolve latest AEL release; falling back to $AEL_MINIMUM_SUPPORTED_VERSION" >&2
+  echo "$AEL_MINIMUM_SUPPORTED_VERSION"
 }
 
 detect_asset() {

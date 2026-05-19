@@ -7,11 +7,18 @@ cd "$repo_root"
 
 bash -n install.sh
 
-dry_run="$(sh install.sh --dry-run)"
+latest_root="$(mktemp -d)"
+mkdir -p "$latest_root/tag/v9.9.9"
+: > "$latest_root/tag/v9.9.9/index.html"
+
+dry_run="$(
+  AEL_RELEASES_LATEST_URL="file://$latest_root/tag/v9.9.9/index.html" \
+  sh install.sh --dry-run
+)"
 case "$dry_run" in
-  *"version=v0.1.5"*) ;;
+  *"version=v9.9.9"*) ;;
   *)
-    echo "::error::install.sh default version must be v0.1.5"
+    echo "::error::install.sh default version must resolve the latest release"
     printf '%s\n' "$dry_run"
     exit 1
     ;;
@@ -20,6 +27,27 @@ case "$dry_run" in
   *AiPlus*|*aiplus*|*AIPLUS*)
     echo "::error::install.sh dry-run leaks substrate branding"
     printf '%s\n' "$dry_run"
+    exit 1
+    ;;
+esac
+
+fallback_output="$(
+  AEL_RELEASES_LATEST_URL="file://$latest_root/missing" \
+  sh install.sh --dry-run 2>&1
+)"
+case "$fallback_output" in
+  *"WARNING could not resolve latest AEL release"*) ;;
+  *)
+    echo "::error::install.sh must warn and fall back when latest lookup fails"
+    printf '%s\n' "$fallback_output"
+    exit 1
+    ;;
+esac
+case "$fallback_output" in
+  *"version=v0.1.0"*) ;;
+  *)
+    echo "::error::install.sh fallback must use the minimum supported version"
+    printf '%s\n' "$fallback_output"
     exit 1
     ;;
 esac
