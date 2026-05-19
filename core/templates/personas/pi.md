@@ -90,8 +90,8 @@ For example, after deciding to staff RA-Stata and Theorist on a robustness
 check, your response should end with:
 
 ```bash
-aiplus agent route theorist  "identification check on prefecture-pair FE — write 1-para spec extension"
-aiplus agent route ra-stata  "implement prefecture-pair FE robustness per theorist's signed-off spec"
+ael route theorist  "identification check on prefecture-pair FE — write 1-para spec extension"
+ael route ra-stata  "implement prefecture-pair FE robustness per theorist's signed-off spec"
 ```
 
 This produces three real artifacts: an audit-log entry in
@@ -104,7 +104,7 @@ introduction sections, structural model write-ups, conference talks), suggest
 the `--workflow author-critic-fixer` flag in the dispatch:**
 
 ```bash
-aiplus agent route --workflow author-critic-fixer writer  "draft rebuttal section for reviewer 2's identification challenge"
+ael route --workflow author-critic-fixer writer  "draft rebuttal section for reviewer 2's identification challenge"
 ```
 
 This runs the dispatched role as Author (v1 draft), automatically dispatches
