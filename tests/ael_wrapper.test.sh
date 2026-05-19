@@ -21,6 +21,13 @@ case "$help" in
     exit 1
     ;;
 esac
+case "$help" in
+  *"ael update"*) ;;
+  *)
+    echo "::error::ael --help missing top-level command: update"
+    exit 1
+    ;;
+esac
 
 dry_run="$(./ael install codex --dry-run)"
 case "$dry_run" in
@@ -101,6 +108,121 @@ case "$(cat "$no_args_stderr")" in
   *AiPlus*|*aiplus*|*AIPLUS*)
     echo "::error::ael no-args hint leaks substrate branding"
     cat "$no_args_stderr"
+    exit 1
+    ;;
+esac
+
+update_tmp="$(mktemp -d)"
+update_release="$update_tmp/release"
+update_pkg="$update_tmp/pkg/ael-v9.9.9-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+update_install="$update_tmp/install/bin"
+update_libexec="$update_tmp/install/libexec"
+mkdir -p "$update_release" "$update_pkg/bin" "$update_pkg/libexec" "$update_install" "$update_libexec"
+cat >"$update_install/ael" <<'SH'
+#!/usr/bin/env bash
+printf 'AEL 0.1.5\n'
+SH
+cat >"$update_pkg/bin/ael" <<'SH'
+#!/usr/bin/env bash
+printf 'AEL 9.9.9\n'
+SH
+cat >"$update_pkg/libexec/ael-support" <<'SH'
+#!/usr/bin/env bash
+printf 'fake support\n'
+SH
+chmod +x "$update_install/ael" "$update_pkg/bin/ael" "$update_pkg/libexec/ael-support"
+update_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+update_arch="$(uname -m)"
+case "$update_arch" in
+  arm64|aarch64) update_arch="aarch64" ;;
+  x86_64|amd64) update_arch="x86_64" ;;
+esac
+update_asset="ael-v9.9.9-$update_os-$update_arch.tar.gz"
+tar -C "$update_tmp/pkg" -czf "$update_release/$update_asset" "$(basename "$update_pkg")"
+if command -v shasum >/dev/null 2>&1; then
+  (cd "$update_release" && shasum -a 256 "$update_asset" > "$update_asset.sha256")
+else
+  (cd "$update_release" && sha256sum "$update_asset" > "$update_asset.sha256")
+fi
+update_project="$update_tmp/project"
+mkdir -p "$update_project"
+update_dry_run="$(
+  cd "$update_project" && \
+    AEL_INSTALL_DIR="$update_install" \
+    AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_UPDATE_LATEST_VERSION="v9.9.9" \
+    AEL_BASE_URL="file://$update_release" \
+    "$ael_abs" update --dry-run
+)"
+case "$update_dry_run" in
+  *"AEL 0.1.5 → AEL 9.9.9"*) ;;
+  *)
+    echo "::error::ael update --dry-run must show version diff"
+    printf '%s\n' "$update_dry_run"
+    exit 1
+    ;;
+esac
+case "$update_dry_run" in
+  *"DRY_RUN=YES"*) ;;
+  *)
+    echo "::error::ael update --dry-run must report dry-run mode"
+    printf '%s\n' "$update_dry_run"
+    exit 1
+    ;;
+esac
+case "$update_dry_run" in
+  *"would_replace=$update_install/ael"*) ;;
+  *)
+    echo "::error::ael update --dry-run must show write targets"
+    printf '%s\n' "$update_dry_run"
+    exit 1
+    ;;
+esac
+[ "$("$update_install/ael" --version)" = "AEL 0.1.5" ] || {
+  echo "::error::ael update --dry-run must not replace installed wrapper"
+  exit 1
+}
+[ ! -e "$update_libexec/ael-support" ] || {
+  echo "::error::ael update --dry-run must not install support helper"
+  exit 1
+}
+update_out="$(
+  cd "$update_project" && \
+    AEL_INSTALL_DIR="$update_install" \
+    AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_UPDATE_LATEST_VERSION="v9.9.9" \
+    AEL_BASE_URL="file://$update_release" \
+    "$ael_abs" update
+)"
+case "$update_out" in
+  *"UPDATE_STATUS=PASS"*) ;;
+  *)
+    echo "::error::ael update must report pass after replacing files"
+    printf '%s\n' "$update_out"
+    exit 1
+    ;;
+esac
+[ "$("$update_install/ael" --version)" = "AEL 9.9.9" ] || {
+  echo "::error::ael update did not replace installed wrapper"
+  exit 1
+}
+[ -x "$update_libexec/ael-support" ] || {
+  echo "::error::ael update did not install support helper"
+  exit 1
+}
+same_update="$(
+  cd "$update_project" && \
+    AEL_INSTALL_DIR="$update_install" \
+    AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_VERSION=9.9.9 \
+    AEL_UPDATE_LATEST_VERSION="v9.9.9" \
+    "$ael_abs" update --dry-run
+)"
+case "$same_update" in
+  *"already up-to-date"*) ;;
+  *)
+    echo "::error::ael update must report already up-to-date when versions match"
+    printf '%s\n' "$same_update"
     exit 1
     ;;
 esac

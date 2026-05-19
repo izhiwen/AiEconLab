@@ -4,6 +4,9 @@
 set -euo pipefail
 
 AEL_VERSION="${AEL_VERSION:-0.1.5}"
+AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
+AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
+AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
 
 die() {
   printf 'ael: %s\n' "$*" >&2
@@ -40,6 +43,7 @@ AEL 0.1.5
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
+  ael update [--dry-run]                          update the installed ael CLI
   ael                                            open the lobby — pick or describe who you want to talk to
   ael <role>                                     shortcut: directly start a chat with that role
   ael status                                     show installed team + active runtime
@@ -61,6 +65,7 @@ Advanced (you rarely need these once you are in chat):
   ael route <role> <task...>
   ael telemetry [enable|disable|status]
   ael invite|dismiss|integrate <role>
+  ael update [--dry-run]
   ael --version
 
 Recommended flow:
@@ -74,10 +79,106 @@ Two-window pattern (for serious paper work):
 
 Examples:
   ael install
+  ael update --dry-run                # preview an available CLI update
   ael                               # opens the lobby
   ael pi                            # skip lobby, go straight to PI
   ael advisor                       # skip lobby, go straight to Advisor
 EOF
+}
+
+install_dir() {
+  printf '%s\n' "${AEL_INSTALL_DIR:-$HOME/.local/bin}"
+}
+
+libexec_dir() {
+  local dir
+  if [ -n "${AEL_LIBEXEC_DIR:-}" ]; then
+    printf '%s\n' "$AEL_LIBEXEC_DIR"
+  else
+    dir="$(install_dir)"
+    printf '%s\n' "$(dirname "$dir")/libexec"
+  fi
+}
+
+normalize_version() {
+  printf '%s\n' "${1#v}"
+}
+
+current_installed_version() {
+  local installed version_out=""
+  installed="$(install_dir)/ael"
+  if [ -x "$installed" ]; then
+    version_out="$("$installed" --version 2>/dev/null || true)"
+  fi
+  if [ -z "$version_out" ]; then
+    version_out="$("$0" --version 2>/dev/null || true)"
+  fi
+  printf '%s\n' "$version_out" | awk '/^AEL / {print $2; exit}'
+}
+
+latest_release_version() {
+  if [ -n "${AEL_UPDATE_LATEST_VERSION:-}" ]; then
+    printf '%s\n' "$AEL_UPDATE_LATEST_VERSION"
+    return 0
+  fi
+
+  local latest_url effective version
+  latest_url="${AEL_RELEASES_LATEST_URL:-https://github.com/$AEL_REPO/releases/latest}"
+  command -v curl >/dev/null 2>&1 || die "curl is required to check for updates"
+  effective="$(curl -fsSL -o /dev/null -w '%{url_effective}' "$latest_url")" \
+    || die "could not resolve latest AEL release"
+  version="$(printf '%s\n' "$effective" | sed -E 's#^.*/tag/##')"
+  [ -n "$version" ] || die "could not parse latest AEL release from: $effective"
+  printf '%s\n' "$version"
+}
+
+detect_asset_for_version() {
+  local version_no_v os arch
+  version_no_v="$(normalize_version "$1")"
+  os="$(uname -s)"
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64|amd64) arch="x86_64" ;;
+    arm64|aarch64) arch="aarch64" ;;
+  esac
+  case "$os:$arch" in
+    Darwin:aarch64|Darwin:x86_64)
+      printf 'ael-v%s-darwin-%s.tar.gz\n' "$version_no_v" "$arch"
+      ;;
+    Linux:aarch64|Linux:x86_64)
+      printf 'ael-v%s-linux-%s.tar.gz\n' "$version_no_v" "$arch"
+      ;;
+    *)
+      die "no AEL release package for: $os $arch"
+      ;;
+  esac
+}
+
+fetch_url() {
+  local src="$1" dst="$2"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$src" -o "$dst"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$src" -O "$dst"
+  else
+    die "curl or wget is required"
+  fi
+}
+
+verify_sha256() {
+  local sidecar="$1" asset="$2" asset_name expected check_file
+  asset_name="$(basename "$asset")"
+  expected="$(awk '{print $1}' "$sidecar" | head -n 1)"
+  [ -n "$expected" ] || die "checksum sidecar is empty: $sidecar"
+  check_file="$(dirname "$asset")/asset.sha256"
+  printf '%s  %s\n' "$expected" "$asset_name" >"$check_file"
+  if command -v shasum >/dev/null 2>&1; then
+    (cd "$(dirname "$asset")" && shasum -a 256 -c "$check_file")
+  elif command -v sha256sum >/dev/null 2>&1; then
+    (cd "$(dirname "$asset")" && sha256sum -c "$check_file")
+  else
+    die "shasum or sha256sum is required for checksum verification"
+  fi
 }
 
 substrate_bin() {
@@ -140,6 +241,88 @@ run_substrate_interactive() {
   local bin
   bin="$(substrate_bin)"
   exec "$bin" "$@"
+}
+
+update_cmd() {
+  local dry_run="0"
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --dry-run)
+        dry_run="1"
+        ;;
+      -h|--help)
+        printf 'Usage: ael update [--dry-run]\n'
+        return 0
+        ;;
+      *)
+        die "usage: ael update [--dry-run]"
+        ;;
+    esac
+    shift
+  done
+
+  local latest_version installed_version asset base_url target_install_dir target_libexec_dir
+  latest_version="$(latest_release_version)"
+  latest_version="$(normalize_version "$latest_version")"
+  installed_version="$(current_installed_version)"
+  installed_version="$(normalize_version "$installed_version")"
+  [ -n "$installed_version" ] || die "could not determine installed AEL version"
+  target_install_dir="$(install_dir)"
+  target_libexec_dir="$(libexec_dir)"
+
+  if [ "$installed_version" = "$latest_version" ]; then
+    printf 'AEL %s is already up-to-date\n' "$installed_version"
+    return 0
+  fi
+
+  asset="$(detect_asset_for_version "$latest_version")"
+  base_url="${AEL_BASE_URL:-https://github.com/$AEL_REPO/releases/download/v$latest_version}"
+
+  printf 'AEL %s → AEL %s\n' "$installed_version" "$latest_version"
+  printf 'download=%s/%s\n' "$base_url" "$asset"
+  printf 'install_dir=%s\n' "$target_install_dir"
+  printf 'libexec_dir=%s\n' "$target_libexec_dir"
+
+  if [ "$dry_run" = "1" ]; then
+    printf 'DRY_RUN=YES\n'
+    printf 'would_verify=%s/%s.sha256\n' "$base_url" "$asset"
+    printf 'would_replace=%s/ael\n' "$target_install_dir"
+    printf 'would_replace=%s/ael-support\n' "$target_libexec_dir"
+    return 0
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  cleanup_update() {
+    rm -rf "$tmp_dir"
+    rm -f "$target_install_dir/ael.new" "$target_libexec_dir/ael-support.new"
+  }
+  trap cleanup_update EXIT INT TERM
+
+  fetch_url "$base_url/$asset.sha256" "$tmp_dir/$asset.sha256"
+  fetch_url "$base_url/$asset" "$tmp_dir/$asset"
+  verify_sha256 "$tmp_dir/$asset.sha256" "$tmp_dir/$asset"
+
+  mkdir -p "$tmp_dir/extract"
+  tar -xzf "$tmp_dir/$asset" -C "$tmp_dir/extract"
+
+  local new_ael new_support
+  new_ael="$(find "$tmp_dir/extract" -type f -path "*/bin/ael" | head -n 1)"
+  new_support="$(find "$tmp_dir/extract" -type f -path "*/libexec/ael-support" | head -n 1)"
+  [ -f "$new_ael" ] || die "release archive did not contain bin/ael"
+  [ -f "$new_support" ] || die "release archive did not contain libexec/ael-support"
+
+  mkdir -p "$target_install_dir" "$target_libexec_dir"
+  cp "$new_ael" "$target_install_dir/ael.new"
+  cp "$new_support" "$target_libexec_dir/ael-support.new"
+  chmod 755 "$target_install_dir/ael.new" "$target_libexec_dir/ael-support.new"
+  mv -f "$target_install_dir/ael.new" "$target_install_dir/ael"
+  mv -f "$target_libexec_dir/ael-support.new" "$target_libexec_dir/ael-support"
+
+  trap - EXIT INT TERM
+  rm -rf "$tmp_dir"
+  printf 'UPDATE_STATUS=PASS\n'
+  printf 'installed=%s/ael\n' "$target_install_dir"
 }
 
 telemetry_config_path() {
@@ -693,6 +876,10 @@ main() {
     doctor)
       shift
       run_substrate_visible doctor "$@"
+      ;;
+    update)
+      shift
+      update_cmd "$@"
       ;;
     route)
       shift
