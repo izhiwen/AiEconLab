@@ -21,3 +21,4 @@ output/logs/
 *.parquet
 *.rds
 *.feather
+.aiplus/modules/

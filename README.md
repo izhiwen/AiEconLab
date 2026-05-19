@@ -86,7 +86,10 @@ PI dispatches to Writer. You stay in one window; PI orchestrates.
 
 ## Demo
 
-![AiEconLab demo](demo.gif)
+<!-- demo recording temporarily removed from the repo to keep clone size small.
+     Replacement: a hosted short-form recording (asciinema / loom) is planned
+     for v0.2.x. -->
+*(demo recording — coming back as a hosted asset in a future release)*
 
 ## What AEL Adds
 
