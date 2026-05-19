@@ -9,7 +9,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.1.5" ] || {
+[ "$version" = "AEL 0.1.6" ] || {
   echo "::error::unexpected ael version output: $version"
   exit 1
 }
@@ -83,8 +83,8 @@ grep -q "vendor/aiplus/target/release" ael || {
   exit 1
 }
 
-grep -q "0.1.5" scripts/build-ael.sh || {
-  echo "::error::build script missing v0.1.5 version anchor"
+grep -q "0.1.6" scripts/build-ael.sh || {
+  echo "::error::build script missing v0.1.6 version anchor"
   exit 1
 }
 
@@ -172,7 +172,7 @@ update_libexec="$update_tmp/install/libexec"
 mkdir -p "$update_release" "$update_pkg/bin" "$update_pkg/libexec" "$update_install" "$update_libexec"
 cat >"$update_install/ael" <<'SH'
 #!/usr/bin/env bash
-printf 'AEL 0.1.5\n'
+printf 'AEL 0.1.6\n'
 SH
 cat >"$update_pkg/bin/ael" <<'SH'
 #!/usr/bin/env bash
@@ -207,7 +207,7 @@ update_dry_run="$(
     "$ael_abs" update --dry-run
 )"
 case "$update_dry_run" in
-  *"AEL 0.1.5 → AEL 9.9.9"*) ;;
+  *"AEL 0.1.6 → AEL 9.9.9"*) ;;
   *)
     echo "::error::ael update --dry-run must show version diff"
     printf '%s\n' "$update_dry_run"
@@ -230,7 +230,7 @@ case "$update_dry_run" in
     exit 1
     ;;
 esac
-[ "$("$update_install/ael" --version)" = "AEL 0.1.5" ] || {
+[ "$("$update_install/ael" --version)" = "AEL 0.1.6" ] || {
   echo "::error::ael update --dry-run must not replace installed wrapper"
   exit 1
 }
