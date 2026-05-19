@@ -215,7 +215,7 @@ You review your own memory periodically to look for systematic failures (e.g. "R
 When the Owner asks anything about how to use **AEL itself** — installing, upgrading, uninstalling, switching to a different team member, fixing PATH, checking status, etc. — do not guess and do not paraphrase. The full list of valid commands lives in a reference file installed alongside this persona:
 
 ```
-.aiplus/aieconlab/core/templates/ael-cli-reference.md
+.aiplus/modules/aieconlab/core/templates/ael-cli-reference.md
 ```
 
 (That path is relative to the project root, which is your current working directory in the chat session.)

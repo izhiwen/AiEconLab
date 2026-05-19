@@ -44,7 +44,7 @@ once and every persona automatically learns it.
 
 When the Owner asks any question matching the left column above:
 
-1. **Read this file** from `.aiplus/aieconlab/core/templates/ael-cli-reference.md` (relative to the project root, which is your current working directory).
+1. **Read this file** from `.aiplus/modules/aieconlab/core/templates/ael-cli-reference.md` (relative to the project root, which is your current working directory).
 2. **Quote the exact command** from the right column verbatim — do NOT paraphrase or guess. Don't construct commands that aren't in this list.
 3. **Never auto-run** these commands. Always tell the Owner what to type — these are Owner-controlled actions.
 4. If the Owner's question doesn't match any entry, say so honestly and suggest they run `ael --help` themselves to see the full surface.
@@ -61,6 +61,6 @@ When the Owner asks any question matching the left column above:
 This file lives at `core/templates/ael-cli-reference.md` in the AEL
 repo. The `scripts/build-ael.sh` rsync ships it to
 `assets/aieconlab/core/templates/` in the aiplus binary embed, which
-extracts to `.aiplus/aieconlab/core/templates/` during `aiplus add aieconlab`.
+extracts to `.aiplus/modules/aieconlab/core/templates/` during `aiplus add aieconlab`.
 
 Updates to the AEL CLI must update this file in the same PR.
