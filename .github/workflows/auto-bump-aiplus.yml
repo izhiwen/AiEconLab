@@ -118,4 +118,6 @@ jobs:
 
           gh pr create \
             --title "chore(vendor): auto-bump aiplus to $tag" \
+            --base main \
+            --head "$branch" \
             --body-file /tmp/auto-bump-pr-body.md
