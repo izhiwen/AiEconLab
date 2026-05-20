@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.2.7}"
+AEL_VERSION="${AEL_VERSION:-0.2.10}"
 AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
 AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
@@ -29,17 +29,9 @@ if [ -d "$AEL_BIN_DIR/../libexec" ]; then
   AEL_ROOT="$(cd "$AEL_BIN_DIR/.." && pwd)"
 fi
 
-sanitize_substrate_output() {
-  perl -pe '
-    s/(?<![.\/-])\bAiPlus\b/AEL/g;
-    s/(?<![.\/-])\baiplus\b/ael/g;
-    s/(?<![.\/-])\bAIPLUS\b/AEL/g;
-  '
-}
-
 usage() {
   cat <<'EOF'
-AEL 0.2.7
+AEL 0.2.10
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
@@ -63,9 +55,8 @@ Roles you can chat with directly:
 
 Advanced (you rarely need these once you are in chat):
   ael talk [--runtime RUNTIME] <role> [prompt...]
+  ael talk --resume <role> [--last|--list]
   ael route <role> <task...>
-  ael telemetry [enable|disable|status]
-  ael invite|dismiss|integrate <role>
   ael update [--dry-run]
   ael uninstall [--purge] [--yes]
   ael --version
@@ -89,6 +80,23 @@ Examples:
   ael                               # opens the lobby
   ael pi                            # skip lobby, go straight to PI
   ael advisor                       # skip lobby, go straight to Advisor
+  ael talk --resume advisor         # resume a crashed Advisor session
+EOF
+}
+
+talk_usage() {
+  cat <<'EOF'
+AEL talk
+
+Usage:
+  ael talk [--runtime RUNTIME] <role> [prompt...]
+  ael talk [--runtime RUNTIME] --resume <role> [--last|--list]
+
+Options:
+  --runtime RUNTIME   use codex, claude-code, or opencode
+  --resume            resume a previous session for this role in this project
+  --last              resume the most recent matching session without a picker
+  --list              list matching sessions and exit
 EOF
 }
 
@@ -222,12 +230,12 @@ run_substrate_quiet() {
   local bin tmp status
   bin="$(substrate_bin)"
   tmp="$(mktemp)"
-  if "$bin" "$@" >"$tmp" 2>&1; then
+  if env AIPLUS_BRAND="AEL" AIPLUS_TEAM="aieconlab" AIPLUS_DEFAULT_ROLE="pi" "$bin" "$@" >"$tmp" 2>&1; then
     rm -f "$tmp"
     return 0
   fi
   status=$?
-  sanitize_substrate_output <"$tmp" >&2
+  cat "$tmp" >&2
   rm -f "$tmp"
   return "$status"
 }
@@ -235,7 +243,7 @@ run_substrate_quiet() {
 run_substrate_visible() {
   local bin
   bin="$(substrate_bin)"
-  "$bin" "$@" 2>&1 | sanitize_substrate_output
+  env AIPLUS_BRAND="AEL" AIPLUS_TEAM="aieconlab" AIPLUS_DEFAULT_ROLE="pi" "$bin" "$@"
 }
 
 run_substrate_capture() {
@@ -244,33 +252,46 @@ run_substrate_capture() {
   local bin tmp status captured
   bin="$(substrate_bin)"
   tmp="$(mktemp)"
-  if "$bin" "$@" >"$tmp" 2>&1; then
-    captured="$(sanitize_substrate_output <"$tmp")"
+  if env AIPLUS_BRAND="AEL" AIPLUS_TEAM="aieconlab" AIPLUS_DEFAULT_ROLE="pi" "$bin" "$@" >"$tmp" 2>&1; then
+    captured="$(cat "$tmp")"
     printf -v "$__out_var" '%s' "$captured"
     rm -f "$tmp"
     return 0
   else
     status=$?
-    captured="$(sanitize_substrate_output <"$tmp")"
+    captured="$(cat "$tmp")"
     printf -v "$__out_var" '%s' "$captured"
     rm -f "$tmp"
     return "$status"
   fi
 }
 
-run_substrate_interactive() {
-  # Hand the TTY directly to the substrate so codex / claude / opencode can
-  # enter interactive REPL mode. Piping through sanitize_substrate_output
-  # would make stdout a pipe and force those runtimes into non-interactive
-  # mode. The PI / advisor / etc. persona content is already AEL-flavored;
-  # only the runtime's own banner is visible here.
-  local bin
-  bin="$(substrate_bin)"
-  exec "$bin" "$@"
-}
-
 extract_version_token() {
   sed -nE 's/.*([0-9]+[.][0-9]+[.][0-9]+([-+._A-Za-z0-9]*)?).*/\1/p' | head -n 1
+}
+
+version_core() {
+  local version="${1#v}"
+  version="${version%%[-+_]*}"
+  printf '%s\n' "$version"
+}
+
+version_at_least() {
+  local current minimum
+  current="$(version_core "$1")"
+  minimum="$(version_core "$2")"
+
+  local c_major=0 c_minor=0 c_patch=0 m_major=0 m_minor=0 m_patch=0
+  IFS=. read -r c_major c_minor c_patch <<<"$current"
+  IFS=. read -r m_major m_minor m_patch <<<"$minimum"
+  c_major="${c_major:-0}"; c_minor="${c_minor:-0}"; c_patch="${c_patch:-0}"
+  m_major="${m_major:-0}"; m_minor="${m_minor:-0}"; m_patch="${m_patch:-0}"
+
+  [ "$c_major" -gt "$m_major" ] && return 0
+  [ "$c_major" -lt "$m_major" ] && return 1
+  [ "$c_minor" -gt "$m_minor" ] && return 0
+  [ "$c_minor" -lt "$m_minor" ] && return 1
+  [ "$c_patch" -ge "$m_patch" ]
 }
 
 command_output_first_line() {
@@ -673,6 +694,13 @@ project_has_runtime_manifest() {
   [ -n "$adapters" ]
 }
 
+project_has_ael_personas() {
+  local role
+  for role in pi advisor writer ra-stata ra-python theorist referee replicator pm; do
+    [ -f "$PWD/.aiplus/agents/personas/$role.md" ] || return 1
+  done
+}
+
 load_manifest_runtimes() {
   AEL_LOBBY_RUNTIMES=()
   local runtime
@@ -720,7 +748,7 @@ auto_install_available_runtimes() {
 }
 
 ensure_project_ready_for_lobby() {
-  if project_has_runtime_manifest; then
+  if project_has_runtime_manifest && project_has_ael_personas; then
     load_manifest_runtimes
     return 0
   fi
@@ -911,75 +939,6 @@ install_cmd() {
   print_onboarding_hint
 }
 
-persona_path_for() {
-  local role="$1"
-  local candidates=(
-    "$PWD/.aiplus/agents/personas/$role.md"
-    "$PWD/.aiplus/agents/personas/_stubs/$role.md"
-    "$PWD/.aiplus/modules/aieconlab/core/templates/personas/$role.md"
-    "$AEL_ROOT/core/templates/personas/$role.md"
-    "$AEL_ROOT/../core/templates/personas/$role.md"
-  )
-
-  local candidate
-  for candidate in "${candidates[@]}"; do
-    if [ -f "$candidate" ]; then
-      printf '%s\n' "$candidate"
-      return 0
-    fi
-  done
-}
-
-fallback_persona() {
-  local role="$1"
-  case "$role" in
-    advisor)
-      printf 'Advisor: research question framing, identification strategy, and paper risk tradeoffs.\n'
-      ;;
-    pi)
-      printf 'PI: research project scope, milestone coordination, dispatch, and artifact integration.\n'
-      ;;
-    ra-stata)
-      printf 'RA-Stata: empirical analysis, regression specifications, datasets, tables, robustness, and Stata reproducibility.\n'
-      ;;
-    referee)
-      printf 'Referee: internal pre-submission review of methodology, argument structure, evidence, coherence, and academic rigor.\n'
-      ;;
-    *)
-      printf '%s: AiEconLab research role. Follow the installed persona when available.\n' "$role"
-      ;;
-  esac
-}
-
-build_headless_prompt() {
-  local role="$1"
-  local request="$2"
-  local persona_path persona
-  persona_path="$(persona_path_for "$role" || true)"
-  if [ -n "$persona_path" ]; then
-    persona="$(sed -n '1,220p' "$persona_path" | sanitize_substrate_output)"
-  else
-    persona="$(fallback_persona "$role")"
-  fi
-
-  cat <<EOF
-You are the "$role" role in AiEconLab (AEL), an applied-economics research team.
-Stay in this role for the full response. Use the persona below as binding context.
-Do not mention implementation substrate details.
-
-Persona:
----
-$persona
----
-
-User request:
-$request
-
-When the user asks what your role is, include the literal text "AiEconLab", the
-resolved role name "$role", and one concrete research responsibility from the persona.
-EOF
-}
-
 runtime_binary() {
   case "$1" in
     codex) printf 'codex\n' ;;
@@ -987,169 +946,6 @@ runtime_binary() {
     opencode) printf 'opencode\n' ;;
     *) die "unknown runtime: $1" ;;
   esac
-}
-
-ael_bypass_enabled() {
-  case "${AEL_BYPASS:-}" in
-    0|false|FALSE|False|no|NO|No) return 1 ;;
-    *) return 0 ;;
-  esac
-}
-
-headless_talk() {
-  local runtime="$1"
-  local role="$2"
-  local request="$3"
-  local prompt
-  prompt="$(build_headless_prompt "$role" "$request")"
-
-  case "$runtime" in
-    codex)
-      command -v codex >/dev/null 2>&1 || die "codex CLI not found on PATH"
-      local -a codex_cmd=(codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check --cd "$PWD" --color never)
-      if [ -n "${AEL_CODEX_MODEL:-}" ]; then
-        codex_cmd+=(--model "$AEL_CODEX_MODEL")
-      fi
-      local answer_file log_file status
-      answer_file="$(mktemp)"
-      log_file="$(mktemp)"
-      if "${codex_cmd[@]}" --output-last-message "$answer_file" "$prompt" >"$log_file" 2>&1; then
-        sanitize_substrate_output <"$answer_file"
-        rm -f "$answer_file" "$log_file"
-      else
-        status=$?
-        sanitize_substrate_output <"$log_file" >&2
-        rm -f "$answer_file" "$log_file"
-        return "$status"
-      fi
-      ;;
-    claude-code)
-      command -v claude >/dev/null 2>&1 || die "claude CLI not found on PATH"
-      local -a claude_cmd=(
-        claude --print --dangerously-skip-permissions
-        --model "${AEL_CLAUDE_MODEL:-sonnet}"
-      )
-      if [ -n "${AEL_CLAUDE_MAX_BUDGET_USD:-}" ]; then
-        claude_cmd+=(--max-budget-usd "$AEL_CLAUDE_MAX_BUDGET_USD")
-      fi
-      local claude_out claude_status
-      claude_out="$(mktemp)"
-      if "${claude_cmd[@]}" "$prompt" >"$claude_out" 2>&1; then
-        sanitize_substrate_output <"$claude_out"
-        rm -f "$claude_out"
-      else
-        claude_status=$?
-        sanitize_substrate_output <"$claude_out" >&2
-        rm -f "$claude_out"
-        return "$claude_status"
-      fi
-      ;;
-    opencode)
-      command -v opencode >/dev/null 2>&1 || die "opencode CLI not found on PATH"
-      # Default to a mid-tier model so the user experience is comparable
-      # to claude-code's default (sonnet). The previous default
-      # `openai/gpt-4o-mini` was noticeably weaker, making OpenCode users
-      # feel the AEL personas were less capable than they actually are.
-      # Users who want the smaller (cheaper) model can still set
-      # AEL_OPENCODE_MODEL=openai/gpt-4o-mini explicitly.
-      local -a opencode_cmd=(
-        opencode run --dir "$PWD"
-        --model "${AEL_OPENCODE_MODEL:-openai/gpt-4o}" \
-        --dangerously-skip-permissions
-      )
-      local opencode_out opencode_status
-      opencode_out="$(mktemp)"
-      if "${opencode_cmd[@]}" "$prompt" >"$opencode_out" 2>&1; then
-        sanitize_substrate_output <"$opencode_out"
-        rm -f "$opencode_out"
-      else
-        opencode_status=$?
-        sanitize_substrate_output <"$opencode_out" >&2
-        rm -f "$opencode_out"
-        return "$opencode_status"
-      fi
-      ;;
-    *)
-      die "unknown runtime: $runtime"
-      ;;
-  esac
-}
-
-talk_cmd() {
-  local runtime=""
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --runtime)
-        [ "$#" -ge 2 ] || die "--runtime requires a value"
-        runtime="$2"
-        shift 2
-        ;;
-      --runtime=*)
-        runtime="${1#--runtime=}"
-        shift
-        ;;
-      *)
-        break
-        ;;
-    esac
-  done
-
-  [ "$#" -ge 1 ] || die "usage: ael talk [--runtime RUNTIME] <role> [prompt...]"
-  local role="$1"
-  shift
-
-  if [ -z "$runtime" ]; then
-    runtime="$(runtime_from_manifest)"
-  fi
-  if [ -z "$runtime" ]; then
-    runtime="$(detect_runtime)"
-  fi
-
-  if [ "$#" -eq 0 ]; then
-    local bin
-    bin="$(runtime_binary "$runtime")"
-    command -v "$bin" >/dev/null 2>&1 || die "$bin CLI not found on PATH"
-    local -a talk_args=(agent talk)
-    if ael_bypass_enabled; then
-      talk_args+=(--bypass)
-    fi
-    talk_args+=(--runtime "$runtime" "$role")
-    run_substrate_interactive "${talk_args[@]}"
-    return 0
-  fi
-
-  headless_talk "$runtime" "$role" "$*"
-}
-
-shortcut_talk_cmd() {
-  local role="$1"
-  shift
-  local -a talk_args=()
-
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --runtime)
-        [ "$#" -ge 2 ] || die "--runtime requires a value"
-        talk_args+=("$1" "$2")
-        shift 2
-        ;;
-      --runtime=*)
-        talk_args+=("$1")
-        shift
-        ;;
-      *)
-        break
-        ;;
-    esac
-  done
-
-  ensure_project_ready_for_lobby
-
-  if [ "${#talk_args[@]}" -gt 0 ]; then
-    talk_cmd "${talk_args[@]}" "$role" "$@"
-  else
-    talk_cmd "$role" "$@"
-  fi
 }
 
 aiplus_path_is_safe_to_overwrite() {
@@ -1283,237 +1079,82 @@ doctor_cmd() {
   return "$status"
 }
 
-list_team_members() {
-  cat <<'EOF'
-Core team:
+warn_if_stale_team_config() {
+  local team_file="$PWD/.aiplus/team.toml" active_team=""
+  [ -f "$team_file" ] || return 0
 
-  pi / 项目经理         派单、跟进、汇总
-  advisor / 顾问        反思、识别策略、框架
-  writer / 写手         起草段落、引言、改稿
-  ra-stata / 实证 RA    回归、表格、Stata 代码
-  ra-python / 数据 RA   清洗、合并、Python 代码
-  theorist / 理论       识别假设、模型设计
-  referee / 内审        内部自审、catch 错误
-  replicator / 复现     clean-room 复跑
-  pm / 项目管理         Gantt、deadline、acceptance
+  active_team="$(sed -nE 's/^[[:space:]]*(active_team|team)[[:space:]]*=[[:space:]]*"?([^"#[:space:]]+)"?.*/\2/p' "$team_file" | head -n 1)"
+  [ -z "$active_team" ] || [ "$active_team" = "aieconlab" ] && return 0
 
-Tip: PI can summon experts (dof, rr-strategist, writer, econometrician,
-viz, lit-reviewer, etc.) — just ask PI.
+  cat >&2 <<EOF
+WARNING: this project's .aiplus/team.toml is set to team=$active_team, not aieconlab.
+         aiplus lobby will not use AEL personas correctly.
+         Run \`ael install\` to repair, or edit .aiplus/team.toml manually.
 EOF
 }
 
-maybe_print_first_welcome() {
-  [ "${AEL_NO_ONBOARDING:-}" != "1" ] || return 0
-  local marker="$PWD/.aiplus/.ael-greeted"
-  if [ ! -e "$marker" ]; then
-    printf 'Welcome to AEL — your research team is ready.\n\n'
-    mkdir -p "$PWD/.aiplus"
-    : > "$marker" 2>/dev/null || true
-  fi
+require_delegate_aiplus() {
+  command -v aiplus >/dev/null 2>&1 || die "aiplus not on PATH. Run \`ael install\` to set it up."
+
+  local raw_version parsed_version
+  raw_version="$(aiplus --version 2>/dev/null | sed -n '/[^[:space:]]/ { p; q; }' || true)"
+  parsed_version="$(printf '%s\n' "$raw_version" | extract_version_token)"
+  [ -n "$parsed_version" ] || die "could not determine aiplus version. Run \`ael update\`."
+  version_at_least "$parsed_version" "0.6.16" || \
+    die "AEL v0.2.10+ requires aiplus v0.6.16+; found $parsed_version. Run \`ael update\`."
 }
 
-# Map free-form user input → canonical role slug. Returns empty string
-# if no confident match. Designed to handle: English slugs ("pi",
-# "ra-stata"), Chinese aliases ("顾问", "理论"), and short natural-
-# language phrases ("我想反思 RD 设计" → advisor, "派给 RA 跑回归" →
-# ra-stata).
-detect_role_from_input() {
-  local raw="$1"
-  local lower
-  lower="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
-
-  # Exact slug match (highest priority).
-  case "$lower" in
-    pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
-      printf '%s' "$lower"
-      return 0
-      ;;
-  esac
-
-  # Substring match across English + Chinese aliases. Order matters —
-  # check more specific ones first (ra-stata before "ra").
-  case "$lower" in
-    *advisor*|*顾问*|*反思*|*识别*|*框架*|*战略*|*咨询*)
-      printf 'advisor' ;;
-    *ra-stata*|*ra_stata*|"ra stata"*|*ra-stata*|*stata*|*回归*|*实证*ra*|*跑表*|*跑回归*)
-      printf 'ra-stata' ;;
-    *ra-python*|*ra_python*|"ra python"*|*ra-python*|*python*ra*|*数据清洗*|*清洗*|*合并*数据*|*python*)
-      printf 'ra-python' ;;
-    *replicator*|*复现*|*复跑*|*clean.room*|*replication*)
-      printf 'replicator' ;;
-    *referee*|*内审*|*自审*|*审稿*)
-      printf 'referee' ;;
-    *theorist*|*理论*|*模型*|*识别假设*|*推导*)
-      printf 'theorist' ;;
-    *writer*|*写手*|*起草*|*写段落*|*draft*|*引言*|*introduction*|*写作*)
-      printf 'writer' ;;
-    *pm*|*项目经理*|*gantt*|*deadline*|*项目管理*|*acceptance*)
-      # NOTE: only after "pi" exact-match fails — "pm" matches before "pi"
-      # because pi above was an exact-only check.
-      printf 'pm' ;;
-    *pi*|*项目经理*|*派单*|*下达*|*执行*|*orchestrat*|*coordinator*)
-      printf 'pi' ;;
-    *)
-      printf '' ;;
-  esac
-}
-
-runtime_is_available_in_list() {
-  local needle="$1"
-  shift
-  local runtime
-  for runtime in "$@"; do
-    if [ "$runtime" = "$needle" ]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-runtime_choice_from_input() {
-  local input="$1"
-  shift
-  local lower index runtime
-  lower="$(printf '%s' "$input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
-
-  if [ -z "$lower" ]; then
-    printf '%s' "$1"
-    return 0
-  fi
-
-  if [ "$lower" = "claude" ]; then
-    lower="claude-code"
-  fi
-
-  case "$lower" in
-    codex|claude-code|opencode)
-      if runtime_is_available_in_list "$lower" "$@"; then
-        printf '%s' "$lower"
-        return 0
-      fi
-      ;;
-    ''|*[!0-9]*)
-      ;;
-    *)
-      index=$((lower - 1))
-      if [ "$index" -ge 0 ] && [ "$index" -lt "$#" ]; then
-        local i=0
-        for runtime in "$@"; do
-          if [ "$i" -eq "$index" ]; then
-            printf '%s' "$runtime"
-            return 0
-          fi
-          i=$((i + 1))
-        done
-      fi
-      ;;
-  esac
-
-  return 1
-}
-
-choose_lobby_runtime() {
-  [ "$#" -gt 0 ] || die "no runtime installed for this project"
-
-  AEL_SELECTED_RUNTIME=""
-  if [ "$#" -eq 1 ]; then
-    AEL_SELECTED_RUNTIME="$1"
-    printf '→ %s (only installed runtime)\n\n' "$AEL_SELECTED_RUNTIME"
-    return 0
-  fi
-
-  printf 'AEL — which runtime?\n'
-  local i=1 runtime
-  for runtime in "$@"; do
-    printf '  %s) %s\n' "$i" "$runtime"
-    i=$((i + 1))
-  done
-  printf '\n> '
-
-  local runtime_input="" trimmed
-  if ! IFS= read -r runtime_input; then
-    exit 0
-  fi
-  trimmed="$(printf '%s' "$runtime_input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
-  case "$trimmed" in
-    q|quit|exit)
-      exit 0
-      ;;
-  esac
-
-  if ! AEL_SELECTED_RUNTIME="$(runtime_choice_from_input "$runtime_input" "$@")"; then
-    printf '\nael: could not match "%s" to an installed runtime.\n' "$runtime_input" >&2
-    exit 1
-  fi
-  printf '→ %s\n\n' "$AEL_SELECTED_RUNTIME"
-}
-
-chat_default() {
-  # The natural-language entry point: a lobby that routes the user to
-  # the team member they want. Replaces the previous "always drop into
-  # PI" behavior so users can also reach Advisor / writer / RAs / etc.
-  # directly.
+exec_aiplus_delegate() {
+  require_delegate_aiplus
   ensure_project_ready_for_lobby
+  warn_if_stale_team_config
 
-  maybe_print_first_welcome
-  printf 'AEL — 你想跟谁聊？ / who do you want to talk to?\n\n'
-  list_team_members
-  printf '\nType a name, slug, or describe what you need (中英文皆可).\n'
-  printf '"q" / Ctrl-D to leave. Empty = PI.\n'
-  printf '\n> '
-
-  local user_input=""
-  if ! IFS= read -r user_input; then
-    exit 0
-  fi
-
-  local trimmed
-  trimmed="$(printf '%s' "$user_input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
-  case "$trimmed" in
-    q|quit|exit|bye)
-      exit 0
+  local -a delegate_args=()
+  case "${1:-}" in
+    "")
+      delegate_args=()
+      ;;
+    chat)
+      shift
+      delegate_args=("$@")
+      ;;
+    pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
+      local role="$1"
+      shift
+      delegate_args=(agent talk "$role" "$@")
+      ;;
+    talk)
+      shift
+      delegate_args=(agent talk "$@")
+      ;;
+    route)
+      shift
+      delegate_args=(agent route "$@")
+      ;;
+    invite|dismiss|integrate)
+      local subcommand="$1"
+      shift
+      delegate_args=(agent "$subcommand" "$@")
+      ;;
+    substrate)
+      shift
+      delegate_args=("$@")
+      ;;
+    *)
+      delegate_args=("$@")
       ;;
   esac
 
-  local role
-  if [ -z "$trimmed" ]; then
-    # Empty input → default to PI silently (matches the original lobby behavior).
-    role='pi'
-    printf '→ pi (default)\n\n'
-  else
-    role="$(detect_role_from_input "$user_input")"
-    if [ -z "$role" ]; then
-      printf '\nael: could not match "%s" to a team member. Defaulting to PI.\n\n' "$user_input" >&2
-      role='pi'
-    else
-      printf '→ %s\n\n' "$role"
-    fi
-  fi
-
-  choose_lobby_runtime "${AEL_LOBBY_RUNTIMES[@]}"
-
-  # Re-exec ourselves so the TTY chain is clean (no nested shell layers).
-  exec "$0" talk --runtime "$AEL_SELECTED_RUNTIME" "$role"
+  exec env \
+    AIPLUS_BRAND="AEL" \
+    AIPLUS_TEAM="aieconlab" \
+    AIPLUS_DEFAULT_ROLE="pi" \
+    aiplus "${delegate_args[@]+"${delegate_args[@]}"}"
 }
 
 main() {
   local cmd="${1:-}"
   case "$cmd" in
-    "")
-      chat_default
-      ;;
-    chat)
-      shift
-      chat_default
-      ;;
-    # Power-user shortcuts: `ael pi`, `ael advisor`, ... skip the lobby
-    # and drop straight into that role's interactive chat. The lobby is
-    # nicer for new users; these shortcuts are faster once you know who
-    # you need.
-    pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
-      shift
-      shortcut_talk_cmd "$cmd" "$@"
-      ;;
     -h|--help|help)
       usage
       ;;
@@ -1523,10 +1164,6 @@ main() {
     install)
       shift
       install_cmd "$@"
-      ;;
-    talk)
-      shift
-      talk_cmd "$@"
       ;;
     status)
       shift
@@ -1544,25 +1181,8 @@ main() {
       shift
       uninstall_cmd "$@"
       ;;
-    route)
-      shift
-      run_substrate_visible agent route "$@"
-      ;;
-    telemetry)
-      shift
-      telemetry_cmd "$@"
-      ;;
-    invite|dismiss|integrate)
-      local sub="$cmd"
-      shift
-      run_substrate_visible agent "$sub" "$@"
-      ;;
-    substrate)
-      shift
-      run_substrate_visible "$@"
-      ;;
     *)
-      die "unknown command: $cmd"
+      exec_aiplus_delegate "$@"
       ;;
   esac
 }
