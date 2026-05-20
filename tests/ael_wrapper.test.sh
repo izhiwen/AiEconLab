@@ -15,6 +15,18 @@ version="$(./ael --version)"
   exit 1
 }
 
+if [ -f vendor/aiplus/target/release/aiplus ]; then
+  # The release binary embeds AEL docs/tests/changelog assets, which may
+  # legitimately mention the old bug. Match the old compiled prompt fragment.
+  old_prompt_fragment='` of the '"AiPlus"' virtual team installed in this project. Adopt'
+  if grep -aFq "$old_prompt_fragment" vendor/aiplus/target/release/aiplus 2>/dev/null; then
+    echo "::error::aiplus still embeds old hardcoded talk prompt branding"
+    exit 1
+  fi
+else
+  echo "# skipped: aiplus not built locally"
+fi
+
 help="$(./ael --help)"
 case "$help" in
   *AiPlus*|*aiplus*|*AIPLUS*)

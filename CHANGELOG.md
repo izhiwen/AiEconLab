@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `vendor/aiplus` bumped to v0.6.15; interactive talk prompt now
+  introduces the AEL team as "AEL virtual team" instead of the
+  upstream-default "AiPlus virtual team".
+
 ## [0.2.7] — 2026-05-19
 
 ### Added
