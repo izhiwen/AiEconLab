@@ -46,7 +46,7 @@ function Invoke-AelPs1 {
   It "prints the Windows wrapper version" {
     $result = Invoke-AelPs1 -Arguments @("--version")
     $result.Status | Should -Be 0
-    $result.Output.Trim() | Should -Be "AEL 0.2.3"
+    $result.Output.Trim() | Should -Be "AEL 0.3.0 (aiplus 0.6.19+)"
   }
 
   It "shows all public commands and role shortcuts without substrate branding" {
@@ -59,10 +59,10 @@ function Invoke-AelPs1 {
       $result.Output | Should -Match "ael $role"
     }
     $result.Output | Should -Not -Match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b"
-    $result.Output | Should -Match "AEL_BYPASS=0\s+disable runtime bypass \(default: enabled\)"
+    $result.Output | Should -Not -Match "AEL_BYPASS"
   }
 
-  It "passes bypass to interactive talk by default and honors AEL_BYPASS=0" {
+  It "resumes interactive talk by default and honors --fresh" {
     $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
@@ -90,17 +90,16 @@ function Invoke-AelPs1 {
       PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
     }
     $result.Status | Should -Be 0
-    (Get-Content -LiteralPath $log -Raw).Trim() | Should -Be "agent talk --bypass --runtime claude-code pi"
+    (Get-Content -LiteralPath $log -Raw).Trim() | Should -Be "agent talk --resume --runtime claude-code pi"
 
-    $optoutLog = Join-Path $fakeBin "support-optout.log"
-    $optout = Invoke-AelPs1 -Arguments @("talk", "--runtime", "claude-code", "pi") -WorkingDirectory $project -Environment @{
+    $freshLog = Join-Path $fakeBin "support-fresh.log"
+    $fresh = Invoke-AelPs1 -Arguments @("talk", "--runtime", "claude-code", "pi", "--fresh") -WorkingDirectory $project -Environment @{
       AEL_AIPLUS_BIN = $support
-      AEL_SUPPORT_LOG = $optoutLog
-      AEL_BYPASS = "0"
+      AEL_SUPPORT_LOG = $freshLog
       PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
     }
-    $optout.Status | Should -Be 0
-    (Get-Content -LiteralPath $optoutLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
+    $fresh.Status | Should -Be 0
+    (Get-Content -LiteralPath $freshLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
   }
 
   It "routes lobby input by exact slug and natural-language intent" {

@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Repo = if ($env:AEL_REPO) { $env:AEL_REPO } else { "izhiwen/AiEconLab" }
-$MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.2.3" }
+$MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.3.0" }
 $LatestUrl = if ($env:AEL_RELEASES_LATEST_URL) { $env:AEL_RELEASES_LATEST_URL } else { "https://github.com/$Repo/releases/latest" }
 $VersionOverride = $env:AEL_VERSION
 $BaseLocal = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { Join-Path $env:USERPROFILE "AppData\Local" }

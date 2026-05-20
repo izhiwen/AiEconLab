@@ -28,7 +28,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.2.10" ] || fail "unexpected ael version output: $version"
+[ "$version" = "AEL 0.3.0 (aiplus 0.6.19+)" ] || fail "unexpected ael version output: $version"
 
 help="$(./ael --help)"
 for cmd in "ael install" "ael update" "ael uninstall" "ael doctor" "ael status"; do
@@ -49,7 +49,7 @@ cat >"$delegate_bin/aiplus" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 if [ "${1:-}" = "--version" ]; then
-  printf 'aiplus 0.6.16\n'
+  printf 'aiplus 0.6.19\n'
   exit 0
 fi
 printf 'AIPLUS_BRAND=%s\n' "${AIPLUS_BRAND:-}"
@@ -78,7 +78,8 @@ assert_delegate() {
 }
 
 assert_delegate ""
-assert_delegate "agent talk advisor" advisor
+assert_delegate "agent talk --resume advisor" advisor
+assert_delegate "agent talk advisor" advisor --fresh
 assert_delegate "agent talk --resume advisor" talk --resume advisor
 assert_delegate "agent route writer draft intro" route writer draft intro
 assert_delegate "agent invite theorist" invite theorist
@@ -99,7 +100,7 @@ printf 'active_team = "agent-team"\n' >"$stale_project/.aiplus/team.toml"
 stale_out="$(cd "$stale_project" && PATH="$delegate_bin:$PATH" "$ael_abs" advisor 2>&1)"
 case "$stale_out" in
   *"team=agent-team, not aieconlab"*\
-*"ARGS=agent talk advisor"*) ;;
+*"ARGS=agent talk --resume advisor"*) ;;
   *)
     printf '%s\n' "$stale_out"
     fail "stale team config warning or delegate output missing"
@@ -111,7 +112,7 @@ cat >"$old_bin/aiplus" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 if [ "${1:-}" = "--version" ]; then
-  printf 'aiplus 0.6.15\n'
+  printf 'aiplus 0.6.18\n'
   exit 0
 fi
 printf 'should not delegate\n'
@@ -124,7 +125,7 @@ old_status=$?
 set -e
 [ "$old_status" -ne 0 ] || fail "old aiplus delegate path should fail"
 case "$old_out" in
-  *"requires aiplus v0.6.16+"*"found 0.6.15"*) ;;
+  *"requires aiplus v0.6.19+"*"found 0.6.18"*) ;;
   *)
     printf '%s\n' "$old_out"
     fail "old aiplus error must explain required version"
@@ -187,7 +188,7 @@ auto_out="$(
 )"
 case "$auto_out" in
   *"AEL set up for: codex"*\
-*"ARGS=agent talk pi"*) ;;
+*"ARGS=agent talk --resume pi"*) ;;
   *)
     printf '%s\n' "$auto_out"
     fail "fresh role shortcut must auto-install then delegate"

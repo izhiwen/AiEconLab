@@ -1,13 +1,16 @@
 $ErrorActionPreference = "Stop"
 
-$script:AelVersion = if ($env:AEL_VERSION) { $env:AEL_VERSION.TrimStart("v") } else { "0.2.3" }
+$script:AelVersion = if ($env:AEL_VERSION) { $env:AEL_VERSION.TrimStart("v") } else { "0.3.0" }
 $script:AelRepo = if ($env:AEL_REPO) { $env:AEL_REPO } else { "izhiwen/AiEconLab" }
-$script:MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.2.3" }
+$script:MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.3.0" }
 $script:BinDir = Split-Path -Parent $PSCommandPath
 $script:AelRoot = $script:BinDir
 if (Test-Path (Join-Path (Split-Path -Parent $script:BinDir) "libexec")) {
   $script:AelRoot = Split-Path -Parent $script:BinDir
 }
+if ([string]::IsNullOrEmpty($env:AIPLUS_BRAND)) { $env:AIPLUS_BRAND = "AEL" }
+if ([string]::IsNullOrEmpty($env:AIPLUS_TEAM)) { $env:AIPLUS_TEAM = "aieconlab" }
+if ([string]::IsNullOrEmpty($env:AIPLUS_DEFAULT_ROLE)) { $env:AIPLUS_DEFAULT_ROLE = "pi" }
 
 function Write-AelError([string]$Message) {
   [Console]::Error.WriteLine("ael: $Message")
@@ -49,7 +52,7 @@ Usage:
   ael uninstall [--purge] [--yes]                 remove the installed ael CLI
   ael                                             open the lobby - pick or describe who you want to talk to
   ael chat                                        open the same lobby explicitly
-  ael <role>                                      shortcut: directly start a chat with that role
+  ael <role>                                      shortcut: resume the last chat with that role
   ael status                                      show installed team + active runtime
   ael doctor [--fix]                              self-check and fix common drift
 
@@ -74,9 +77,6 @@ Advanced:
   ael update [--dry-run]
   ael uninstall [--purge] [--yes]
   ael --version
-
-Environment variables:
-  AEL_BYPASS=0                      disable runtime bypass (default: enabled)
 
 Recommended flow:
   ael install
@@ -146,7 +146,7 @@ function Get-CurrentInstalledVersion {
   if (-not $versionOut) {
     $versionOut = (& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath --version 2>$null | Select-Object -First 1)
   }
-  if ($versionOut -match "^AEL\s+(.+)$") {
+  if ($versionOut -match "^AEL\s+(v?[0-9]+(?:\.[0-9]+){1,2})") {
     return (Normalize-Version $Matches[1])
   }
   return $null
@@ -567,15 +567,6 @@ function Get-RuntimeBinary([string]$Runtime) {
   }
 }
 
-function Test-AelBypassEnabled {
-  switch ($env:AEL_BYPASS) {
-    "0" { return $false }
-    "false" { return $false }
-    "no" { return $false }
-    default { return $true }
-  }
-}
-
 function Invoke-HeadlessTalk([string]$Runtime, [string]$Role, [string]$RequestText) {
   $prompt = Build-HeadlessPrompt $Role $RequestText
   switch ($Runtime) {
@@ -584,7 +575,7 @@ function Invoke-HeadlessTalk([string]$Runtime, [string]$Role, [string]$RequestTe
       $answer = New-TemporaryFile
       $log = New-TemporaryFile
       try {
-        $cmdArgs = @("exec", "--dangerously-bypass-approvals-and-sandbox", "--skip-git-repo-check", "--cd", (Get-Location).Path, "--color", "never")
+        $cmdArgs = @("exec", "--skip-git-repo-check", "--cd", (Get-Location).Path, "--color", "never")
         if ($env:AEL_CODEX_MODEL) { $cmdArgs += @("--model", $env:AEL_CODEX_MODEL) }
         $cmdArgs += @("--output-last-message", $answer.FullName, $prompt)
         & codex @cmdArgs > $log 2>&1
@@ -601,14 +592,14 @@ function Invoke-HeadlessTalk([string]$Runtime, [string]$Role, [string]$RequestTe
     }
     "claude-code" {
       if (-not (Get-CommandNameOrDefault "claude")) { Exit-WithError "claude CLI not found on PATH" }
-      $cmdArgs = @("--print", "--dangerously-skip-permissions", "--model", $(if ($env:AEL_CLAUDE_MODEL) { $env:AEL_CLAUDE_MODEL } else { "sonnet" }), $prompt)
+      $cmdArgs = @("--print", "--model", $(if ($env:AEL_CLAUDE_MODEL) { $env:AEL_CLAUDE_MODEL } else { "sonnet" }), $prompt)
       & claude @cmdArgs 2>&1 | ForEach-Object { Write-SanitizedObject $_ }
       return $LASTEXITCODE
     }
     "opencode" {
       if (-not (Get-CommandNameOrDefault "opencode")) { Exit-WithError "opencode CLI not found on PATH" }
       $model = if ($env:AEL_OPENCODE_MODEL) { $env:AEL_OPENCODE_MODEL } else { "openai/gpt-4o" }
-      $cmdArgs = @("run", "--dir", (Get-Location).Path, "--model", $model, "--dangerously-skip-permissions", $prompt)
+      $cmdArgs = @("run", "--dir", (Get-Location).Path, "--model", $model, $prompt)
       & opencode @cmdArgs 2>&1 | ForEach-Object { Write-SanitizedObject $_ }
       return $LASTEXITCODE
     }
@@ -640,13 +631,23 @@ function Invoke-Talk([string[]]$TalkArgs) {
   $role = $remaining[0]
   $requestParts = @()
   if ($remaining.Count -gt 1) { $requestParts = $remaining[1..($remaining.Count - 1)] }
+  $fresh = $false
+  $filteredRequestParts = @()
+  foreach ($part in $requestParts) {
+    if ($part -eq "--fresh") {
+      $fresh = $true
+    } else {
+      $filteredRequestParts += $part
+    }
+  }
+  $requestParts = $filteredRequestParts
   if (-not $runtime) { $runtime = Runtime-FromManifest }
   if (-not $runtime) { $runtime = Detect-Runtime }
   if ($requestParts.Count -eq 0) {
     $bin = Get-RuntimeBinary $runtime
     if (-not (Get-CommandNameOrDefault $bin)) { Exit-WithError "$bin CLI not found on PATH" }
     $talkArgs = @("agent", "talk")
-    if (Test-AelBypassEnabled) { $talkArgs += "--bypass" }
+    if (-not $fresh) { $talkArgs += "--resume" }
     $talkArgs += @("--runtime", $runtime, $role)
     return (Invoke-SubstrateInteractive $talkArgs)
   }
@@ -767,9 +768,9 @@ function Invoke-Main([string[]]$Argv) {
     "-h" { Show-Usage; return 0 }
     "--help" { Show-Usage; return 0 }
     "help" { Show-Usage; return 0 }
-    "-V" { Write-AelOut "AEL $script:AelVersion"; return 0 }
-    "--version" { Write-AelOut "AEL $script:AelVersion"; return 0 }
-    "version" { Write-AelOut "AEL $script:AelVersion"; return 0 }
+    "-V" { Write-AelOut "AEL $script:AelVersion (aiplus 0.6.19+)"; return 0 }
+    "--version" { Write-AelOut "AEL $script:AelVersion (aiplus 0.6.19+)"; return 0 }
+    "version" { Write-AelOut "AEL $script:AelVersion (aiplus 0.6.19+)"; return 0 }
     "install" { return (Invoke-Install $rest) }
     "talk" { return (Invoke-Talk $rest) }
     "status" { return (Invoke-SubstrateVisible (@("agent", "status") + $rest)) }
