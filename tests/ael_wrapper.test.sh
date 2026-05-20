@@ -4,12 +4,13 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
+ael_abs="$repo_root/ael"
 
 bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.2.0" ] || {
+[ "$version" = "AEL 0.2.5" ] || {
   echo "::error::unexpected ael version output: $version"
   exit 1
 }
@@ -110,6 +111,10 @@ shortcut_support="$(mktemp)"
 shortcut_log="$(mktemp)"
 # Keep this fixture hermetic: GitHub Actions does not install Claude Code,
 # so the shortcut runtime assertions must use only this fake CLI.
+shortcut_project="$(mktemp -d)"
+mkdir -p "$shortcut_project/.aiplus"
+printf '{"runtimeAdapters":["claude-code"]}
+' >"$shortcut_project/.aiplus/manifest.json"
 cat >"$shortcut_runtime_bin/claude" <<'SH'
 #!/usr/bin/env bash
 exit 0
@@ -120,14 +125,20 @@ set -euo pipefail
 printf '%s\n' "$*" >"$AEL_SUPPORT_LOG"
 SH
 chmod +x "$shortcut_runtime_bin/claude" "$shortcut_support"
-PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$shortcut_log" ./ael pi --runtime claude-code >/dev/null
+(
+  cd "$shortcut_project"
+  PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$shortcut_log" "$ael_abs" pi --runtime claude-code >/dev/null
+)
 [ "$(cat "$shortcut_log")" = "agent talk --runtime claude-code pi" ] || {
   echo "::error::ael role shortcut must forward --runtime before role"
   cat "$shortcut_log"
   exit 1
 }
 talk_log="$(mktemp)"
-PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$talk_log" ./ael talk --runtime claude-code pi >/dev/null
+(
+  cd "$shortcut_project"
+  PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$talk_log" "$ael_abs" talk --runtime claude-code pi >/dev/null
+)
 cmp -s "$shortcut_log" "$talk_log" || {
   echo "::error::ael pi --runtime claude-code must match ael talk --runtime claude-code pi"
   printf 'shortcut: %s\n' "$(cat "$shortcut_log")"
@@ -160,8 +171,18 @@ SH
 chmod +x "$prompt_fake_bin/codex"
 shortcut_prompt_log="$(mktemp)"
 talk_prompt_log="$(mktemp)"
-PATH="$prompt_fake_bin:$PATH" AEL_RUNTIME=codex AEL_CODEX_PROMPT_LOG="$shortcut_prompt_log" ./ael advisor "hello" >/dev/null
-PATH="$prompt_fake_bin:$PATH" AEL_RUNTIME=codex AEL_CODEX_PROMPT_LOG="$talk_prompt_log" ./ael talk advisor "hello" >/dev/null
+prompt_project="$(mktemp -d)"
+mkdir -p "$prompt_project/.aiplus"
+printf '{"runtimeAdapters":["codex"]}
+' >"$prompt_project/.aiplus/manifest.json"
+(
+  cd "$prompt_project"
+  PATH="$prompt_fake_bin:$PATH" AEL_RUNTIME=codex AEL_CODEX_PROMPT_LOG="$shortcut_prompt_log" "$ael_abs" advisor "hello" >/dev/null
+)
+(
+  cd "$prompt_project"
+  PATH="$prompt_fake_bin:$PATH" AEL_RUNTIME=codex AEL_CODEX_PROMPT_LOG="$talk_prompt_log" "$ael_abs" talk advisor "hello" >/dev/null
+)
 cmp -s "$shortcut_prompt_log" "$talk_prompt_log" || {
   echo "::error::ael advisor prompt shortcut must match ael talk advisor prompt"
   exit 1
@@ -180,25 +201,26 @@ grep -q "vendor/aiplus/target/release" ael || {
   exit 1
 }
 
-grep -q "0.2.3" scripts/build-ael.sh || {
-  echo "::error::build script missing v0.2.3 version anchor"
+grep -q "0.2.5" scripts/build-ael.sh || {
+  echo "::error::build script missing v0.2.5 version anchor"
   exit 1
 }
 
-# `ael` with no args in a non-installed project must emit a friendly hint
-# (not a stack trace, not substrate leak) and exit non-zero. The check uses
-# a fresh empty tempdir as CWD so .aiplus/manifest.json is guaranteed absent.
+# `ael` with no args in a fresh project and no supported runtime CLIs must
+# emit a clear runtime prerequisite and exit non-zero.
 no_args_dir="$(mktemp -d)"
 no_args_stderr="$(mktemp)"
-ael_abs="$(cd "$(dirname "$0")/.." && pwd)/ael"
-if ( cd "$no_args_dir" && "$ael_abs" ) >/dev/null 2>"$no_args_stderr"; then
-  echo "::error::ael with no args in an empty project should fail (no manifest)"
+if ( cd "$no_args_dir" && PATH="/usr/bin:/bin" "$ael_abs" ) >/dev/null 2>"$no_args_stderr"; then
+  echo "::error::ael with no args and no runtime CLIs should fail"
   exit 1
 fi
 case "$(cat "$no_args_stderr")" in
-  *"ael install"*) ;;
+  *"no runtime found"*\
+*"https://claude.com/download"*\
+*"https://developers.openai.com/codex"*\
+*"https://opencode.ai"*) ;;
   *)
-    echo "::error::ael no-args hint must point user to 'ael install'"
+    echo "::error::ael no-runtime error must explain supported runtime install URLs"
     cat "$no_args_stderr"
     exit 1
     ;;
@@ -207,6 +229,210 @@ case "$(cat "$no_args_stderr")" in
   *AiPlus*|*aiplus*|*AIPLUS*)
     echo "::error::ael no-args hint leaks substrate branding"
     cat "$no_args_stderr"
+    exit 1
+    ;;
+esac
+
+auto_support="$(mktemp)"
+auto_log="$(mktemp)"
+cat >"$auto_support" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$AEL_SUPPORT_LOG"
+exit 0
+SH
+chmod +x "$auto_support"
+
+auto_codex_bin="$(mktemp -d)"
+cat >"$auto_codex_bin/codex" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+chmod +x "$auto_codex_bin/codex"
+auto_codex_project="$(mktemp -d)"
+auto_codex_out="$(
+  cd "$auto_codex_project" && \
+    printf 'pi\n' | \
+    PATH="$auto_codex_bin:/usr/bin:/bin" \
+    AEL_AIPLUS_BIN="$auto_support" \
+    AEL_SUPPORT_LOG="$auto_log" \
+    "$ael_abs" 2>&1
+)"
+case "$auto_codex_out" in
+  *"AEL set up for: codex"*\
+*"→ codex (only installed runtime)"*) ;;
+  *)
+    echo "::error::fresh ael with fake codex must auto-install codex and skip runtime prompt"
+    printf '%s\n' "$auto_codex_out"
+    exit 1
+    ;;
+esac
+case "$auto_codex_out" in
+  *"AEL — which runtime?"*)
+    echo "::error::single-runtime lobby must skip runtime question"
+    printf '%s\n' "$auto_codex_out"
+    exit 1
+    ;;
+esac
+case "$(cat "$auto_log")" in
+  *"install codex --allow-version-skew"*\
+*"mcp-register --runtime codex"*\
+*"agent talk --runtime codex pi"*) ;;
+  *)
+    echo "::error::fresh fake-codex lobby must install then exec talk with codex PI"
+    cat "$auto_log"
+    exit 1
+    ;;
+esac
+case "$(cat "$auto_log")" in
+  *"install claude-code"*|*"install opencode"*)
+    echo "::error::auto-install must silently skip runtimes whose CLI is absent"
+    cat "$auto_log"
+    exit 1
+    ;;
+esac
+
+shortcut_auto_log="$(mktemp)"
+shortcut_auto_project="$(mktemp -d)"
+shortcut_auto_out="$(
+  cd "$shortcut_auto_project" && \
+    PATH="$auto_codex_bin:/usr/bin:/bin" \
+    AEL_AIPLUS_BIN="$auto_support" \
+    AEL_SUPPORT_LOG="$shortcut_auto_log" \
+    "$ael_abs" pi 2>&1
+)"
+case "$shortcut_auto_out" in
+  *"AEL set up for: codex"*) ;;
+  *)
+    echo "::error::fresh role shortcut must auto-install before launching"
+    printf '%s\n' "$shortcut_auto_out"
+    exit 1
+    ;;
+esac
+case "$(cat "$shortcut_auto_log")" in
+  *"install codex --allow-version-skew"*\
+*"agent talk --runtime codex pi"*) ;;
+  *)
+    echo "::error::fresh role shortcut must install then exec codex PI"
+    cat "$shortcut_auto_log"
+    exit 1
+    ;;
+esac
+
+incomplete_log="$(mktemp)"
+incomplete_project="$(mktemp -d)"
+mkdir -p "$incomplete_project/.aiplus"
+printf '{}\n' >"$incomplete_project/.aiplus/manifest.json"
+incomplete_out="$(
+  cd "$incomplete_project" && \
+    printf 'pi\n' | \
+    PATH="$auto_codex_bin:/usr/bin:/bin" \
+    AEL_AIPLUS_BIN="$auto_support" \
+    AEL_SUPPORT_LOG="$incomplete_log" \
+    "$ael_abs" 2>&1
+)"
+case "$incomplete_out" in
+  *"AEL set up for: codex"*) ;;
+  *)
+    echo "::error::incomplete manifest must trigger the auto-install sweep"
+    printf '%s\n' "$incomplete_out"
+    exit 1
+    ;;
+esac
+case "$(cat "$incomplete_log")" in
+  *"install codex --allow-version-skew"*) ;;
+  *)
+    echo "::error::incomplete manifest did not reinstall codex"
+    cat "$incomplete_log"
+    exit 1
+    ;;
+esac
+
+auto_multi_support="$(mktemp)"
+auto_multi_log="$(mktemp)"
+cat >"$auto_multi_support" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$AEL_SUPPORT_LOG"
+exit 0
+SH
+chmod +x "$auto_multi_support"
+auto_multi_bin="$(mktemp -d)"
+for runtime_cli in codex claude; do
+  cat >"$auto_multi_bin/$runtime_cli" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+  chmod +x "$auto_multi_bin/$runtime_cli"
+done
+auto_multi_project="$(mktemp -d)"
+auto_multi_out="$(
+  cd "$auto_multi_project" && \
+    printf 'pi\nclaude\n' | \
+    PATH="$auto_multi_bin:/usr/bin:/bin" \
+    AEL_AIPLUS_BIN="$auto_multi_support" \
+    AEL_SUPPORT_LOG="$auto_multi_log" \
+    "$ael_abs" 2>&1
+)"
+case "$auto_multi_out" in
+  *"AEL set up for: codex, claude-code"*\
+*"AEL — which runtime?"*\
+*"→ claude-code"*) ;;
+  *)
+    echo "::error::fresh ael with codex+claude must ask runtime and accept claude alias"
+    printf '%s\n' "$auto_multi_out"
+    exit 1
+    ;;
+esac
+case "$(cat "$auto_multi_log")" in
+  *"install codex --allow-version-skew"*\
+*"install claude-code --allow-version-skew"*\
+*"agent talk --runtime claude-code pi"*) ;;
+  *)
+    echo "::error::fresh multi-runtime lobby must install codex+claude and exec claude-code PI"
+    cat "$auto_multi_log"
+    exit 1
+    ;;
+esac
+case "$(cat "$auto_multi_log")" in
+  *"install opencode"*)
+    echo "::error::auto-install must skip opencode when opencode CLI is absent"
+    cat "$auto_multi_log"
+    exit 1
+    ;;
+esac
+
+shortcut_multi_log="$(mktemp)"
+shortcut_multi_project="$(mktemp -d)"
+shortcut_multi_out="$(
+  cd "$shortcut_multi_project" && \
+    PATH="$auto_multi_bin:/usr/bin:/bin" \
+    AEL_AIPLUS_BIN="$auto_multi_support" \
+    AEL_SUPPORT_LOG="$shortcut_multi_log" \
+    "$ael_abs" advisor 2>&1
+)"
+case "$shortcut_multi_out" in
+  *"AEL set up for: codex, claude-code"*) ;;
+  *)
+    echo "::error::fresh multi-runtime role shortcut must auto-install before launching"
+    printf '%s\n' "$shortcut_multi_out"
+    exit 1
+    ;;
+esac
+case "$shortcut_multi_out" in
+  *"AEL — which runtime?"*)
+    echo "::error::role shortcuts must not ask the lobby runtime question"
+    printf '%s\n' "$shortcut_multi_out"
+    exit 1
+    ;;
+esac
+case "$(cat "$shortcut_multi_log")" in
+  *"install codex --allow-version-skew"*\
+*"install claude-code --allow-version-skew"*\
+*"agent talk --runtime codex advisor"*) ;;
+  *)
+    echo "::error::fresh multi-runtime role shortcut must install then delegate to talk runtime detection"
+    cat "$shortcut_multi_log"
     exit 1
     ;;
 esac
