@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.10] — 2026-05-20
+
+### Changed
+
+- `ael` with no args, role shortcuts such as `ael advisor`, `ael talk`,
+  `ael talk --resume <role>`, `ael route`, and other interactive
+  commands now delegate to aiplus's shared lobby and agent commands with
+  `AIPLUS_BRAND=AEL`, `AIPLUS_TEAM=aieconlab`, and
+  `AIPLUS_DEFAULT_ROLE=pi`.
+- AEL-specific maintenance commands remain handled by the wrapper:
+  `ael install`, `ael update`, `ael uninstall`, `ael doctor`, and
+  `ael status`.
+- Removed the v0.2.9 bash lobby/runtime picker/resume picker and
+  substrate output filtering. aiplus v0.6.16+ owns the lobby, resume,
+  session tagging, and native AEL branding.
+
+### Requirements
+
+- Requires `aiplus` v0.6.16+ on `PATH` for delegated commands.
+
+## [0.2.9] — 2026-05-20
+
+### Added
+
+- `ael talk --resume <role>` now finds prior Codex and Claude Code sessions
+  for the current project and role, shows a numbered picker, and resumes the
+  selected runtime session. `--last` resumes the newest match directly, and
+  `--list` prints the matching session list for scripts.
+- Runtime session format discovery is documented in
+  `docs/dev/v0.2.9-runtime-session-formats.md`. OpenCode is documented as a
+  degraded mode because role-aware enumeration needs SQLite parsing, which is
+  outside the bash-only v0.2.9 scope.
+
+### Changed
+
+- AEL wrapper and release package version anchors now report `0.2.9`.
+
+## [0.2.8] — 2026-05-20
+
 ### Changed
 
 - `vendor/aiplus` bumped to v0.6.15; interactive talk prompt now
