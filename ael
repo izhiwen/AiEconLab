@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.2.7}"
+AEL_VERSION="${AEL_VERSION:-0.2.9}"
 AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
 AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
@@ -39,7 +39,7 @@ sanitize_substrate_output() {
 
 usage() {
   cat <<'EOF'
-AEL 0.2.7
+AEL 0.2.9
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
@@ -63,6 +63,7 @@ Roles you can chat with directly:
 
 Advanced (you rarely need these once you are in chat):
   ael talk [--runtime RUNTIME] <role> [prompt...]
+  ael talk --resume <role> [--last|--list]
   ael route <role> <task...>
   ael telemetry [enable|disable|status]
   ael invite|dismiss|integrate <role>
@@ -89,6 +90,23 @@ Examples:
   ael                               # opens the lobby
   ael pi                            # skip lobby, go straight to PI
   ael advisor                       # skip lobby, go straight to Advisor
+  ael talk --resume advisor         # resume a crashed Advisor session
+EOF
+}
+
+talk_usage() {
+  cat <<'EOF'
+AEL talk
+
+Usage:
+  ael talk [--runtime RUNTIME] <role> [prompt...]
+  ael talk [--runtime RUNTIME] --resume <role> [--last|--list]
+
+Options:
+  --runtime RUNTIME   use codex, claude-code, or opencode
+  --resume            resume a previous session for this role in this project
+  --last              resume the most recent matching session without a picker
+  --list              list matching sessions and exit
 EOF
 }
 
@@ -989,6 +1007,220 @@ runtime_binary() {
   esac
 }
 
+iso_to_unix() {
+  local iso="$1"
+  if date -u -d "$iso" +%s >/dev/null 2>&1; then
+    date -u -d "$iso" +%s
+  elif date -u -j -f "%Y-%m-%dT%H:%M:%S" "${iso%%.*}" +%s >/dev/null 2>&1; then
+    date -u -j -f "%Y-%m-%dT%H:%M:%S" "${iso%%.*}" +%s
+  else
+    printf '0\n'
+  fi
+}
+
+format_unix_time() {
+  local ts="$1"
+  if date -u -d "@$ts" "+%Y-%m-%d %H:%M" >/dev/null 2>&1; then
+    date -u -d "@$ts" "+%Y-%m-%d %H:%M"
+  elif date -u -r "$ts" "+%Y-%m-%d %H:%M" >/dev/null 2>&1; then
+    date -u -r "$ts" "+%Y-%m-%d %H:%M"
+  else
+    printf '%s' "$ts"
+  fi
+}
+
+truncate_preview() {
+  sed \
+    -e 's/\\n/ /g' \
+    -e 's/\\"/"/g' \
+    -e 's/\\\\/\\/g' \
+    -e 's/^[[:space:]]*//' \
+    -e 's/[[:space:]][[:space:]]*/ /g' \
+    | cut -c 1-70
+}
+
+preview_from_json_line() {
+  local line="$1" preview=""
+  preview="$(printf '%s\n' "$line" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p' | head -n 1)"
+  if [ -z "$preview" ]; then
+    preview="$(printf '%s\n' "$line" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p' | head -n 1)"
+  fi
+  printf '%s\n' "$preview" | truncate_preview
+}
+
+list_role_sessions() {
+  local runtime="$1" role="$2" project_root="$3"
+  case "$runtime" in
+    codex) _list_codex_sessions "$role" "$project_root" ;;
+    claude-code) _list_claude_sessions "$role" "$project_root" ;;
+    opencode) return 2 ;;
+    *) die "unknown runtime: $runtime" ;;
+  esac
+}
+
+_list_codex_sessions() {
+  local role="$1" project_root="$2"
+  local sessions_dir="${AEL_CODEX_SESSIONS_DIR:-$HOME/.codex/sessions}"
+  [ -d "$sessions_dir" ] || return 0
+
+  local file meta cwd id iso ts signature_line preview
+  while IFS= read -r -d '' file; do
+    meta="$(grep -m 1 '"type":"session_meta"' "$file" 2>/dev/null || true)"
+    [ -n "$meta" ] || continue
+    cwd="$(printf '%s\n' "$meta" | sed -n 's/.*"cwd":"\([^"]*\)".*/\1/p')"
+    [ "$cwd" = "$project_root" ] || continue
+    signature_line="$(grep -m 1 -F "\`$role\` of" "$file" 2>/dev/null || true)"
+    [ -n "$signature_line" ] || continue
+    id="$(printf '%s\n' "$meta" | sed -n 's/.*"payload":{"id":"\([^"]*\)".*/\1/p')"
+    [ -n "$id" ] || id="$(basename "$file" .jsonl | sed 's/^rollout-[^-]*-[^-]*-[^-]*-//')"
+    iso="$(printf '%s\n' "$meta" | sed -n 's/.*"timestamp":"\([^"]*\)".*/\1/p' | head -n 1)"
+    ts="$(iso_to_unix "$iso")"
+    preview="$(preview_from_json_line "$signature_line")"
+    printf '%s\t%s\t%s\n' "$ts" "$id" "$preview"
+  done < <(find "$sessions_dir" -type f -name '*.jsonl' -print0 2>/dev/null)
+}
+
+_list_claude_sessions() {
+  local role="$1" project_root="$2"
+  local projects_dir="${AEL_CLAUDE_PROJECTS_DIR:-$HOME/.claude/projects}"
+  [ -d "$projects_dir" ] || return 0
+
+  local file cwd id signature_line iso ts preview
+  while IFS= read -r -d '' file; do
+    cwd="$(grep -m 1 '"cwd":"' "$file" 2>/dev/null | sed -n 's/.*"cwd":"\([^"]*\)".*/\1/p')"
+    [ "$cwd" = "$project_root" ] || continue
+    signature_line="$(grep -m 1 -F "\`$role\` of" "$file" 2>/dev/null || true)"
+    [ -n "$signature_line" ] || continue
+    id="$(basename "$file" .jsonl)"
+    iso="$(printf '%s\n' "$signature_line" | sed -n 's/.*"timestamp":"\([^"]*\)".*/\1/p' | head -n 1)"
+    if [ -z "$iso" ]; then
+      iso="$(grep -m 1 '"timestamp":"' "$file" 2>/dev/null | sed -n 's/.*"timestamp":"\([^"]*\)".*/\1/p')"
+    fi
+    ts="$(iso_to_unix "$iso")"
+    preview="$(preview_from_json_line "$signature_line")"
+    printf '%s\t%s\t%s\n' "$ts" "$id" "$preview"
+  done < <(find "$projects_dir" -type f -name '*.jsonl' -print0 2>/dev/null)
+}
+
+print_no_role_sessions() {
+  local role="$1"
+  printf 'No %s sessions found in this project. Start a fresh one:\n' "$role" >&2
+  printf '  ael talk %s\n' "$role" >&2
+}
+
+resume_role_session() {
+  local runtime="$1" session_id="$2"
+  case "$runtime" in
+    codex)
+      command -v codex >/dev/null 2>&1 || die "codex CLI not found on PATH"
+      exec codex resume "$session_id"
+      ;;
+    claude-code)
+      command -v claude >/dev/null 2>&1 || die "claude CLI not found on PATH"
+      exec claude --resume "$session_id"
+      ;;
+    opencode)
+      command -v opencode >/dev/null 2>&1 || die "opencode CLI not found on PATH"
+      exec opencode --session "$session_id"
+      ;;
+    *)
+      die "unknown runtime: $runtime"
+      ;;
+  esac
+}
+
+opencode_resume_degraded() {
+  local mode="$1"
+  command -v opencode >/dev/null 2>&1 || die "opencode CLI not found on PATH"
+  case "$mode" in
+    list)
+      printf 'OpenCode stores session history in SQLite; AEL cannot role-filter it with bash-only parsing.\n' >&2
+      opencode session list
+      ;;
+    last)
+      printf 'OpenCode stores session history in SQLite; falling back to native last-session resume.\n' >&2
+      exec opencode --continue
+      ;;
+    *)
+      printf 'OpenCode stores session history in SQLite; falling back to native session UI.\n' >&2
+      exec opencode
+      ;;
+  esac
+}
+
+resume_talk_cmd() {
+  local runtime="$1" role="$2" use_last="$3" list_only="$4"
+  local project_root="$PWD"
+
+  if [ "$runtime" = "opencode" ]; then
+    if [ "$list_only" = "1" ]; then
+      opencode_resume_degraded list
+      return 0
+    fi
+    if [ "$use_last" = "1" ]; then
+      opencode_resume_degraded last
+    fi
+    opencode_resume_degraded picker
+  fi
+
+  local sessions
+  sessions="$(list_role_sessions "$runtime" "$role" "$project_root" | sort -rn || true)"
+  if [ -z "$sessions" ]; then
+    print_no_role_sessions "$role"
+    return 2
+  fi
+
+  if [ "$list_only" = "1" ]; then
+    printf '%s\n' "$sessions"
+    return 0
+  fi
+
+  local selected_id=""
+  if [ "$use_last" = "1" ]; then
+    IFS=$'\t' read -r _ selected_id _ < <(printf '%s\n' "$sessions" | sed -n '1p')
+    resume_role_session "$runtime" "$selected_id"
+  fi
+
+  local -a session_ids=()
+  local -a session_times=()
+  local -a session_previews=()
+  local ts id preview count=0
+  while IFS=$'\t' read -r ts id preview; do
+    count=$((count + 1))
+    session_times+=("$ts")
+    session_ids+=("$id")
+    session_previews+=("$preview")
+  done < <(printf '%s\n' "$sessions")
+
+  printf 'Recent %s sessions in this project (%s found):\n\n' "$role" "$count"
+  local i=0 display_time
+  while [ "$i" -lt "$count" ]; do
+    display_time="$(format_unix_time "${session_times[$i]}")"
+    printf '  %s. %s   "%s"\n' "$((i + 1))" "$display_time" "${session_previews[$i]}"
+    i=$((i + 1))
+  done
+  printf '\nPick (1-%s, q to quit) [1]: ' "$count"
+
+  local answer=""
+  if ! IFS= read -r answer; then
+    exit 130
+  fi
+  case "$answer" in
+    "") answer="1" ;;
+    q|Q|quit|exit) exit 130 ;;
+  esac
+  case "$answer" in
+    ''|*[!0-9]*)
+      die "invalid selection: $answer"
+      ;;
+  esac
+  if [ "$answer" -lt 1 ] || [ "$answer" -gt "$count" ]; then
+    die "selection out of range: $answer"
+  fi
+  selected_id="${session_ids[$((answer - 1))]}"
+  resume_role_session "$runtime" "$selected_id"
+}
+
 ael_bypass_enabled() {
   case "${AEL_BYPASS:-}" in
     0|false|FALSE|False|no|NO|No) return 1 ;;
@@ -1077,8 +1309,15 @@ headless_talk() {
 
 talk_cmd() {
   local runtime=""
+  local resume_mode="0"
+  local resume_last="0"
+  local resume_list="0"
   while [ "$#" -gt 0 ]; do
     case "$1" in
+      -h|--help|help)
+        talk_usage
+        return 0
+        ;;
       --runtime)
         [ "$#" -ge 2 ] || die "--runtime requires a value"
         runtime="$2"
@@ -1088,21 +1327,66 @@ talk_cmd() {
         runtime="${1#--runtime=}"
         shift
         ;;
+      --resume)
+        resume_mode="1"
+        shift
+        ;;
+      --last)
+        resume_last="1"
+        shift
+        ;;
+      --list)
+        resume_list="1"
+        shift
+        ;;
       *)
         break
         ;;
     esac
   done
 
+  if [ "$resume_mode" != "1" ] && { [ "$resume_last" = "1" ] || [ "$resume_list" = "1" ]; }; then
+    die "--last and --list are only valid with --resume"
+  fi
   [ "$#" -ge 1 ] || die "usage: ael talk [--runtime RUNTIME] <role> [prompt...]"
   local role="$1"
   shift
+
+  if [ "$resume_mode" = "1" ]; then
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --last)
+          resume_last="1"
+          shift
+          ;;
+        --list)
+          resume_list="1"
+          shift
+          ;;
+        -h|--help|help)
+          talk_usage
+          return 0
+          ;;
+        *)
+          die "usage: ael talk --resume <role> [--last|--list]"
+          ;;
+      esac
+    done
+    if [ "$resume_last" = "1" ] && [ "$resume_list" = "1" ]; then
+      die "--last and --list cannot be used together"
+    fi
+  fi
 
   if [ -z "$runtime" ]; then
     runtime="$(runtime_from_manifest)"
   fi
   if [ -z "$runtime" ]; then
     runtime="$(detect_runtime)"
+  fi
+
+  if [ "$resume_mode" = "1" ]; then
+    resume_talk_cmd "$runtime" "$role" "$resume_last" "$resume_list"
+    return "$?"
   fi
 
   if [ "$#" -eq 0 ]; then
@@ -1332,6 +1616,7 @@ detect_role_from_input() {
 
   # Substring match across English + Chinese aliases. Order matters —
   # check more specific ones first (ra-stata before "ra").
+  # shellcheck disable=SC2221,SC2222
   case "$lower" in
     *advisor*|*顾问*|*反思*|*识别*|*框架*|*战略*|*咨询*)
       printf 'advisor' ;;

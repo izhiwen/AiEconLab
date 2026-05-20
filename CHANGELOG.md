@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.9] — 2026-05-20
+
+### Added
+
+- `ael talk --resume <role>` now finds prior Codex and Claude Code sessions
+  for the current project and role, shows a numbered picker, and resumes the
+  selected runtime session. `--last` resumes the newest match directly, and
+  `--list` prints the matching session list for scripts.
+- Runtime session format discovery is documented in
+  `docs/dev/v0.2.9-runtime-session-formats.md`. OpenCode is documented as a
+  degraded mode because role-aware enumeration needs SQLite parsing, which is
+  outside the bash-only v0.2.9 scope.
+
+### Changed
+
+- AEL wrapper and release package version anchors now report `0.2.9`.
+
+## [0.2.8] — 2026-05-20
+
 ### Changed
 
 - `vendor/aiplus` bumped to v0.6.15; interactive talk prompt now

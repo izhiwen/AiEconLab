@@ -210,6 +210,14 @@ Talk to the Advisor:
 ael talk advisor "Is this identification strategy credible enough for a top-field submission?"
 ```
 
+Resume a crashed role session:
+
+```bash
+ael talk --resume advisor        # pick from matching Advisor sessions
+ael talk --resume advisor --last # resume the newest match directly
+ael talk --resume advisor --list # list matches for scripting
+```
+
 Route work through the PI:
 
 ```bash

@@ -10,7 +10,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.2.7" ] || {
+[ "$version" = "AEL 0.2.9" ] || {
   echo "::error::unexpected ael version output: $version"
   exit 1
 }
@@ -43,6 +43,153 @@ for cmd in update uninstall; do
       ;;
   esac
 done
+case "$help" in
+  *"ael talk --resume <role> [--last|--list]"*) ;;
+  *)
+    echo "::error::ael --help missing talk resume usage"
+    exit 1
+    ;;
+esac
+talk_help="$(./ael talk --help)"
+case "$talk_help" in
+  *"--resume"*\
+*"--last"*\
+*"--list"*) ;;
+  *)
+    echo "::error::ael talk --help missing resume flags"
+    printf '%s\n' "$talk_help"
+    exit 1
+    ;;
+esac
+
+resume_empty_project="$(mktemp -d)"
+resume_empty_sessions="$(mktemp -d)"
+set +e
+resume_empty_out="$(
+  cd "$resume_empty_project" && \
+    AEL_CODEX_SESSIONS_DIR="$resume_empty_sessions" \
+    "$ael_abs" talk --runtime codex --resume advisor --list 2>&1
+)"
+resume_empty_status=$?
+set -e
+[ "$resume_empty_status" -eq 2 ] || {
+  echo "::error::ael talk --resume --list with no sessions must exit 2"
+  printf 'status=%s\n%s\n' "$resume_empty_status" "$resume_empty_out"
+  exit 1
+}
+case "$resume_empty_out" in
+  *"No advisor sessions found in this project. Start a fresh one:"*\
+*"ael talk advisor"*) ;;
+  *)
+    echo "::error::empty resume list must print fresh-start guidance"
+    printf '%s\n' "$resume_empty_out"
+    exit 1
+    ;;
+esac
+set +e
+resume_last_empty_out="$(
+  cd "$resume_empty_project" && \
+    AEL_CODEX_SESSIONS_DIR="$resume_empty_sessions" \
+    "$ael_abs" talk --runtime codex --resume advisor --last 2>&1
+)"
+resume_last_empty_status=$?
+set -e
+[ "$resume_last_empty_status" -eq 2 ] || {
+  echo "::error::ael talk --resume --last with no sessions must exit 2"
+  printf 'status=%s\n%s\n' "$resume_last_empty_status" "$resume_last_empty_out"
+  exit 1
+}
+
+resume_project="$(mktemp -d)"
+resume_home="$(mktemp -d)"
+resume_sessions="$resume_home/.codex/sessions/2026/05/20"
+mkdir -p "$resume_sessions"
+cat >"$resume_sessions/rollout-2026-05-20T10-00-00-codex-session-1.jsonl" <<EOF
+{"timestamp":"2026-05-20T10:00:00.000Z","type":"session_meta","payload":{"id":"codex-session-1","timestamp":"2026-05-20T10:00:00.000Z","cwd":"$resume_project","originator":"codex-tui"}}
+{"timestamp":"2026-05-20T10:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"You are the \`advisor\` of the AEL virtual team installed in this project. Adopt the persona."}]}}
+EOF
+cat >"$resume_sessions/rollout-2026-05-20T10-01-00-other-project.jsonl" <<EOF
+{"timestamp":"2026-05-20T10:01:00.000Z","type":"session_meta","payload":{"id":"other-project","timestamp":"2026-05-20T10:01:00.000Z","cwd":"$repo_root","originator":"codex-tui"}}
+{"timestamp":"2026-05-20T10:01:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"You are the \`advisor\` of the AEL virtual team installed in this project. Adopt the persona."}]}}
+EOF
+cat >"$resume_sessions/rollout-2026-05-20T10-02-00-other-role.jsonl" <<EOF
+{"timestamp":"2026-05-20T10:02:00.000Z","type":"session_meta","payload":{"id":"other-role","timestamp":"2026-05-20T10:02:00.000Z","cwd":"$resume_project","originator":"codex-tui"}}
+{"timestamp":"2026-05-20T10:02:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"You are the \`pi\` of the AEL virtual team installed in this project. Adopt the persona."}]}}
+EOF
+resume_list_out="$(
+  cd "$resume_project" && \
+    AEL_CODEX_SESSIONS_DIR="$resume_sessions" \
+    "$ael_abs" talk --runtime codex --resume advisor --list
+)"
+case "$resume_list_out" in
+  *"codex-session-1"*\
+*"advisor"* ) ;;
+  *)
+    echo "::error::codex resume --list must include matching role session"
+    printf '%s\n' "$resume_list_out"
+    exit 1
+    ;;
+esac
+case "$resume_list_out" in
+  *"other-project"*|*"other-role"*)
+    echo "::error::codex resume --list must filter project and role"
+    printf '%s\n' "$resume_list_out"
+    exit 1
+    ;;
+esac
+resume_bin="$(mktemp -d)"
+resume_log="$(mktemp)"
+cat >"$resume_bin/codex" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >"$AEL_RESUME_LOG"
+SH
+chmod +x "$resume_bin/codex"
+(
+  cd "$resume_project"
+  PATH="$resume_bin:$PATH" \
+    AEL_CODEX_SESSIONS_DIR="$resume_sessions" \
+    AEL_RESUME_LOG="$resume_log" \
+    "$ael_abs" talk --runtime codex --resume advisor --last >/dev/null
+)
+[ "$(cat "$resume_log")" = "resume codex-session-1" ] || {
+  echo "::error::codex resume --last must exec codex resume with selected id"
+  cat "$resume_log"
+  exit 1
+}
+(
+  cd "$resume_project"
+  printf '\n' | \
+    PATH="$resume_bin:$PATH" \
+    AEL_CODEX_SESSIONS_DIR="$resume_sessions" \
+    AEL_RESUME_LOG="$resume_log" \
+    "$ael_abs" talk --runtime codex --resume advisor >/dev/null
+)
+[ "$(cat "$resume_log")" = "resume codex-session-1" ] || {
+  echo "::error::codex resume picker default must choose the newest match"
+  cat "$resume_log"
+  exit 1
+}
+
+claude_projects="$(mktemp -d)"
+mkdir -p "$claude_projects/-tmp-ael-resume"
+cat >"$claude_projects/-tmp-ael-resume/claude-session-1.jsonl" <<EOF
+{"parentUuid":null,"type":"user","message":{"role":"user","content":"You are the \`advisor\` of the AEL virtual team installed in this project. Adopt the persona."},"uuid":"u1","timestamp":"2026-05-20T11:00:00.000Z","cwd":"$resume_project","sessionId":"claude-session-1"}
+EOF
+claude_list_out="$(
+  cd "$resume_project" && \
+    AEL_CLAUDE_PROJECTS_DIR="$claude_projects" \
+    "$ael_abs" talk --runtime claude-code --resume advisor --list
+)"
+case "$claude_list_out" in
+  *"claude-session-1"*\
+*"advisor"*) ;;
+  *)
+    echo "::error::claude resume --list must include matching role session"
+    printf '%s\n' "$claude_list_out"
+    exit 1
+    ;;
+esac
 
 dry_run="$(./ael install codex --dry-run)"
 case "$dry_run" in
@@ -232,8 +379,8 @@ grep -q "vendor/aiplus/target/release" ael || {
   exit 1
 }
 
-grep -q "0.2.7" scripts/build-ael.sh || {
-  echo "::error::build script missing v0.2.7 version anchor"
+grep -q "0.2.9" scripts/build-ael.sh || {
+  echo "::error::build script missing v0.2.9 version anchor"
   exit 1
 }
 
