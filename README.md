@@ -288,6 +288,14 @@ scripts/build-ael.sh --package
 The release workflow publishes platform tarballs and SHA256 sidecars for the
 installer.
 
+## Development
+
+### Automated AiPlus version tracking
+
+A daily GitHub Action watches the AiPlus upstream repo for new stable tags and
+automatically opens a PR to bump the vendored substrate. Human review is
+required before merge; auto-bump never merges itself.
+
 ## Advanced
 
 AEL is built on the AiPlus agent substrate; the supported user-facing product
