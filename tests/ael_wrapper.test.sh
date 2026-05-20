@@ -105,6 +105,74 @@ case "$talk_output" in
     ;;
 esac
 
+shortcut_runtime_bin="$(mktemp -d)"
+shortcut_support="$(mktemp)"
+shortcut_log="$(mktemp)"
+cat >"$shortcut_runtime_bin/claude" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+cat >"$shortcut_support" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >"$AEL_SUPPORT_LOG"
+SH
+chmod +x "$shortcut_runtime_bin/claude" "$shortcut_support"
+PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$shortcut_log" ./ael pi --runtime claude-code >/dev/null
+[ "$(cat "$shortcut_log")" = "agent talk --runtime claude-code pi" ] || {
+  echo "::error::ael role shortcut must forward --runtime before role"
+  cat "$shortcut_log"
+  exit 1
+}
+talk_log="$(mktemp)"
+PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$talk_log" ./ael talk --runtime claude-code pi >/dev/null
+cmp -s "$shortcut_log" "$talk_log" || {
+  echo "::error::ael pi --runtime claude-code must match ael talk --runtime claude-code pi"
+  printf 'shortcut: %s\n' "$(cat "$shortcut_log")"
+  printf 'talk: %s\n' "$(cat "$talk_log")"
+  exit 1
+}
+
+prompt_fake_bin="$(mktemp -d)"
+cat >"$prompt_fake_bin/codex" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+answer_file=""
+prompt=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output-last-message)
+      answer_file="$2"
+      shift 2
+      ;;
+    *)
+      prompt="$1"
+      shift
+      ;;
+  esac
+done
+[ -n "$answer_file" ] || exit 2
+printf '%s\n' "$prompt" >"$AEL_CODEX_PROMPT_LOG"
+printf 'ok\n' >"$answer_file"
+SH
+chmod +x "$prompt_fake_bin/codex"
+shortcut_prompt_log="$(mktemp)"
+talk_prompt_log="$(mktemp)"
+PATH="$prompt_fake_bin:$PATH" AEL_RUNTIME=codex AEL_CODEX_PROMPT_LOG="$shortcut_prompt_log" ./ael advisor "hello" >/dev/null
+PATH="$prompt_fake_bin:$PATH" AEL_RUNTIME=codex AEL_CODEX_PROMPT_LOG="$talk_prompt_log" ./ael talk advisor "hello" >/dev/null
+cmp -s "$shortcut_prompt_log" "$talk_prompt_log" || {
+  echo "::error::ael advisor prompt shortcut must match ael talk advisor prompt"
+  exit 1
+}
+case "$(cat "$shortcut_prompt_log")" in
+  *"User request:"*"hello"*) ;;
+  *)
+    echo "::error::ael advisor prompt shortcut did not pass prompt into headless request"
+    cat "$shortcut_prompt_log"
+    exit 1
+    ;;
+esac
+
 grep -q "vendor/aiplus/target/release" ael || {
   echo "::error::ael wrapper does not dispatch to vendored runtime"
   exit 1

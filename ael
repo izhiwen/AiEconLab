@@ -266,6 +266,22 @@ run_substrate_interactive() {
   exec "$bin" "$@"
 }
 
+command_output_first_line() {
+  local cmd="$1"
+  shift
+  local out
+  if out="$("$cmd" "$@" 2>&1)"; then
+    printf '%s\n' "$out" | sed -n '/[^[:space:]]/ { s/^[[:space:]]*//; s/[[:space:]]*$//; p; q; }'
+    return 0
+  fi
+  return 1
+}
+
+supports_identity_with_memory() {
+  local bin="$1"
+  "$bin" identity --help 2>&1 | grep -q -- '--with-memory'
+}
+
 update_cmd() {
   local dry_run="0"
   while [ "$#" -gt 0 ]; do
@@ -950,6 +966,35 @@ talk_cmd() {
   headless_talk "$runtime" "$role" "$*"
 }
 
+shortcut_talk_cmd() {
+  local role="$1"
+  shift
+  local -a talk_args=()
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --runtime)
+        [ "$#" -ge 2 ] || die "--runtime requires a value"
+        talk_args+=("$1" "$2")
+        shift 2
+        ;;
+      --runtime=*)
+        talk_args+=("$1")
+        shift
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  if [ "${#talk_args[@]}" -gt 0 ]; then
+    talk_cmd "${talk_args[@]}" "$role" "$@"
+  else
+    talk_cmd "$role" "$@"
+  fi
+}
+
 list_team_members() {
   cat <<'EOF'
 Core team:
@@ -1094,7 +1139,8 @@ main() {
     # nicer for new users; these shortcuts are faster once you know who
     # you need.
     pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
-      talk_cmd "$cmd"
+      shift
+      shortcut_talk_cmd "$cmd" "$@"
       ;;
     -h|--help|help)
       usage
