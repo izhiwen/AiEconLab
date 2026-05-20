@@ -9,7 +9,7 @@ once and every persona automatically learns it.
 
 | Owner says... | Persona answers with... |
 |---|---|
-| "How do I open AEL?" / "How do I start?" | `ael` (opens the lobby — pick PI, Advisor, writer, etc.) |
+| "How do I open AEL?" / "How do I start?" | `ael` (auto-sets-up the team on first run, then opens the lobby — pick PI, Advisor, writer, etc.; if multiple runtimes are installed, choose one when prompted) |
 | "I want to talk to PI directly" | `ael pi` |
 | "I want to talk to Advisor directly" | `ael advisor` |
 | "I want to talk to a writer / RA / referee / etc. directly" | `ael writer` / `ael ra-stata` / `ael ra-python` / `ael theorist` / `ael referee` / `ael replicator` / `ael pm` (one of 9 core roles) |
@@ -21,8 +21,9 @@ once and every persona automatically learns it.
 |---|---|
 | "How do I install AEL on a new machine?" | `curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh \| bash` |
 | "I installed but `ael` is not found" | `curl ... \| bash` again with `--add-to-path` flag, OR add `~/.local/bin` to PATH manually |
-| "How do I set up AEL in this paper project?" | `cd MyPaperProject && ael install` |
-| "How do I set up every supported runtime in this project?" | `cd MyPaperProject && ael install all` (installs codex, claude-code, and opencode in sequence; the final summary shows which runtimes succeeded) |
+| "How do I set up AEL in this paper project?" | `cd MyPaperProject && ael` |
+| "How do I refresh a specific runtime adapter?" | `cd MyPaperProject && ael install codex` / `ael install claude-code` / `ael install opencode` |
+| "How do I set up every supported runtime in this project manually?" | `cd MyPaperProject && ael install all` (installs codex, claude-code, and opencode in sequence; the final summary shows which runtimes succeeded) |
 
 ## Day-to-day — once you are running
 

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- v0.2.5 lobby redesign: `ael`, `ael chat`, and role shortcuts now
+  auto-install AEL project adapters on first run for supported runtime
+  CLIs found on `PATH` (Codex, Claude Code, OpenCode), skipping missing
+  runtimes silently and reporting a clear "no runtime found" error when
+  none are available.
+- The lobby now asks for both role and runtime when multiple installed
+  runtimes are available; single-runtime projects skip the runtime
+  question and launch directly.
 - v0.2.3 Windows-native install path: `install.ps1` installs `ael.cmd`,
   `ael.ps1`, and `ael-support.exe` under the user's local app data
   directory without requiring WSL or git-bash.
@@ -23,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Quickstart docs and installer hints now teach the one-command
+  project flow: `cd MyProject && ael`.
 - Windows release packages now contain `install.ps1`, `bin/ael.cmd`,
   `bin/ael.ps1`, and `libexec/ael-support.exe`; they no longer ship
   the bash wrapper as the Windows entry point.

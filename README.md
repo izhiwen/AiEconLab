@@ -12,8 +12,7 @@ responsibilities.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
 cd MyPaperProject
-ael install
-ael                              # then chat with your research team in plain English / Chinese
+ael                              # auto-sets-up the team, then opens the lobby
 ```
 
 Windows PowerShell:
@@ -26,10 +25,9 @@ ael
 ```
 
 The first command installs the `ael` CLI. Inside a paper or replication
-project, `ael install` sets up the economics research team for your local AI
-runtime. Just running `ael` after that opens a chat with PI (your project
-manager) — describe what you need in plain language and PI dispatches to
-the right specialist (advisor, writer, RA, referee, etc.).
+project, just running `ael` sets up adapters for supported runtimes on
+`PATH`, opens the lobby, and asks who you want to talk to. If more than one
+runtime is installed, AEL also asks which runtime to use.
 
 ## I'm New — Start Here
 
@@ -72,11 +70,11 @@ Make a folder for a paper (or use an existing one), then:
 
 ```bash
 cd MyPaperProject       # the folder where your paper lives
-ael install             # auto-detects your AI agent (once per project)
-ael                     # opens a chat with your team — type in plain language
+ael                     # auto-sets-up the team, then opens the lobby
 ```
 
-You'll be in chat with PI (your project manager). Tell it what you want:
+Pick PI to start with your project manager, or pick Advisor / writer / RA
+directly. Tell it what you want:
 "I'm starting a paper on X, what should I think about first?" → PI hands
 it to Advisor. "Draft an introduction for the identification strategy" →
 PI dispatches to Writer. You stay in one window; PI orchestrates.
@@ -178,15 +176,18 @@ export PATH="$HOME/.local/bin:$PATH"
 On Windows, the installer prints a one-line PowerShell command when
 the install directory is not on `PATH`.
 
-Then install AEL into a project:
+Then start AEL inside a project:
 
 ```bash
 cd MyPaperProject
-ael install
+ael
 ```
 
-By default AEL picks an available runtime in this order: Codex, Claude Code,
-OpenCode. You can choose explicitly:
+On first run, AEL installs adapters for the supported runtime CLIs it finds
+on `PATH` (Codex, Claude Code, OpenCode). If it finds one runtime, it uses
+that runtime. If it finds more than one, the lobby asks you to choose.
+
+You can still set up or refresh a runtime explicitly:
 
 ```bash
 ael install codex

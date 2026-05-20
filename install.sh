@@ -283,7 +283,6 @@ esac
 
 echo "Next:"
 echo "  cd MyProject"
-echo "  ael install                  # once per project — sets up the research team"
-echo "  ael                          # opens the lobby — pick who to talk to (PI, Advisor, writer, ...)"
+echo "  ael                          # auto-sets-up the team on first run, then opens the lobby"
 echo "  ael advisor                  # or jump straight to advisor"
 echo "  ael pi                       # or straight to PI"
