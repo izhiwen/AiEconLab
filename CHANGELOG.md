@@ -11,10 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added README "Common Research Workflows" covering ten end-user research
-  flows from idea exploration through clean-room replication.
 - Archived the v0.3.0 memory audit at
   `docs/dev/_archive/v0.3.0-memory-audit.md`.
+
+### Reverted within cycle
+
+- The "Common Research Workflows" README section (originally part of this
+  release's first commit) was removed before user-facing tag per Owner
+  decision: the multi-role workflow framework was judged complex and
+  unnecessary. Roles remain individually documented; researchers combine
+  them freely.
 
 ### Changed
 
