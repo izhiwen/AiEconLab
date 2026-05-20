@@ -42,6 +42,12 @@ once and every persona automatically learns it.
 | "Stop tracking" | `ael telemetry disable` |
 | "Is telemetry on?" | `ael telemetry status` |
 
+## Safety / bypass
+
+| Owner says... | Persona answers with... |
+|---|---|
+| "How do I turn off automatic runtime bypass?" | `AEL_BYPASS=0 ael` (disables runtime bypass for that launch; default is enabled) |
+
 ## How personas should use this reference
 
 When the Owner asks any question matching the left column above:

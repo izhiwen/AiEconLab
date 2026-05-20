@@ -70,6 +70,9 @@ Advanced (you rarely need these once you are in chat):
   ael uninstall [--purge] [--yes]
   ael --version
 
+Environment variables:
+  AEL_BYPASS=0                      disable runtime bypass (default: enabled)
+
 Recommended flow:
   ael                               # auto-sets-up the team on first run, then opens the lobby
                                     # type/say who you want (PI, Advisor, ...)
@@ -930,6 +933,13 @@ runtime_binary() {
   esac
 }
 
+ael_bypass_enabled() {
+  case "${AEL_BYPASS:-}" in
+    0|false|FALSE|False|no|NO|No) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 headless_talk() {
   local runtime="$1"
   local role="$2"
@@ -940,7 +950,7 @@ headless_talk() {
   case "$runtime" in
     codex)
       command -v codex >/dev/null 2>&1 || die "codex CLI not found on PATH"
-      local -a codex_cmd=(codex exec --skip-git-repo-check --cd "$PWD" --color never)
+      local -a codex_cmd=(codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check --cd "$PWD" --color never)
       if [ -n "${AEL_CODEX_MODEL:-}" ]; then
         codex_cmd+=(--model "$AEL_CODEX_MODEL")
       fi
@@ -1043,7 +1053,12 @@ talk_cmd() {
     local bin
     bin="$(runtime_binary "$runtime")"
     command -v "$bin" >/dev/null 2>&1 || die "$bin CLI not found on PATH"
-    run_substrate_interactive agent talk --runtime "$runtime" "$role"
+    local -a talk_args=(agent talk)
+    if ael_bypass_enabled; then
+      talk_args+=(--bypass)
+    fi
+    talk_args+=(--runtime "$runtime" "$role")
+    run_substrate_interactive "${talk_args[@]}"
     return 0
   fi
 
