@@ -81,8 +81,13 @@ cat >"$fake_bin/codex" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 answer_file=""
+bypass_seen=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --dangerously-bypass-approvals-and-sandbox)
+      bypass_seen=1
+      shift
+      ;;
     --output-last-message)
       answer_file="$2"
       shift 2
@@ -92,6 +97,7 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+[ "$bypass_seen" -eq 1 ] || exit 3
 [ -n "$answer_file" ] || exit 2
 printf 'AiPlus leak via headless aiplus AIPLUS\n' >"$answer_file"
 printf 'noisy AiPlus session log\n'
@@ -129,8 +135,8 @@ chmod +x "$shortcut_runtime_bin/claude" "$shortcut_support"
   cd "$shortcut_project"
   PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$shortcut_log" "$ael_abs" pi --runtime claude-code >/dev/null
 )
-[ "$(cat "$shortcut_log")" = "agent talk --runtime claude-code pi" ] || {
-  echo "::error::ael role shortcut must forward --runtime before role"
+[ "$(cat "$shortcut_log")" = "agent talk --bypass --runtime claude-code pi" ] || {
+  echo "::error::ael role shortcut must enable bypass and forward --runtime before role"
   cat "$shortcut_log"
   exit 1
 }
@@ -145,6 +151,19 @@ cmp -s "$shortcut_log" "$talk_log" || {
   printf 'talk: %s\n' "$(cat "$talk_log")"
   exit 1
 }
+optout_log="$(mktemp)"
+(
+  cd "$shortcut_project"
+  PATH="$shortcut_runtime_bin:$PATH" AEL_AIPLUS_BIN="$shortcut_support" AEL_SUPPORT_LOG="$optout_log" AEL_BYPASS=0 "$ael_abs" talk --runtime claude-code pi >/dev/null
+)
+[ "$(cat "$optout_log")" = "agent talk --runtime claude-code pi" ] || {
+  echo "::error::AEL_BYPASS=0 must disable interactive bypass passthrough"
+  cat "$optout_log"
+  exit 1
+}
+if ! grep -R -q -e "--bypass" -e "AIPLUS_BYPASS" vendor/aiplus/crates/aiplus-cli/src/agent 2>/dev/null; then
+  printf '# skipped: vendor aiplus pre-bypass\n'
+fi
 
 prompt_fake_bin="$(mktemp -d)"
 cat >"$prompt_fake_bin/codex" <<'SH'
@@ -277,7 +296,7 @@ esac
 case "$(cat "$auto_log")" in
   *"install codex --allow-version-skew"*\
 *"mcp-register --runtime codex"*\
-*"agent talk --runtime codex pi"*) ;;
+*"agent talk --bypass --runtime codex pi"*) ;;
   *)
     echo "::error::fresh fake-codex lobby must install then exec talk with codex PI"
     cat "$auto_log"
@@ -311,7 +330,7 @@ case "$shortcut_auto_out" in
 esac
 case "$(cat "$shortcut_auto_log")" in
   *"install codex --allow-version-skew"*\
-*"agent talk --runtime codex pi"*) ;;
+*"agent talk --bypass --runtime codex pi"*) ;;
   *)
     echo "::error::fresh role shortcut must install then exec codex PI"
     cat "$shortcut_auto_log"
@@ -387,7 +406,7 @@ esac
 case "$(cat "$auto_multi_log")" in
   *"install codex --allow-version-skew"*\
 *"install claude-code --allow-version-skew"*\
-*"agent talk --runtime claude-code pi"*) ;;
+*"agent talk --bypass --runtime claude-code pi"*) ;;
   *)
     echo "::error::fresh multi-runtime lobby must install codex+claude and exec claude-code PI"
     cat "$auto_multi_log"
@@ -429,7 +448,7 @@ esac
 case "$(cat "$shortcut_multi_log")" in
   *"install codex --allow-version-skew"*\
 *"install claude-code --allow-version-skew"*\
-*"agent talk --runtime codex advisor"*) ;;
+*"agent talk --bypass --runtime codex advisor"*) ;;
   *)
     echo "::error::fresh multi-runtime role shortcut must install then delegate to talk runtime detection"
     cat "$shortcut_multi_log"

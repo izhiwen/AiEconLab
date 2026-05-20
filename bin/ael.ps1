@@ -75,6 +75,9 @@ Advanced:
   ael uninstall [--purge] [--yes]
   ael --version
 
+Environment variables:
+  AEL_BYPASS=0                      disable runtime bypass (default: enabled)
+
 Recommended flow:
   ael install
   ael
@@ -564,6 +567,15 @@ function Get-RuntimeBinary([string]$Runtime) {
   }
 }
 
+function Test-AelBypassEnabled {
+  switch ($env:AEL_BYPASS) {
+    "0" { return $false }
+    "false" { return $false }
+    "no" { return $false }
+    default { return $true }
+  }
+}
+
 function Invoke-HeadlessTalk([string]$Runtime, [string]$Role, [string]$RequestText) {
   $prompt = Build-HeadlessPrompt $Role $RequestText
   switch ($Runtime) {
@@ -572,7 +584,7 @@ function Invoke-HeadlessTalk([string]$Runtime, [string]$Role, [string]$RequestTe
       $answer = New-TemporaryFile
       $log = New-TemporaryFile
       try {
-        $cmdArgs = @("exec", "--skip-git-repo-check", "--cd", (Get-Location).Path, "--color", "never")
+        $cmdArgs = @("exec", "--dangerously-bypass-approvals-and-sandbox", "--skip-git-repo-check", "--cd", (Get-Location).Path, "--color", "never")
         if ($env:AEL_CODEX_MODEL) { $cmdArgs += @("--model", $env:AEL_CODEX_MODEL) }
         $cmdArgs += @("--output-last-message", $answer.FullName, $prompt)
         & codex @cmdArgs > $log 2>&1
@@ -633,7 +645,10 @@ function Invoke-Talk([string[]]$TalkArgs) {
   if ($requestParts.Count -eq 0) {
     $bin = Get-RuntimeBinary $runtime
     if (-not (Get-CommandNameOrDefault $bin)) { Exit-WithError "$bin CLI not found on PATH" }
-    return (Invoke-SubstrateInteractive @("agent", "talk", "--runtime", $runtime, $role))
+    $talkArgs = @("agent", "talk")
+    if (Test-AelBypassEnabled) { $talkArgs += "--bypass" }
+    $talkArgs += @("--runtime", $runtime, $role)
+    return (Invoke-SubstrateInteractive $talkArgs)
   }
   return (Invoke-HeadlessTalk $runtime $role ($requestParts -join " "))
 }

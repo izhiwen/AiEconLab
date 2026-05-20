@@ -59,6 +59,48 @@ function Invoke-AelPs1 {
       $result.Output | Should -Match "ael $role"
     }
     $result.Output | Should -Not -Match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b"
+    $result.Output | Should -Match "AEL_BYPASS=0\s+disable runtime bypass \(default: enabled\)"
+  }
+
+  It "passes bypass to interactive talk by default and honors AEL_BYPASS=0" {
+    $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
+    Set-Content -LiteralPath (Join-Path $project ".aiplus\manifest.json") -Value '{"runtimeAdapters":["claude-code"]}' -Encoding UTF8
+
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $runtime = Join-Path $fakeBin "claude.cmd"
+      Set-Content -LiteralPath $runtime -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $runtime = Join-Path $fakeBin "claude"
+      Set-Content -LiteralPath $runtime -Value "#!/usr/bin/env bash`nexit 0`n" -Encoding ASCII
+      chmod +x $runtime
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf '%s\n' ""`$*"" >""`$AEL_SUPPORT_LOG""`n" -Encoding ASCII
+      chmod +x $support
+    }
+
+    $log = Join-Path $fakeBin "support.log"
+    $result = Invoke-AelPs1 -Arguments @("talk", "--runtime", "claude-code", "pi") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $log
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $result.Status | Should -Be 0
+    (Get-Content -LiteralPath $log -Raw).Trim() | Should -Be "agent talk --bypass --runtime claude-code pi"
+
+    $optoutLog = Join-Path $fakeBin "support-optout.log"
+    $optout = Invoke-AelPs1 -Arguments @("talk", "--runtime", "claude-code", "pi") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $optoutLog
+      AEL_BYPASS = "0"
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $optout.Status | Should -Be 0
+    (Get-Content -LiteralPath $optoutLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
   }
 
   It "routes lobby input by exact slug and natural-language intent" {
