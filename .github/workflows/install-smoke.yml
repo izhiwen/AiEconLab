@@ -467,7 +467,7 @@ jobs:
           $support = Join-Path $workspace "aiplus\target\release\aiplus.exe"
           $release = Join-Path $env:RUNNER_TEMP "ael-native-release"
           $pkgRoot = Join-Path $env:RUNNER_TEMP "ael-native-package"
-          $pkgName = "ael-v0.2.3-windows-x86_64"
+          $pkgName = "ael-v0.3.0-windows-x86_64"
           $pkg = Join-Path $pkgRoot $pkgName
           Remove-Item -Recurse -Force $release, $pkgRoot -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path "$pkg\bin", "$pkg\libexec", $release | Out-Null
@@ -485,7 +485,7 @@ jobs:
 
           $installBin = Join-Path $env:RUNNER_TEMP "ael-native-install\bin"
           $installLibexec = Join-Path $env:RUNNER_TEMP "ael-native-install\libexec"
-          $env:AEL_VERSION = "v0.2.3"
+          $env:AEL_VERSION = "v0.3.0"
           $env:AEL_BASE_URL = ([System.Uri]((Resolve-Path $release).Path)).AbsoluteUri
           $env:AEL_INSTALL_DIR = $installBin
           $env:AEL_LIBEXEC_DIR = $installLibexec
@@ -528,7 +528,7 @@ jobs:
 
           $version = & ael --version 2>&1 | Out-String
           Write-Host $version
-          if ($version.Trim() -ne "AEL 0.2.3") {
+          if ($version.Trim() -ne "AEL 0.3.0 (aiplus 0.6.19+)") {
             throw "unexpected ael --version output: $version"
           }
 

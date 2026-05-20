@@ -231,6 +231,168 @@ ael invite llm-measurement
 ael talk llm-measurement "Review my text-as-data validation plan."
 ```
 
+Note: `AEL_BYPASS` was removed in v0.3.0; use your normal safe-mode runtime
+settings when you want approval prompts.
+
+## Common Research Workflows
+
+These examples show how to combine AEL roles across the life of a paper. Each
+transcript is illustrative: replace the topic, data, journal, and table names
+with your own project details.
+
+### A. Idea Exploration
+
+Use this when the project is still just a hunch. Start with Advisor for taste
+and tradeoffs, then move to Theorist when you want the identification logic
+made precise.
+
+```bash
+cd ~/research/early-idea
+ael
+> I have a possible paper idea about transit access and local labor markets.
+> Help me think through whether there is a credible causal design.
+> Switch to theorist and pressure-test the assumptions.
+> Summarize the two most promising designs and the fatal threats.
+```
+
+### B. Literature Mapping
+
+Use PI to scope the literature review, invite a specialist if needed, and then
+ask Writer to turn the map into prose once the buckets are clear.
+
+```bash
+cd ~/research/transit-paper
+ael pi
+> Scope a literature map for transit access, commuting, and neighborhood change.
+> Bring in a literature reviewer if this needs specialist coverage.
+ael writer
+> Turn the literature map into a second intro paragraph with a clear gap.
+```
+
+### C. Theory Building
+
+Use this when the empirical idea is plausible but the exclusion restriction,
+timing, or equilibrium story still needs discipline.
+
+```bash
+cd ~/research/instrument-paper
+ael theorist
+> I want to use distance to a historical rail junction as an instrument.
+> Spell out the exclusion restriction and likely violation channels.
+ael ra-stata
+> Plan the first-stage F-stat and balance checks.
+ael advisor
+> Would this identification story survive a top-field seminar?
+```
+
+### D. Data Pipeline
+
+Use PI to assign the pipeline, RA-Python to clean and merge, and RA-Stata to
+verify the analysis-ready dataset before regressions start.
+
+```bash
+cd ~/research/panel-build
+ael pi
+> Send RA-Python a task: merge the county panel and produce Stata-ready output.
+ael ra-python
+> Build the merge checks and write the cleaned panel.
+ael ra-stata
+> Open the cleaned data and report summary statistics plus missingness.
+```
+
+### E. Implementation Chain
+
+Use this for the main empirical workflow: think with Advisor, dispatch through
+PI, execute with the RA, and let Referee challenge the result.
+
+```bash
+cd ~/research/rd-paper
+ael
+> I want to reflect on the RD design around the eligibility cutoff.
+ael pi
+> Dispatch RD bandwidth sensitivity to RA-Stata.
+ael ra-stata
+> Run the assigned bandwidth sensitivity table.
+ael referee
+> Review the table as if it were in the first submission.
+```
+
+### F. Robustness Sprint
+
+Use this when the main result exists and you need a compact sprint of
+alternative specifications before deciding what becomes main or appendix.
+
+```bash
+cd ~/research/main-table
+ael pi
+> Plan five robustness specs: bandwidth, outliers, clustering, window, sample.
+ael ra-stata
+> Run the five specs and label which result maps to which threat.
+ael referee
+> Rank the specs: main table, appendix, or unnecessary.
+```
+
+### G. Writing Review Loop
+
+Use Writer for actual drafting and Advisor for strategic critique. Keep the
+loop tight: draft, critique, revise, then move on.
+
+```bash
+cd ~/research/draft
+ael writer
+> Draft the first intro paragraph around the core contribution.
+> Add a second paragraph on the literature gap.
+ael advisor
+> Is the intro strong, specific, and honest about identification?
+ael writer
+> Revise the opening using the Advisor's critique.
+```
+
+### H. Pre-Submission Scrub
+
+Use this before sending a paper anywhere. Referee finds the hard objections,
+PI coordinates a degrees-of-freedom audit, and Writer integrates the changes.
+
+```bash
+cd ~/research/submission
+ael referee
+> Do an internal review for a submission to Journal X.
+ael pi
+> Bring in a degrees-of-freedom audit and summarize the required fixes.
+ael writer
+> Revise the robustness section around the referee and audit notes.
+```
+
+### I. R&R Response
+
+Use PI to turn referee reports into a work plan, RA-Stata for new requested
+analyses, and Writer for the response letter.
+
+```bash
+cd ~/research/revision
+ael pi
+> Triage this referee report and prioritize the response plan.
+ael ra-stata
+> Run the requested heterogeneity and falsification tests.
+ael writer
+> Draft the response letter point by point, linking claims to new results.
+```
+
+### J. Clean-Room Replication
+
+Use Replicator when you want a result checked without inheriting the original
+author's code path or your own builder assumptions.
+
+```bash
+cd ~/research/replication
+ael replicator
+> Reproduce Table 3 from the paper text without reading the original code.
+ael ra-stata
+> Implement the Table 3 RD specification with independently chosen bandwidth.
+ael replicator
+> Compare our result with Table 3 and explain any discrepancy.
+```
+
 ## Why Roles Matter
 
 One long-lived AI chat tends to blur responsibilities. The same assistant that

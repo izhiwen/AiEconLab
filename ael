@@ -3,10 +3,13 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.2.10}"
+AEL_VERSION="${AEL_VERSION:-0.3.0}"
 AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
 AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
+export AIPLUS_BRAND="${AIPLUS_BRAND:-AEL}"
+export AIPLUS_TEAM="${AIPLUS_TEAM:-aieconlab}"
+export AIPLUS_DEFAULT_ROLE="${AIPLUS_DEFAULT_ROLE:-pi}"
 
 die() {
   printf 'ael: %s\n' "$*" >&2
@@ -31,14 +34,14 @@ fi
 
 usage() {
   cat <<'EOF'
-AEL 0.2.10
+AEL 0.3.0
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
   ael update [--dry-run]                          update the installed ael CLI
   ael uninstall [--purge] [--yes]                 remove the installed ael CLI
   ael                                            open the lobby — pick or describe who you want to talk to
-  ael <role>                                     shortcut: directly start a chat with that role
+  ael <role>                                     shortcut: resume the last chat with that role
   ael status                                     show installed team + active runtime
   ael doctor [--fix] [--yes]                     self-check and fix common drift
 
@@ -62,7 +65,7 @@ Advanced (you rarely need these once you are in chat):
   ael --version
 
 Environment variables:
-  AEL_BYPASS=0                      disable runtime bypass (default: enabled)
+  AEL_AIPLUS_BIN=/path/to/ael-support           use a specific bundled runtime
 
 Recommended flow:
   ael                               # auto-sets-up the team on first run, then opens the lobby
@@ -78,9 +81,9 @@ Examples:
   ael update --dry-run                # preview an available CLI update
   ael uninstall --yes                 # remove the installed CLI, keep project files
   ael                               # opens the lobby
-  ael pi                            # skip lobby, go straight to PI
-  ael advisor                       # skip lobby, go straight to Advisor
-  ael talk --resume advisor         # resume a crashed Advisor session
+  ael pi                            # resume PI for this project
+  ael advisor                       # resume Advisor for this project
+  ael advisor --fresh               # open a new Advisor session
 EOF
 }
 
@@ -230,7 +233,7 @@ run_substrate_quiet() {
   local bin tmp status
   bin="$(substrate_bin)"
   tmp="$(mktemp)"
-  if env AIPLUS_BRAND="AEL" AIPLUS_TEAM="aieconlab" AIPLUS_DEFAULT_ROLE="pi" "$bin" "$@" >"$tmp" 2>&1; then
+  if "$bin" "$@" >"$tmp" 2>&1; then
     rm -f "$tmp"
     return 0
   fi
@@ -243,7 +246,7 @@ run_substrate_quiet() {
 run_substrate_visible() {
   local bin
   bin="$(substrate_bin)"
-  env AIPLUS_BRAND="AEL" AIPLUS_TEAM="aieconlab" AIPLUS_DEFAULT_ROLE="pi" "$bin" "$@"
+  "$bin" "$@"
 }
 
 run_substrate_capture() {
@@ -252,7 +255,7 @@ run_substrate_capture() {
   local bin tmp status captured
   bin="$(substrate_bin)"
   tmp="$(mktemp)"
-  if env AIPLUS_BRAND="AEL" AIPLUS_TEAM="aieconlab" AIPLUS_DEFAULT_ROLE="pi" "$bin" "$@" >"$tmp" 2>&1; then
+  if "$bin" "$@" >"$tmp" 2>&1; then
     captured="$(cat "$tmp")"
     printf -v "$__out_var" '%s' "$captured"
     rm -f "$tmp"
@@ -1100,8 +1103,27 @@ require_delegate_aiplus() {
   raw_version="$(aiplus --version 2>/dev/null | sed -n '/[^[:space:]]/ { p; q; }' || true)"
   parsed_version="$(printf '%s\n' "$raw_version" | extract_version_token)"
   [ -n "$parsed_version" ] || die "could not determine aiplus version. Run \`ael update\`."
-  version_at_least "$parsed_version" "0.6.16" || \
-    die "AEL v0.2.10+ requires aiplus v0.6.16+; found $parsed_version. Run \`ael update\`."
+  version_at_least "$parsed_version" "0.6.19" || \
+    die "AEL v0.3.0 requires aiplus v0.6.19+; found $parsed_version. Run \`ael update\`."
+}
+
+role_talk_delegate_args() {
+  local role="$1"
+  shift
+  local fresh="0" arg
+  ROLE_TALK_ARGS=()
+  for arg in "$@"; do
+    if [ "$arg" = "--fresh" ]; then
+      fresh="1"
+    else
+      ROLE_TALK_ARGS+=("$arg")
+    fi
+  done
+  if [ "$fresh" = "1" ]; then
+    ROLE_TALK_ARGS=(agent talk "$role" "${ROLE_TALK_ARGS[@]+"${ROLE_TALK_ARGS[@]}"}")
+  else
+    ROLE_TALK_ARGS=(agent talk --resume "$role" "${ROLE_TALK_ARGS[@]+"${ROLE_TALK_ARGS[@]}"}")
+  fi
 }
 
 exec_aiplus_delegate() {
@@ -1121,7 +1143,8 @@ exec_aiplus_delegate() {
     pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
       local role="$1"
       shift
-      delegate_args=(agent talk "$role" "$@")
+      role_talk_delegate_args "$role" "$@"
+      delegate_args=("${ROLE_TALK_ARGS[@]}")
       ;;
     talk)
       shift
@@ -1145,11 +1168,7 @@ exec_aiplus_delegate() {
       ;;
   esac
 
-  exec env \
-    AIPLUS_BRAND="AEL" \
-    AIPLUS_TEAM="aieconlab" \
-    AIPLUS_DEFAULT_ROLE="pi" \
-    aiplus "${delegate_args[@]+"${delegate_args[@]}"}"
+  exec aiplus "${delegate_args[@]+"${delegate_args[@]}"}"
 }
 
 main() {
@@ -1159,7 +1178,7 @@ main() {
       usage
       ;;
     -V|--version|version)
-      printf 'AEL %s\n' "$AEL_VERSION"
+      printf 'AEL %s (aiplus 0.6.19+)\n' "$AEL_VERSION"
       ;;
     install)
       shift

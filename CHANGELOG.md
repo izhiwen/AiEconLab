@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-20
+
+### Added
+
+- Added README "Common Research Workflows" covering ten end-user research
+  flows from idea exploration through clean-room replication.
+- Archived the v0.3.0 memory audit at
+  `docs/dev/_archive/v0.3.0-memory-audit.md`.
+
+### Changed
+
+- `ael <role>` shortcuts now pass `aiplus agent talk --resume <role>` by
+  default so role sessions reopen the last matching project session.
+- `ael <role> --fresh` starts a new role session by stripping the wrapper-only
+  `--fresh` flag before delegating to `aiplus agent talk`.
+- Unix and Windows wrappers now export `AIPLUS_BRAND=AEL`,
+  `AIPLUS_TEAM=aieconlab`, and `AIPLUS_DEFAULT_ROLE=pi` near startup instead
+  of repeating hard-coded env assignments at each substrate call.
+- AEL wrapper and release package version anchors now report `0.3.0`.
+
+### Removed
+
+- Removed wrapper-level bypass injection and the `AEL_BYPASS` switch.
+  Users who need approval prompts should run through safe-mode runtime
+  settings such as `AIPLUS_SAFE=1`.
+
+### Requirements
+
+- Requires `aiplus` v0.6.19+ for delegated commands.
+
 ## [0.2.10] — 2026-05-20
 
 ### Changed
