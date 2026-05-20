@@ -82,7 +82,17 @@ assert_delegate "agent talk advisor" advisor
 assert_delegate "agent talk --resume advisor" talk --resume advisor
 assert_delegate "agent route writer draft intro" route writer draft intro
 assert_delegate "agent invite theorist" invite theorist
-assert_delegate "telemetry status" telemetry status
+
+telemetry_project="$(make_project)"
+telemetry_out="$(cd "$telemetry_project" && PATH="$delegate_bin:$PATH" "$ael_abs" telemetry status)"
+case "$telemetry_out" in
+  *"AEL telemetry status: disabled"* )
+    ;;
+  *)
+    printf '%s\n' "$telemetry_out"
+    fail "ael telemetry status must remain AEL-handled"
+    ;;
+esac
 
 stale_project="$(make_project)"
 printf 'active_team = "agent-team"\n' >"$stale_project/.aiplus/team.toml"

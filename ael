@@ -1181,6 +1181,10 @@ main() {
       shift
       uninstall_cmd "$@"
       ;;
+    telemetry)
+      shift
+      telemetry_cmd "$@"
+      ;;
     *)
       exec_aiplus_delegate "$@"
       ;;
