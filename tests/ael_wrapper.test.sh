@@ -108,6 +108,8 @@ esac
 shortcut_runtime_bin="$(mktemp -d)"
 shortcut_support="$(mktemp)"
 shortcut_log="$(mktemp)"
+# Keep this fixture hermetic: GitHub Actions does not install Claude Code,
+# so the shortcut runtime assertions must use only this fake CLI.
 cat >"$shortcut_runtime_bin/claude" <<'SH'
 #!/usr/bin/env bash
 exit 0
