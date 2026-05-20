@@ -80,6 +80,7 @@ assert_delegate() {
 assert_delegate ""
 assert_delegate "agent talk --resume advisor" advisor
 assert_delegate "agent talk advisor" advisor --fresh
+assert_delegate "agent talk 我想反思 RD 设计" "我想反思 RD 设计"
 assert_delegate "agent talk --resume advisor" talk --resume advisor
 assert_delegate "agent route writer draft intro" route writer draft intro
 assert_delegate "agent invite theorist" invite theorist

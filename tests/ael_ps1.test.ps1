@@ -100,6 +100,24 @@ function Invoke-AelPs1 {
     }
     $fresh.Status | Should -Be 0
     (Get-Content -LiteralPath $freshLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
+
+    $shortcutFreshLog = Join-Path $fakeBin "support-shortcut-fresh.log"
+    $shortcutFresh = Invoke-AelPs1 -Arguments @("pi", "--fresh") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $shortcutFreshLog
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $shortcutFresh.Status | Should -Be 0
+    (Get-Content -LiteralPath $shortcutFreshLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
+
+    $naturalLanguageLog = Join-Path $fakeBin "support-natural-language.log"
+    $naturalLanguage = Invoke-AelPs1 -Arguments @("我想反思 RD 设计") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $naturalLanguageLog
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $naturalLanguage.Status | Should -Be 0
+    (Get-Content -LiteralPath $naturalLanguageLog -Raw).Trim() | Should -Be "agent talk --resume --runtime claude-code 我想反思 RD 设计"
   }
 
   It "routes lobby input by exact slug and natural-language intent" {

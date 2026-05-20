@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Dogfood hotfix: single freeform invocations such as
+  `ael "我想反思 RD 设计"` now delegate to `aiplus agent talk <input>` so
+  aiplus `[role_aliases]` can resolve the requested AEL role instead of
+  treating the phrase as an unknown top-level substrate command.
+- Windows role shortcuts now pass wrapper-only trailing flags such as
+  `--fresh` into the talk path, matching the Unix wrapper behavior.
+
+### Documentation
+
+- Added `docs/dev/v0.3.0-dogfood-2026-05-20.md` with the first real
+  Qing Ideology dogfood findings: installed-wrapper/PATH drift, brand
+  leak, `--fresh` failure under stale 0.2.10, direct natural-language
+  routing failure, dispatch-without-artifact behavior, cross-role memory
+  gap, and runtime-selection friction.
+- Added `docs/dev/v0.3.0-dogfood-ceo-brief.md` with a scoped CEO review
+  prompt for landing the AEL-owned dogfood hotfix without opening a broader
+  sprint.
+
 ## [0.3.0] — 2026-05-20
 
 ### Added

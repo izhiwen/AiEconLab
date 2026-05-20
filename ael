@@ -1164,7 +1164,11 @@ exec_aiplus_delegate() {
       delegate_args=("$@")
       ;;
     *)
-      delegate_args=("$@")
+      if [ "$#" -eq 1 ] && [[ "${1:-}" != -* ]]; then
+        delegate_args=(agent talk "$1")
+      else
+        delegate_args=("$@")
+      fi
       ;;
   esac
 

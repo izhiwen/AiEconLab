@@ -763,7 +763,7 @@ function Invoke-Main([string[]]$Argv) {
     "" { return (Invoke-ChatDefault) }
     "chat" { return (Invoke-ChatDefault) }
     { $_ -in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm") } {
-      return (Invoke-Talk @($cmd))
+      return (Invoke-Talk (@($cmd) + $rest))
     }
     "-h" { Show-Usage; return 0 }
     "--help" { Show-Usage; return 0 }
@@ -783,6 +783,9 @@ function Invoke-Main([string[]]$Argv) {
     "dismiss" { return (Invoke-SubstrateVisible (@("agent", "dismiss") + $rest)) }
     "integrate" { return (Invoke-SubstrateVisible (@("agent", "integrate") + $rest)) }
     "substrate" { return (Invoke-SubstrateVisible $rest) }
+    { $Argv.Count -eq 1 -and -not $cmd.StartsWith("-") } {
+      return (Invoke-Talk @($cmd))
+    }
     default { Exit-WithError "unknown command: $cmd" }
   }
 }
