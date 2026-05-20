@@ -29,6 +29,118 @@ fire_consultant = true
 default_visible = ["advisor", "pi"]
 allow_direct_talk_to_others = true
 
+# Fuzzy role aliases for `aiplus agent talk` (substring match, case-insensitive).
+# Matching: alias.contains(input) || input.contains(alias). Requires aiplus v0.6.20+.
+# Source: merged from aiplus default ship + AEL bash detect_role_from_input mappings.
+[role_aliases]
+# --- pi (project lead / orchestrator) ---
+"pi" = "pi"
+"PI" = "pi"
+"ceo" = "pi"
+"CEO" = "pi"
+"主作者" = "pi"
+"主笔" = "pi"
+"负责人" = "pi"
+"课题负责人" = "pi"
+"lead author" = "pi"
+"orchestrator" = "pi"
+"coordinator" = "pi"
+"派单" = "pi"
+"下达" = "pi"
+"执行" = "pi"
+"project lead" = "pi"
+
+# --- advisor (strategic critique / framing) ---
+"advisor" = "advisor"
+"顾问" = "advisor"
+"导师" = "advisor"
+"reflect" = "advisor"
+"reflection" = "advisor"
+"committee" = "advisor"
+"我想反思" = "advisor"
+"反思" = "advisor"
+"框架" = "advisor"
+"战略" = "advisor"
+"咨询" = "advisor"
+
+# --- theorist (model / identification design) ---
+"theorist" = "theorist"
+"RD design" = "theorist"
+"RD" = "theorist"
+"DID" = "theorist"
+"IV" = "theorist"
+"event-study" = "theorist"
+"identification" = "theorist"
+"识别策略" = "theorist"
+"理论" = "theorist"
+"模型" = "theorist"
+"识别假设" = "theorist"
+"推导" = "theorist"
+
+# --- ra-stata (empirical regressions) ---
+"ra-stata" = "ra-stata"
+"Stata" = "ra-stata"
+"stata" = "ra-stata"
+"实证" = "ra-stata"
+"回归" = "ra-stata"
+"主表" = "ra-stata"
+"跑表" = "ra-stata"
+"跑回归" = "ra-stata"
+
+# --- ra-python (data cleaning / merging / scraping) ---
+"ra-python" = "ra-python"
+"Python" = "ra-python"
+"python" = "ra-python"
+"数据清洗" = "ra-python"
+"清洗" = "ra-python"
+"merge" = "ra-python"
+"合并数据" = "ra-python"
+"data cleaning" = "ra-python"
+
+# --- writer (drafting prose: intros, abstracts, sections) ---
+"writer" = "writer"
+"写手" = "writer"
+"起草" = "writer"
+"写段落" = "writer"
+"draft" = "writer"
+"引言" = "writer"
+"introduction" = "writer"
+"写作" = "writer"
+"段落" = "writer"
+
+# --- referee (internal pre-submission critique) ---
+"referee" = "referee"
+"内审" = "referee"
+"审稿人" = "referee"
+"审稿" = "referee"
+"自审" = "referee"
+"投稿前挑刺" = "referee"
+"pre-submission review" = "referee"
+
+# --- replicator (clean-room replication) ---
+"replicator" = "replicator"
+"复现" = "replicator"
+"replication" = "replicator"
+"复跑" = "replicator"
+"clean-room" = "replicator"
+"clean room" = "replicator"
+
+# --- pm (deadlines / scope / milestones) ---
+"pm" = "pm"
+"PM" = "pm"
+"进度" = "pm"
+"deadline" = "pm"
+"milestone" = "pm"
+"scope" = "pm"
+"gantt" = "pm"
+"项目管理" = "pm"
+"acceptance" = "pm"
+
+# --- econometrician (specialist — PI summons; aliases here help direct talk) ---
+"econometrician" = "econometrician"
+"计量" = "econometrician"
+"识别" = "econometrician"
+
 [research_artifacts]
 paper_dir = "paper/"
 slides_dir = "slides/"
