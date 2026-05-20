@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.2.0}"
+AEL_VERSION="${AEL_VERSION:-0.2.5}"
 AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
 AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
@@ -39,7 +39,7 @@ sanitize_substrate_output() {
 
 usage() {
   cat <<'EOF'
-AEL 0.2.0
+AEL 0.2.5
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
@@ -71,8 +71,8 @@ Advanced (you rarely need these once you are in chat):
   ael --version
 
 Recommended flow:
-  ael install                       # once per project
-  ael                               # lobby — type/say who you want (PI, Advisor, ...)
+  ael                               # auto-sets-up the team on first run, then opens the lobby
+                                    # type/say who you want (PI, Advisor, ...)
                                     # or "我想反思 RD 设计" and it routes you to Advisor
 
 Two-window pattern (for serious paper work):
@@ -590,6 +590,84 @@ for preferred in ("codex", "claude-code", "opencode"):
 PY
 }
 
+runtime_adapters_from_manifest() {
+  python3 - <<'PY' 2>/dev/null || true
+import json
+from pathlib import Path
+
+path = Path(".aiplus/manifest.json")
+if not path.exists():
+    raise SystemExit(0)
+data = json.loads(path.read_text())
+adapters = data.get("runtimeAdapters") or []
+seen = set()
+for adapter in adapters:
+    if adapter in {"codex", "claude-code", "opencode"} and adapter not in seen:
+        seen.add(adapter)
+        print(adapter)
+PY
+}
+
+project_has_runtime_manifest() {
+  local adapters
+  adapters="$(runtime_adapters_from_manifest)"
+  [ -n "$adapters" ]
+}
+
+load_manifest_runtimes() {
+  AEL_LOBBY_RUNTIMES=()
+  local runtime
+  while IFS= read -r runtime; do
+    [ -n "$runtime" ] || continue
+    AEL_LOBBY_RUNTIMES+=("$runtime")
+  done < <(runtime_adapters_from_manifest)
+}
+
+print_no_runtime_found() {
+  cat >&2 <<'EOF'
+ael: no runtime found on PATH.
+
+Install at least one supported AI coding runtime, then run "ael" again:
+  Claude Code: https://claude.com/download
+  Codex:       https://developers.openai.com/codex
+  OpenCode:    https://opencode.ai
+EOF
+}
+
+auto_install_available_runtimes() {
+  AEL_LOBBY_RUNTIMES=()
+  local runtime bin
+  for runtime in codex claude-code opencode; do
+    bin="$(runtime_binary "$runtime")"
+    if ! command -v "$bin" >/dev/null 2>&1; then
+      continue
+    fi
+    if ! install_runtime_flow "$runtime"; then
+      printf 'ael: auto-install failed for %s at %s: %s\n' \
+        "$runtime" "$AEL_INSTALL_FAILURE_STEP" "$AEL_INSTALL_FAILURE_REASON" >&2
+      return 1
+    fi
+    AEL_LOBBY_RUNTIMES+=("$runtime")
+  done
+
+  if [ "${#AEL_LOBBY_RUNTIMES[@]}" -eq 0 ]; then
+    print_no_runtime_found
+    return 1
+  fi
+
+  printf 'AEL set up for: '
+  join_install_summary "${AEL_LOBBY_RUNTIMES[@]}"
+  printf '\n'
+}
+
+ensure_project_ready_for_lobby() {
+  if project_has_runtime_manifest; then
+    load_manifest_runtimes
+    return 0
+  fi
+  auto_install_available_runtimes
+}
+
 install_failure_reason() {
   local output="$1" first_line
   if grep -Eiq 'not on PATH|command not found|not found|No such file|missing .*CLI|CLI .*missing' <<<"$output"; then
@@ -994,6 +1072,8 @@ shortcut_talk_cmd() {
     esac
   done
 
+  ensure_project_ready_for_lobby
+
   if [ "${#talk_args[@]}" -gt 0 ]; then
     talk_cmd "${talk_args[@]}" "$role" "$@"
   else
@@ -1207,22 +1287,102 @@ detect_role_from_input() {
   esac
 }
 
+runtime_is_available_in_list() {
+  local needle="$1"
+  shift
+  local runtime
+  for runtime in "$@"; do
+    if [ "$runtime" = "$needle" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+runtime_choice_from_input() {
+  local input="$1"
+  shift
+  local lower index runtime
+  lower="$(printf '%s' "$input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+
+  if [ -z "$lower" ]; then
+    printf '%s' "$1"
+    return 0
+  fi
+
+  if [ "$lower" = "claude" ]; then
+    lower="claude-code"
+  fi
+
+  case "$lower" in
+    codex|claude-code|opencode)
+      if runtime_is_available_in_list "$lower" "$@"; then
+        printf '%s' "$lower"
+        return 0
+      fi
+      ;;
+    ''|*[!0-9]*)
+      ;;
+    *)
+      index=$((lower - 1))
+      if [ "$index" -ge 0 ] && [ "$index" -lt "$#" ]; then
+        local i=0
+        for runtime in "$@"; do
+          if [ "$i" -eq "$index" ]; then
+            printf '%s' "$runtime"
+            return 0
+          fi
+          i=$((i + 1))
+        done
+      fi
+      ;;
+  esac
+
+  return 1
+}
+
+choose_lobby_runtime() {
+  [ "$#" -gt 0 ] || die "no runtime installed for this project"
+
+  AEL_SELECTED_RUNTIME=""
+  if [ "$#" -eq 1 ]; then
+    AEL_SELECTED_RUNTIME="$1"
+    printf '→ %s (only installed runtime)\n\n' "$AEL_SELECTED_RUNTIME"
+    return 0
+  fi
+
+  printf 'AEL — which runtime?\n'
+  local i=1 runtime
+  for runtime in "$@"; do
+    printf '  %s) %s\n' "$i" "$runtime"
+    i=$((i + 1))
+  done
+  printf '\n> '
+
+  local runtime_input="" trimmed
+  if ! IFS= read -r runtime_input; then
+    exit 0
+  fi
+  trimmed="$(printf '%s' "$runtime_input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+  case "$trimmed" in
+    q|quit|exit)
+      exit 0
+      ;;
+  esac
+
+  if ! AEL_SELECTED_RUNTIME="$(runtime_choice_from_input "$runtime_input" "$@")"; then
+    printf '\nael: could not match "%s" to an installed runtime.\n' "$runtime_input" >&2
+    exit 1
+  fi
+  printf '→ %s\n\n' "$AEL_SELECTED_RUNTIME"
+}
+
 chat_default() {
   # The natural-language entry point: a lobby that routes the user to
   # the team member they want. Replaces the previous "always drop into
   # PI" behavior so users can also reach Advisor / writer / RAs / etc.
   # directly.
-  if [ ! -f "$PWD/.aiplus/manifest.json" ]; then
-    cat >&2 <<'EOF'
-ael: this project is not set up yet.
-
-Run this once to install the research team:
-  ael install
-
-Then run "ael" to chat with your team in plain language.
-EOF
-    exit 1
-  fi
+  ensure_project_ready_for_lobby
 
   maybe_print_first_welcome
   printf 'AEL — 你想跟谁聊？ / who do you want to talk to?\n\n'
@@ -1232,7 +1392,9 @@ EOF
   printf '\n> '
 
   local user_input=""
-  IFS= read -r user_input || true  # Ctrl-D returns non-zero; treat as quit
+  if ! IFS= read -r user_input; then
+    exit 0
+  fi
 
   local trimmed
   trimmed="$(printf '%s' "$user_input" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
@@ -1257,8 +1419,10 @@ EOF
     fi
   fi
 
+  choose_lobby_runtime "${AEL_LOBBY_RUNTIMES[@]}"
+
   # Re-exec ourselves so the TTY chain is clean (no nested shell layers).
-  exec "$0" talk "$role"
+  exec "$0" talk --runtime "$AEL_SELECTED_RUNTIME" "$role"
 }
 
 main() {
