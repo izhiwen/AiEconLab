@@ -1,0 +1,241 @@
+# Phase 0.5 sprint — CI auto-bump bot for vendor/aiplus
+
+**Status**: SPEC — awaits Owner fire to CEO
+**Sprint type**: companion to v1.0 rewrite (helps Phase 1)
+**Estimated effort**: 1.5–2 hours single-pass
+**Repo**: AEL only (no aiplus changes)
+**Trigger condition**: Phase 0 design doc filled OR done in parallel
+**Blocks**: nothing (purely additive)
+**Helps**: Phase 1 generates 5 aiplus releases (D4 = per-protocol bumps) — this bot auto-opens AEL PRs for each
+
+---
+
+## Problem
+
+When aiplus upstream tags a new release (v0.6.16, v0.6.17, …), AEL's `vendor/aiplus` submodule pointer must be bumped manually:
+
+```bash
+cd vendor/aiplus
+git fetch origin
+git checkout v0.6.16
+cd ..
+git add vendor/aiplus
+git commit -m "chore(vendor): bump aiplus to v0.6.16"
+git push
+gh pr create ...
+```
+
+This is mechanical, repeatable, and **Phase 1 will require it 5 times**. Worth automating.
+
+## Goal
+
+GitHub Action that runs on a daily cron schedule:
+1. Reads current `vendor/aiplus` pinned commit
+2. Fetches upstream aiplus repo's tags
+3. Finds the latest stable tag (semver: `v\d+\.\d+\.\d+`, **no** `-rc`, `-alpha`, `-beta`)
+4. If latest tag's commit ≠ pinned commit:
+   - Creates branch `auto-bump/aiplus-vX.Y.Z`
+   - Updates submodule pointer to that tag
+   - Opens PR in AEL with informative body
+5. If pinned is up to date: no-op, log a line
+
+Human still reviews + merges the PR. **No auto-merge** — submodule bumps need human eyeball for breaking changes.
+
+## Why not just `dependabot`?
+
+GitHub's dependabot does support git submodules, but:
+- AEL pins by commit SHA, not by version tag — dependabot tracks "main HEAD" not "latest semver tag"
+- We want **only stable semver tags**, not every aiplus commit
+- AEL needs custom PR body with upstream changelog link
+
+A 50-line custom workflow is simpler than configuring dependabot to do the wrong thing.
+
+---
+
+## Implementation — B1
+
+### B1.1 New workflow file
+
+Path: `.github/workflows/auto-bump-aiplus.yml`
+
+```yaml
+name: auto-bump-aiplus
+
+on:
+  schedule:
+    - cron: '0 9 * * *'  # daily 09:00 UTC
+  workflow_dispatch:     # manual trigger for testing
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout AEL with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0  # need history for submodule operations
+
+      - name: Read current pinned commit
+        id: current
+        run: |
+          cd vendor/aiplus
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Current pinned: $(git rev-parse HEAD)"
+
+      - name: Find latest stable aiplus tag
+        id: latest
+        run: |
+          cd vendor/aiplus
+          git fetch origin --tags
+          # Only stable semver tags, no pre-release suffixes
+          latest=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -v '-' | sort -V | tail -1)
+          if [ -z "$latest" ]; then
+            echo "No stable tags found" >&2
+            exit 0
+          fi
+          tag_sha=$(git rev-list -n 1 "$latest")
+          echo "tag=$latest" >> "$GITHUB_OUTPUT"
+          echo "sha=$tag_sha" >> "$GITHUB_OUTPUT"
+          echo "Latest stable: $latest @ $tag_sha"
+
+      - name: Decide whether to bump
+        id: decide
+        run: |
+          if [ "${{ steps.current.outputs.sha }}" = "${{ steps.latest.outputs.sha }}" ]; then
+            echo "Already up to date with ${{ steps.latest.outputs.tag }}"
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check if PR already exists for this tag
+        if: steps.decide.outputs.bump == 'true'
+        id: existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="auto-bump/aiplus-${{ steps.latest.outputs.tag }}"
+          existing=$(gh pr list --head "$branch" --state open --json number --jq '.[].number')
+          if [ -n "$existing" ]; then
+            echo "PR #$existing already open for $branch — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump submodule pointer + open PR
+        if: steps.decide.outputs.bump == 'true' && steps.existing.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ steps.latest.outputs.tag }}"
+          branch="auto-bump/aiplus-$tag"
+
+          git config user.name "auto-bump-bot"
+          git config user.email "auto-bump-bot@users.noreply.github.com"
+          git checkout -b "$branch"
+
+          cd vendor/aiplus
+          git checkout "$tag"
+          cd ..
+          git add vendor/aiplus
+          git commit -m "chore(vendor): auto-bump aiplus to $tag"
+          git push -u origin "$branch"
+
+          body=$(cat <<EOF
+          Auto-generated by \`auto-bump-aiplus\` workflow.
+
+          - Previous pin: \`${{ steps.current.outputs.sha }}\`
+          - New pin: \`$tag\` (\`${{ steps.latest.outputs.sha }}\`)
+          - Upstream tag: https://github.com/izhiwen/AiPlus/releases/tag/$tag
+
+          **Human review required** before merge:
+          - Skim aiplus upstream release notes for breaking changes
+          - Run \`scripts/build-ael.sh\` locally if uncertain
+          - Run \`tests/ael_wrapper.test.sh\` if touching wrapper-visible behavior
+          EOF
+          )
+          gh pr create --title "chore(vendor): auto-bump aiplus to $tag" --body "$body"
+```
+
+### B1.2 First-run validation (CEO does after writing the file)
+
+Trigger the workflow manually via `workflow_dispatch`:
+
+```bash
+gh workflow run auto-bump-aiplus.yml
+gh run watch
+```
+
+Expected outcomes:
+- **If current aiplus pin is already the latest stable tag**: workflow logs "Already up to date" and exits 0
+- **If not** (e.g., upstream has a v0.6.16 tag and AEL pins v0.6.15): workflow opens a PR. CEO reviews the PR but does not merge.
+
+### B1.3 Documentation
+
+Add one paragraph to AEL's `README.md` under "Development":
+
+```markdown
+### Automated aiplus version tracking
+
+A daily GitHub Action (`auto-bump-aiplus.yml`) watches the AiPlus upstream
+repo for new stable tags and automatically opens a PR to bump
+`vendor/aiplus`. Human review required before merge — auto-bump never
+merges itself.
+```
+
+---
+
+## Halt conditions
+
+**S1 — Token permissions**: If `GITHUB_TOKEN` lacks `contents: write` or `pull-requests: write`, the workflow can't push branches or open PRs. Halt; document the required repo settings change (Settings → Actions → General → Workflow permissions).
+
+**S2 — Upstream repo private**: If `izhiwen/AiPlus` becomes private, the workflow fails to fetch. Halt; document the need for a PAT (personal access token).
+
+**S3 — Tag naming changes**: If aiplus stops using `v\d+\.\d+\.\d+` semver tags, the grep filter misses them. Halt; update the filter once new convention is known.
+
+---
+
+## Anti-patterns — DO NOT do these
+
+- **DO NOT auto-merge** the PR. Human review required for breaking changes.
+- **DO NOT trigger a new AEL release** on this PR. It's just a submodule pointer update; AEL release happens separately when Owner cuts a tag.
+- **DO NOT bump to pre-release tags** (`-rc`, `-alpha`, `-beta`). Filter for clean semver only.
+- **DO NOT run on every push** — daily cron is enough. Hourly is wasteful.
+- **DO NOT delete the auto-bump branch** when the PR closes — leave it to GitHub's default branch retention.
+- **DO NOT add Slack/Discord notifications**. PR opening is the notification.
+
+---
+
+## Done definition
+
+- [ ] `.github/workflows/auto-bump-aiplus.yml` committed to main
+- [ ] First manual run via `workflow_dispatch` succeeds (either "up to date" no-op or PR opened)
+- [ ] If a PR was opened: PR body matches the template above; CEO does NOT merge it (Owner does)
+- [ ] README updated with one-paragraph "Automated aiplus version tracking" section
+- [ ] PR for the workflow itself opened, CI green, Owner merges
+
+---
+
+## Out of scope (v1.1 if needed)
+
+- Pre-release tracking (rc / alpha / beta)
+- Auto-merge on minor/patch only (auto-merge for major requires Owner review)
+- Slack notification on PR open
+- Tracking aiplus `main` head (not just tags)
+- Cross-repo: also auto-bump MailCue's submodule once MailCue exists
+
+---
+
+## Notes for CEO
+
+This is the simplest sprint of the v1.0 rewrite arc. Pure additive — touches one new file + one README paragraph. No existing AEL logic modified.
+
+If the workflow's first manual run opens a PR (because aiplus has tagged something newer than current pin), **don't merge it as part of this sprint**. Hand it to Owner for review. The sprint ends when the workflow itself is merged and proven to run.
+
+Halt if you hit anything that surprises you on the first manual run — workflow behavior is hard to debug post-deploy, easier to fix the spec.
