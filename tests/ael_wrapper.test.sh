@@ -596,6 +596,7 @@ update_dry_run="$(
   cd "$update_project" && \
     AEL_INSTALL_DIR="$update_install" \
     AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_UPDATE_NO_AIPLUS_SYNC=1 \
     AEL_UPDATE_LATEST_VERSION="v9.9.9" \
     AEL_BASE_URL="file://$update_release" \
     "$ael_abs" update --dry-run
@@ -632,10 +633,49 @@ esac
   echo "::error::ael update --dry-run must not install support helper"
   exit 1
 }
+
+aiplus_sync_dry="$(
+  cd "$update_project" && \
+    PATH="$update_install:/usr/bin:/bin" \
+    AEL_INSTALL_DIR="$update_install" \
+    AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_UPDATE_LATEST_VERSION="v9.9.9" \
+    AEL_BASE_URL="file://$update_release" \
+    "$ael_abs" update --dry-run
+)"
+case "$aiplus_sync_dry" in
+  *"would_create="*|*"would_sync="*) ;;
+  *)
+    echo "::error::ael update --dry-run must surface aiplus_sync action"
+    printf '%s\n' "$aiplus_sync_dry"
+    exit 1
+    ;;
+esac
+
+aiplus_sync_optout="$(
+  cd "$update_project" && \
+    PATH="$update_install:/usr/bin:/bin" \
+    AEL_INSTALL_DIR="$update_install" \
+    AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_UPDATE_NO_AIPLUS_SYNC=1 \
+    AEL_UPDATE_LATEST_VERSION="v9.9.9" \
+    AEL_BASE_URL="file://$update_release" \
+    "$ael_abs" update --dry-run
+)"
+case "$aiplus_sync_optout" in
+  *"aiplus_sync=skipped reason=AEL_UPDATE_NO_AIPLUS_SYNC"*) ;;
+  *)
+    echo "::error::ael update --dry-run must honor AEL_UPDATE_NO_AIPLUS_SYNC"
+    printf '%s\n' "$aiplus_sync_optout"
+    exit 1
+    ;;
+esac
+
 update_out="$(
   cd "$update_project" && \
     AEL_INSTALL_DIR="$update_install" \
     AEL_LIBEXEC_DIR="$update_libexec" \
+    AEL_UPDATE_NO_AIPLUS_SYNC=1 \
     AEL_UPDATE_LATEST_VERSION="v9.9.9" \
     AEL_BASE_URL="file://$update_release" \
     "$ael_abs" update
