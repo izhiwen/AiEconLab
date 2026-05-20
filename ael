@@ -940,7 +940,7 @@ headless_talk() {
   case "$runtime" in
     codex)
       command -v codex >/dev/null 2>&1 || die "codex CLI not found on PATH"
-      local -a codex_cmd=(codex exec --skip-git-repo-check --cd "$PWD" --color never)
+      local -a codex_cmd=(codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check --cd "$PWD" --color never)
       if [ -n "${AEL_CODEX_MODEL:-}" ]; then
         codex_cmd+=(--model "$AEL_CODEX_MODEL")
       fi
