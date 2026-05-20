@@ -291,6 +291,58 @@ supports_identity_with_memory() {
   grep -q -- '--with-memory' <<<"$out"
 }
 
+aiplus_sync_disabled() {
+  case "${AEL_UPDATE_NO_AIPLUS_SYNC:-}" in
+    1|true|TRUE|True|yes|YES|Yes) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+update_dry_run_aiplus_sync() {
+  local install_dir="$1" support_path="$2" path_bin
+  if aiplus_sync_disabled; then
+    printf 'aiplus_sync=skipped reason=AEL_UPDATE_NO_AIPLUS_SYNC\n'
+    return 0
+  fi
+  path_bin="$(command -v aiplus 2>/dev/null || true)"
+  if [ -z "$path_bin" ]; then
+    printf 'would_create=%s/aiplus\n' "$install_dir"
+    return 0
+  fi
+  if ! aiplus_path_is_safe_to_overwrite "$path_bin"; then
+    printf 'aiplus_sync=skipped reason=unsafe_path path=%s\n' "$path_bin"
+    return 0
+  fi
+  printf 'would_sync=%s\n' "$path_bin"
+}
+
+update_sync_aiplus_path() {
+  local install_dir="$1" support_path="$2" path_bin path_v support_v
+  if aiplus_sync_disabled; then
+    printf 'aiplus_sync=skipped reason=AEL_UPDATE_NO_AIPLUS_SYNC\n'
+    return 0
+  fi
+  path_bin="$(command -v aiplus 2>/dev/null || true)"
+  if [ -z "$path_bin" ]; then
+    path_bin="$install_dir/aiplus"
+    install -m 755 "$support_path" "$path_bin"
+    printf 'aiplus_sync=created path=%s\n' "$path_bin"
+    return 0
+  fi
+  if ! aiplus_path_is_safe_to_overwrite "$path_bin"; then
+    printf 'aiplus_sync=skipped reason=unsafe_path path=%s\n' "$path_bin"
+    return 0
+  fi
+  path_v="$(command_output_first_line "$path_bin" --version 2>/dev/null | extract_version_token)"
+  support_v="$(command_output_first_line "$support_path" --version 2>/dev/null | extract_version_token)"
+  if [ -n "$path_v" ] && [ "$path_v" = "$support_v" ]; then
+    printf 'aiplus_sync=skipped reason=already_in_sync version=%s\n' "$path_v"
+    return 0
+  fi
+  install -m 755 "$support_path" "$path_bin"
+  printf 'aiplus_sync=updated path=%s old=%s new=%s\n' "$path_bin" "${path_v:-unknown}" "${support_v:-unknown}"
+}
+
 update_cmd() {
   local dry_run="0"
   while [ "$#" -gt 0 ]; do
@@ -336,6 +388,7 @@ update_cmd() {
     printf 'would_verify=%s/%s.sha256\n' "$base_url" "$asset"
     printf 'would_replace=%s/ael\n' "$target_install_dir"
     printf 'would_replace=%s/ael-support\n' "$target_libexec_dir"
+    update_dry_run_aiplus_sync "$target_install_dir" "$target_libexec_dir/ael-support"
     return 0
   fi
 
@@ -369,6 +422,9 @@ update_cmd() {
 
   trap - EXIT INT TERM
   rm -rf "$tmp_dir"
+
+  update_sync_aiplus_path "$target_install_dir" "$target_libexec_dir/ael-support" || true
+
   printf 'UPDATE_STATUS=PASS\n'
   printf 'installed=%s/ael\n' "$target_install_dir"
 }
