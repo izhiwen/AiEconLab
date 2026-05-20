@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.2.5}"
+AEL_VERSION="${AEL_VERSION:-0.2.7}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VENDOR_ROOT="$REPO_ROOT/vendor/aiplus"
 DIST_ROOT="$REPO_ROOT/dist"

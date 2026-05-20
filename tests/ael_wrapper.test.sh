@@ -10,7 +10,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.2.5" ] || {
+[ "$version" = "AEL 0.2.7" ] || {
   echo "::error::unexpected ael version output: $version"
   exit 1
 }
@@ -220,8 +220,8 @@ grep -q "vendor/aiplus/target/release" ael || {
   exit 1
 }
 
-grep -q "0.2.5" scripts/build-ael.sh || {
-  echo "::error::build script missing v0.2.5 version anchor"
+grep -q "0.2.7" scripts/build-ael.sh || {
+  echo "::error::build script missing v0.2.7 version anchor"
   exit 1
 }
 

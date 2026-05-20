@@ -7,9 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] — 2026-05-19
+
 ### Added
 
-- v0.2.5 lobby redesign: `ael`, `ael chat`, and role shortcuts now
+- `ael update` now syncs the PATH-resolved `aiplus` binary to match the
+  bundled substrate after every upgrade. If `aiplus` is missing on PATH
+  it is created in `$install_dir`; if present at a different version and
+  the path is safe to overwrite (not under `dev/` or `target/`), it is
+  refreshed via `install -m 755`. Opt-out: `AEL_UPDATE_NO_AIPLUS_SYNC=1`.
+- New dry-run output lines: `would_create=…` or `would_sync=…` (or
+  `aiplus_sync=skipped reason=…` when opted out or unsafe).
+
+## [0.2.6] — 2026-05-19
+
+### Added
+
+- Interactive runtime sessions now bypass approval prompts by default.
+  `ael <role>` and the lobby pass `--bypass` to `aiplus agent talk`,
+  which appends the runtime-specific bypass flag
+  (`--dangerously-bypass-approvals-and-sandbox` for Codex,
+  `--dangerously-skip-permissions` for Claude Code and OpenCode).
+  Opt-out: `AEL_BYPASS=0` (also accepts `false`, `no`).
+- Codex headless one-shot path now also passes
+  `--dangerously-bypass-approvals-and-sandbox`, matching the existing
+  Claude Code and OpenCode headless behavior.
+
+### Changed
+
+- `vendor/aiplus` bumped to v0.6.13 (adds `aiplus agent talk --bypass`
+  and `--safe` passthrough flags).
+
+## [0.2.5] — 2026-05-19
+
+### Added
+
+- Lobby redesign: `ael`, `ael chat`, and role shortcuts now
   auto-install AEL project adapters on first run for supported runtime
   CLIs found on `PATH` (Codex, Claude Code, OpenCode), skipping missing
   runtimes silently and reporting a clear "no runtime found" error when
@@ -17,7 +50,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The lobby now asks for both role and runtime when multiple installed
   runtimes are available; single-runtime projects skip the runtime
   question and launch directly.
-- v0.2.3 Windows-native install path: `install.ps1` installs `ael.cmd`,
+
+### Changed
+
+- Quickstart docs and installer hints now teach the one-command
+  project flow: `cd MyProject && ael`.
+
+## [0.2.3] — 2026-05-19
+
+### Added
+
+- Windows-native install path: `install.ps1` installs `ael.cmd`,
   `ael.ps1`, and `ael-support.exe` under the user's local app data
   directory without requiring WSL or git-bash.
 - Windows `ael` wrapper with the same top-level commands, role
@@ -31,8 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Quickstart docs and installer hints now teach the one-command
-  project flow: `cd MyProject && ael`.
 - Windows release packages now contain `install.ps1`, `bin/ael.cmd`,
   `bin/ael.ps1`, and `libexec/ael-support.exe`; they no longer ship
   the bash wrapper as the Windows entry point.
