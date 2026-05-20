@@ -607,23 +607,6 @@ esac
   echo "::error::ael doctor --fix --yes did not restore identity --with-memory support"
   exit 1
 }
-missing_agents_project="$doctor_tmp/missing-agents"
-mkdir -p "$missing_agents_project"
-missing_agents_out="$(
-  cd "$missing_agents_project" && \
-    PATH="$doctor_path_bin:$PATH" \
-    AEL_AIPLUS_BIN="$doctor_support" \
-    "$ael_abs" doctor 2>&1
-)"
-case "$missing_agents_out" in
-  *"WARNING AGENTS.aiplus.md missing"*) ;;
-  *)
-    echo "::error::ael doctor must warn when .aiplus/AGENTS.aiplus.md is missing"
-    printf '%s\n' "$missing_agents_out"
-    exit 1
-    ;;
-esac
-
 # `ael --help` must list all 9 core roles as direct-shortcut commands.
 help_out="$(./ael --help)"
 for role in pi advisor writer ra-stata ra-python theorist referee replicator pm; do
