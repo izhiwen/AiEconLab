@@ -46,7 +46,7 @@ once and every persona automatically learns it.
 
 | Owner says... | Persona answers with... |
 |---|---|
-| "How do I turn off automatic runtime bypass?" | `AEL_BYPASS=0 ael` (disables runtime bypass for that launch; default is enabled) |
+| "How do I turn off automatic runtime bypass?" | AEL removed `AEL_BYPASS` in v0.3.0. Use your runtime's normal safe-mode / approval setting before launching `ael`. |
 
 ## How personas should use this reference
 

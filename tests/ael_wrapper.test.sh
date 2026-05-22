@@ -165,6 +165,119 @@ case "$status_out" in
     ;;
 esac
 
+newer_path_bin="$(mktemp -d)"
+cat >"$newer_path_bin/aiplus" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  --version)
+    printf 'aiplus 0.7.5\n'
+    ;;
+  identity)
+    printf 'Usage: aiplus identity [--with-memory]\n'
+    ;;
+  *)
+    printf 'PATH_AIPLUS_ARGS=%s\n' "$*"
+    ;;
+esac
+SH
+chmod +x "$newer_path_bin/aiplus"
+older_support_bin="$(mktemp)"
+cat >"$older_support_bin" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+  --version)
+    printf 'aiplus 0.6.20\n'
+    ;;
+  doctor)
+    printf 'DOCTOR_STATUS=PASS\n'
+    ;;
+  *)
+    printf 'SUPPORT_ARGS=%s\n' "$*"
+    ;;
+esac
+SH
+chmod +x "$older_support_bin"
+newer_path_project="$(make_project)"
+mkdir -p "$newer_path_project/.aiplus"
+printf 'managed instructions\n' >"$newer_path_project/.aiplus/AGENTS.aiplus.md"
+newer_path_out="$(cd "$newer_path_project" && PATH="$newer_path_bin:$PATH" AEL_AIPLUS_BIN="$older_support_bin" "$ael_abs" doctor 2>&1)"
+case "$newer_path_out" in
+  *"NEEDS_FIX aiplus_version_mismatch"*)
+    printf '%s\n' "$newer_path_out"
+    fail "ael doctor must not downgrade-warn when PATH aiplus is newer than bundled support"
+    ;;
+  *"DOCTOR_STATUS=PASS"*) ;;
+  *)
+    printf '%s\n' "$newer_path_out"
+    fail "ael doctor newer PATH smoke output missing expected doctor status"
+    ;;
+esac
+
+update_tmp="$(mktemp -d)"
+update_install="$update_tmp/install/bin"
+update_libexec="$update_tmp/install/libexec"
+update_release="$update_tmp/release"
+update_pkg="$update_tmp/pkg/ael-v9.9.9"
+mkdir -p "$update_install" "$update_libexec" "$update_release" "$update_pkg/bin" "$update_pkg/libexec"
+cat >"$update_install/ael" <<'SH'
+#!/usr/bin/env bash
+printf 'AEL 0.3.0 (aiplus 0.6.19+)\n'
+SH
+cat >"$update_pkg/bin/ael" <<'SH'
+#!/usr/bin/env bash
+printf 'AEL 9.9.9 (aiplus 0.6.19+)\n'
+SH
+cat >"$update_pkg/libexec/ael-support" <<'SH'
+#!/usr/bin/env bash
+case "${1:-}" in
+  --version)
+    printf 'aiplus 0.6.20\n'
+    ;;
+  *)
+    printf 'UPDATED_SUPPORT_ARGS=%s\n' "$*"
+    ;;
+esac
+SH
+chmod +x "$update_install/ael" "$update_pkg/bin/ael" "$update_pkg/libexec/ael-support"
+update_os="$(uname -s)"
+update_arch="$(uname -m)"
+case "$update_arch" in
+  arm64|aarch64) update_arch="aarch64" ;;
+  x86_64|amd64) update_arch="x86_64" ;;
+esac
+update_asset="ael-v9.9.9-$update_os-$update_arch.tar.gz"
+tar -C "$update_tmp/pkg" -czf "$update_release/$update_asset" "$(basename "$update_pkg")"
+if command -v shasum >/dev/null 2>&1; then
+  (cd "$update_release" && shasum -a 256 "$update_asset" >"$update_asset.sha256")
+else
+  (cd "$update_release" && sha256sum "$update_asset" >"$update_asset.sha256")
+fi
+update_out="$(
+  PATH="$newer_path_bin:$PATH" \
+  AEL_UPDATE_LATEST_VERSION=9.9.9 \
+  AEL_BASE_URL="file://$update_release" \
+  AEL_INSTALL_DIR="$update_install" \
+  AEL_LIBEXEC_DIR="$update_libexec" \
+  "$ael_abs" update 2>&1
+)"
+case "$update_out" in
+  *"aiplus_sync=skipped reason=path_newer"*\
+*"version=0.7.5"*\
+*"bundled_version=0.6.20"*\
+*"UPDATE_STATUS=PASS"*) ;;
+  *)
+    printf '%s\n' "$update_out"
+    fail "ael update must not overwrite a newer PATH aiplus with older bundled support"
+    ;;
+esac
+post_update_path_version="$(PATH="$newer_path_bin:$PATH" aiplus --version)"
+[ "$post_update_path_version" = "aiplus 0.7.5" ] || {
+  printf '%s\n' "$post_update_path_version"
+  fail "ael update downgraded PATH aiplus"
+}
+
 no_manifest="$(mktemp -d)"
 auto_bin="$(mktemp -d)"
 auto_support="$(mktemp)"

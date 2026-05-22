@@ -323,7 +323,7 @@ aiplus_sync_disabled() {
 }
 
 update_dry_run_aiplus_sync() {
-  local install_dir="$1" support_path="$2" path_bin
+  local install_dir="$1" support_path="$2" path_bin path_v support_v
   if aiplus_sync_disabled; then
     printf 'aiplus_sync=skipped reason=AEL_UPDATE_NO_AIPLUS_SYNC\n'
     return 0
@@ -336,6 +336,19 @@ update_dry_run_aiplus_sync() {
   if ! aiplus_path_is_safe_to_overwrite "$path_bin"; then
     printf 'aiplus_sync=skipped reason=unsafe_path path=%s\n' "$path_bin"
     return 0
+  fi
+  path_v="$(command_output_first_line "$path_bin" --version 2>/dev/null | extract_version_token)"
+  support_v="$(command_output_first_line "$support_path" --version 2>/dev/null | extract_version_token)"
+  if [ -n "$path_v" ] && [ -n "$support_v" ]; then
+    if [ "$path_v" = "$support_v" ]; then
+      printf 'aiplus_sync=skipped reason=already_in_sync version=%s\n' "$path_v"
+      return 0
+    fi
+    if version_at_least "$path_v" "$support_v"; then
+      printf 'aiplus_sync=skipped reason=path_newer path=%s version=%s bundled_version=%s\n' \
+        "$path_bin" "$path_v" "$support_v"
+      return 0
+    fi
   fi
   printf 'would_sync=%s\n' "$path_bin"
 }
@@ -361,6 +374,11 @@ update_sync_aiplus_path() {
   support_v="$(command_output_first_line "$support_path" --version 2>/dev/null | extract_version_token)"
   if [ -n "$path_v" ] && [ "$path_v" = "$support_v" ]; then
     printf 'aiplus_sync=skipped reason=already_in_sync version=%s\n' "$path_v"
+    return 0
+  fi
+  if [ -n "$path_v" ] && [ -n "$support_v" ] && version_at_least "$path_v" "$support_v"; then
+    printf 'aiplus_sync=skipped reason=path_newer path=%s version=%s bundled_version=%s\n' \
+      "$path_bin" "$path_v" "$support_v"
     return 0
   fi
   install -m 755 "$support_path" "$path_bin"
@@ -1001,7 +1019,8 @@ doctor_aiplus_path_check() {
   [ -n "$path_version" ] || path_version="$path_version_raw"
   [ -n "$support_version" ] || support_version="$support_version_raw"
 
-  if [ "$path_version" != "$support_version" ]; then
+  if [ "$path_version" != "$support_version" ] && \
+     ! { [ -n "$path_version" ] && [ -n "$support_version" ] && version_at_least "$path_version" "$support_version"; }; then
     printf 'NEEDS_FIX aiplus_version_mismatch path=%s version=%s bundled_path=%s bundled_version=%s\n' \
       "$path_bin" "$path_version" "$support_path" "$support_version"
     needs_fix=1

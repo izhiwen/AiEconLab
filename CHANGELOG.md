@@ -15,9 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   treating the phrase as an unknown top-level substrate command.
 - Windows role shortcuts now pass wrapper-only trailing flags such as
   `--fresh` into the talk path, matching the Unix wrapper behavior.
+- `ael doctor` and `ael update` no longer treat a newer PATH-resolved
+  `aiplus` binary as needing repair against an older bundled support binary.
+  This prevents AEL from warning on, or downgrading, a valid newer substrate.
 
 ### Documentation
 
+- Updated the persona CLI reference to remove the stale `AEL_BYPASS=0 ael`
+  guidance; AEL bypass handling was removed in v0.3.0.
 - Added `docs/dev/v0.3.0-dogfood-2026-05-20.md` with the first real
   Qing Ideology dogfood findings: installed-wrapper/PATH drift, brand
   leak, `--fresh` failure under stale 0.2.10, direct natural-language
