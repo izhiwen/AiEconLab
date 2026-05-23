@@ -37,6 +37,11 @@ for cmd in "ael install" "ael update" "ael uninstall" "ael doctor" "ael status";
     *) fail "ael --help missing AEL-specific command: $cmd" ;;
   esac
 done
+case "$help" in
+  *"telemetry"*)
+    fail "ael --help must not advertise telemetry"
+    ;;
+esac
 for role in pi advisor writer ra-stata ra-python theorist referee replicator pm; do
   case "$help" in
     *"ael $role"*) ;;
@@ -81,18 +86,60 @@ assert_delegate ""
 assert_delegate "agent talk --resume advisor" advisor
 assert_delegate "agent talk advisor" advisor --fresh
 assert_delegate "agent talk 我想反思 RD 设计" "我想反思 RD 设计"
+assert_delegate "" chat
 assert_delegate "agent talk --resume advisor" talk --resume advisor
 assert_delegate "agent route writer draft intro" route writer draft intro
 assert_delegate "agent invite theorist" invite theorist
 
-telemetry_project="$(make_project)"
-telemetry_out="$(cd "$telemetry_project" && PATH="$delegate_bin:$PATH" "$ael_abs" telemetry status)"
-case "$telemetry_out" in
-  *"AEL telemetry status: disabled"* )
+unknown_project="$(make_project)"
+set +e
+unknown_out="$(cd "$unknown_project" && PATH="$delegate_bin:$PATH" "$ael_abs" foo bar baz 2>&1)"
+unknown_status=$?
+set -e
+[ "$unknown_status" -ne 0 ] || fail "unknown multi-arg command must fail"
+case "$unknown_out" in
+  *"unknown command or multi-word natural-language input"*\
+*"ael \"...\""*) ;;
+  *"ARGS="*)
+    printf '%s\n' "$unknown_out"
+    fail "unknown multi-arg command must not delegate to substrate"
     ;;
   *)
+    printf '%s\n' "$unknown_out"
+    fail "unknown multi-arg error missing guidance"
+    ;;
+esac
+
+chat_args_project="$(make_project)"
+set +e
+chat_args_out="$(cd "$chat_args_project" && PATH="$delegate_bin:$PATH" "$ael_abs" chat advisor 2>&1)"
+chat_args_status=$?
+set -e
+[ "$chat_args_status" -ne 0 ] || fail "ael chat with arguments must fail"
+case "$chat_args_out" in
+  *"\`ael chat\` does not accept arguments"*\
+*"ael \"...\""*) ;;
+  *"ARGS="*)
+    printf '%s\n' "$chat_args_out"
+    fail "ael chat with arguments must not delegate to substrate"
+    ;;
+  *)
+    printf '%s\n' "$chat_args_out"
+    fail "ael chat with arguments error missing guidance"
+    ;;
+esac
+
+telemetry_project="$(make_project)"
+set +e
+telemetry_out="$(cd "$telemetry_project" && PATH="$delegate_bin:$PATH" "$ael_abs" telemetry status 2>&1)"
+telemetry_status=$?
+set -e
+[ "$telemetry_status" -ne 0 ] || fail "ael telemetry must be removed"
+case "$telemetry_out" in
+  *"ael telemetry has been removed"*) ;;
+  *)
     printf '%s\n' "$telemetry_out"
-    fail "ael telemetry status must remain AEL-handled"
+    fail "ael telemetry removal error changed unexpectedly"
     ;;
 esac
 

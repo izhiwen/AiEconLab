@@ -52,8 +52,11 @@ function Invoke-AelPs1 {
   It "shows all public commands and role shortcuts without substrate branding" {
     $result = Invoke-AelPs1 -Arguments @("--help")
     $result.Status | Should -Be 0
-    foreach ($command in @("install", "update", "uninstall", "chat", "talk", "route", "status", "doctor", "telemetry", "invite", "dismiss", "integrate")) {
+    foreach ($command in @("install", "update", "uninstall", "talk", "route", "status", "doctor")) {
       $result.Output | Should -Match "ael $command"
+    }
+    foreach ($hiddenCommand in @("chat", "telemetry", "invite", "dismiss", "integrate", "substrate")) {
+      $result.Output | Should -Not -Match "ael $hiddenCommand"
     }
     foreach ($role in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
       $result.Output | Should -Match "ael $role"
@@ -62,7 +65,27 @@ function Invoke-AelPs1 {
     $result.Output | Should -Not -Match "AEL_BYPASS"
   }
 
-  It "resumes interactive talk by default and honors --fresh" {
+  It "reports telemetry as removed" {
+    $result = Invoke-AelPs1 -Arguments @("telemetry", "status")
+    $result.Status | Should -Not -Be 0
+    $result.Output | Should -Match "ael telemetry has been removed"
+  }
+
+  It "rejects accidental multi-argument command paths" {
+    $result = Invoke-AelPs1 -Arguments @("foo", "bar", "baz")
+    $result.Status | Should -Not -Be 0
+    $result.Output | Should -Match "unknown command or multi-word natural-language input"
+    $result.Output | Should -Match 'ael "\.\.\."'
+  }
+
+  It "keeps chat as a no-argument lobby alias only" {
+    $result = Invoke-AelPs1 -Arguments @("chat", "advisor")
+    $result.Status | Should -Not -Be 0
+    $result.Output | Should -Match "ael chat does not accept arguments"
+    $result.Output | Should -Match 'ael "\.\.\."'
+  }
+
+  It "delegates talk, role shortcuts, and freeform input like the Unix wrapper" {
     $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
@@ -90,7 +113,7 @@ function Invoke-AelPs1 {
       PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
     }
     $result.Status | Should -Be 0
-    (Get-Content -LiteralPath $log -Raw).Trim() | Should -Be "agent talk --resume --runtime claude-code pi"
+    (Get-Content -LiteralPath $log -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
 
     $freshLog = Join-Path $fakeBin "support-fresh.log"
     $fresh = Invoke-AelPs1 -Arguments @("talk", "--runtime", "claude-code", "pi", "--fresh") -WorkingDirectory $project -Environment @{
@@ -99,7 +122,16 @@ function Invoke-AelPs1 {
       PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
     }
     $fresh.Status | Should -Be 0
-    (Get-Content -LiteralPath $freshLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
+    (Get-Content -LiteralPath $freshLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi --fresh"
+
+    $shortcutLog = Join-Path $fakeBin "support-shortcut.log"
+    $shortcut = Invoke-AelPs1 -Arguments @("pi") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $shortcutLog
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $shortcut.Status | Should -Be 0
+    (Get-Content -LiteralPath $shortcutLog -Raw).Trim() | Should -Be "agent talk --resume pi"
 
     $shortcutFreshLog = Join-Path $fakeBin "support-shortcut-fresh.log"
     $shortcutFresh = Invoke-AelPs1 -Arguments @("pi", "--fresh") -WorkingDirectory $project -Environment @{
@@ -108,7 +140,7 @@ function Invoke-AelPs1 {
       PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
     }
     $shortcutFresh.Status | Should -Be 0
-    (Get-Content -LiteralPath $shortcutFreshLog -Raw).Trim() | Should -Be "agent talk --runtime claude-code pi"
+    (Get-Content -LiteralPath $shortcutFreshLog -Raw).Trim() | Should -Be "agent talk pi"
 
     $naturalLanguageLog = Join-Path $fakeBin "support-natural-language.log"
     $naturalLanguage = Invoke-AelPs1 -Arguments @("我想反思 RD 设计") -WorkingDirectory $project -Environment @{
@@ -117,28 +149,41 @@ function Invoke-AelPs1 {
       PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
     }
     $naturalLanguage.Status | Should -Be 0
-    (Get-Content -LiteralPath $naturalLanguageLog -Raw).Trim() | Should -Be "agent talk --resume --runtime claude-code 我想反思 RD 设计"
+    (Get-Content -LiteralPath $naturalLanguageLog -Raw).Trim() | Should -Be "agent talk 我想反思 RD 设计"
   }
 
-  It "routes lobby input by exact slug and natural-language intent" {
+  It "delegates lobby and chat alias to substrate" {
     $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
-    New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus") | Out-Null
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
     Set-Content -LiteralPath (Join-Path $project ".aiplus\manifest.json") -Value '{"runtimeAdapters":["codex"]}' -Encoding UTF8
 
-    $pi = Invoke-AelPs1 -WorkingDirectory $project -InputText "pi" -Environment @{
-      AEL_LOBBY_ROUTE_ONLY = "1"
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf '%s\n' ""`$*"" >""`$AEL_SUPPORT_LOG""`n" -Encoding ASCII
+      chmod +x $support
     }
-    $pi.Status | Should -Be 0
-    $pi.Output | Should -Match "Core team"
-    $pi.Output | Should -Match "-> pi"
-    Test-Path (Join-Path $project ".aiplus\agents\.ael-greeted") | Should -Be $true
 
-    $advisor = Invoke-AelPs1 -WorkingDirectory $project -InputText "我想反思 RD 设计" -Environment @{
-      AEL_LOBBY_ROUTE_ONLY = "1"
+    $lobbyLog = Join-Path $fakeBin "support-lobby.log"
+    $lobby = Invoke-AelPs1 -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $lobbyLog
       AEL_NO_ONBOARDING = "1"
     }
-    $advisor.Status | Should -Be 0
-    $advisor.Output | Should -Match "-> advisor"
-    $advisor.Output | Should -Not -Match "\bAiPlus\b|\bAIPLUS\b"
+    $lobby.Status | Should -Be 0
+    (Get-Content -LiteralPath $lobbyLog -Raw).Trim() | Should -Be ""
+
+    $chatLog = Join-Path $fakeBin "support-chat.log"
+    $chat = Invoke-AelPs1 -Arguments @("chat") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $chatLog
+      AEL_NO_ONBOARDING = "1"
+    }
+    $chat.Status | Should -Be 0
+    (Get-Content -LiteralPath $chatLog -Raw).Trim() | Should -Be ""
   }
 }

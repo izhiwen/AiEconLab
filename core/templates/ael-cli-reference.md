@@ -34,14 +34,6 @@ once and every persona automatically learns it.
 | "Is there a newer version of AEL?" | `ael update --dry-run` (shows what would change) then `ael update` to apply |
 | "I don't want AEL anymore" | `ael uninstall --yes` (removes wrapper) OR `ael uninstall --purge --yes` (also removes project team config) |
 
-## Telemetry — optional
-
-| Owner says... | Persona answers with... |
-|---|---|
-| "Can AEL track my usage locally?" | `ael telemetry enable` (local JSON only — never sent anywhere) |
-| "Stop tracking" | `ael telemetry disable` |
-| "Is telemetry on?" | `ael telemetry status` |
-
 ## Safety / bypass
 
 | Owner says... | Persona answers with... |

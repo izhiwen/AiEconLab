@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ael doctor` and `ael update` no longer treat a newer PATH-resolved
   `aiplus` binary as needing repair against an older bundled support binary.
   This prevents AEL from warning on, or downgrading, a valid newer substrate.
+- Unknown multi-argument `ael ...` invocations now fail with explicit guidance
+  instead of falling through to raw substrate command parsing. Single-argument
+  natural-language routing such as `ael "我想反思 RD 设计"` is unchanged.
+- Windows wrapper help now matches the Unix public command surface, and Windows
+  `ael`, `ael chat`, `ael talk ...`, role shortcuts, and single-argument
+  freeform input now delegate to the bundled substrate paths instead of using
+  local PowerShell lobby routing or headless prompt construction.
+
+### Removed
+
+- Removed the local `ael telemetry` command from Unix and Windows wrappers.
+  It only toggled a local JSON scaffold and had no real instrumentation value.
 
 ### Documentation
 

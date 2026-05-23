@@ -20,26 +20,9 @@ function Write-AelOut([string]$Text = "") {
   Write-Output $Text
 }
 
-function Write-AelRaw([string]$Text) {
-  Write-Output $Text
-}
-
 function Exit-WithError([string]$Message, [int]$Code = 1) {
   Write-AelError $Message
   exit $Code
-}
-
-function Sanitize-Text([string]$Text) {
-  $Text = $Text -replace "(?<![./-])\bAiPlus\b", "AEL"
-  $Text = $Text -replace "(?<![./-])\baiplus\b", "ael"
-  $Text = $Text -replace "(?<![./-])\bAIPLUS\b", "AEL"
-  return $Text
-}
-
-function Write-SanitizedObject($Object) {
-  if ($null -ne $Object) {
-    Write-AelOut (Sanitize-Text ([string]$Object))
-  }
 }
 
 function Show-Usage {
@@ -51,10 +34,9 @@ Usage:
   ael update [--dry-run]                          update the installed ael CLI
   ael uninstall [--purge] [--yes]                 remove the installed ael CLI
   ael                                             open the lobby - pick or describe who you want to talk to
-  ael chat                                        open the same lobby explicitly
   ael <role>                                      shortcut: resume the last chat with that role
   ael status                                      show installed team + active runtime
-  ael doctor [--fix]                              self-check and fix common drift
+  ael doctor [--fix] [--yes]                      self-check and fix common drift
 
 Roles you can chat with directly:
   ael pi                                          项目经理 - 派单、跟进、汇总
@@ -67,22 +49,34 @@ Roles you can chat with directly:
   ael replicator                                  复现 - clean-room 复跑
   ael pm                                          项目管理 - Gantt、deadline
 
-Advanced:
+Advanced (you rarely need these once you are in chat):
   ael talk [--runtime RUNTIME] <role> [prompt...]
+  ael talk --resume <role> [--last|--list]
   ael route <role> <task...>
-  ael telemetry [enable|disable|status]
-  ael invite <role>
-  ael dismiss <role>
-  ael integrate <role>
   ael update [--dry-run]
   ael uninstall [--purge] [--yes]
   ael --version
 
+Environment variables:
+  AEL_AIPLUS_BIN=/path/to/ael-support             use a specific bundled runtime
+
 Recommended flow:
+  ael                               # auto-sets-up the team on first run, then opens the lobby
+                                    # type/say who you want (PI, Advisor, ...)
+                                    # or "我想反思 RD 设计" and it routes you to Advisor
+
+Two-window pattern (for serious paper work):
+  Window 1: ael advisor             # consult on framing / identification
+  Window 2: ael pi                  # issue execution instructions
+
+Examples:
   ael install
-  ael
-  ael pi
-  ael advisor
+  ael update --dry-run                # preview an available CLI update
+  ael uninstall --yes                 # remove the installed CLI, keep project files
+  ael                               # opens the lobby
+  ael pi                            # resume PI for this project
+  ael advisor                       # resume Advisor for this project
+  ael advisor --fresh               # open a new Advisor session
 "@
   Write-AelOut $text
 }
@@ -196,7 +190,7 @@ function Invoke-SubstrateQuiet([string[]]$SubArgs) {
     & $bin @SubArgs > $tmp 2>&1
     $status = $LASTEXITCODE
     if ($status -ne 0) {
-      Get-Content -LiteralPath $tmp | ForEach-Object { [Console]::Error.WriteLine((Sanitize-Text $_)) }
+      Get-Content -LiteralPath $tmp | ForEach-Object { [Console]::Error.WriteLine($_) }
     }
     return $status
   } finally {
@@ -206,7 +200,7 @@ function Invoke-SubstrateQuiet([string[]]$SubArgs) {
 
 function Invoke-SubstrateVisible([string[]]$SubArgs) {
   $bin = Get-SubstrateBin
-  & $bin @SubArgs 2>&1 | ForEach-Object { Write-SanitizedObject $_ }
+  & $bin @SubArgs
   return $LASTEXITCODE
 }
 
@@ -336,61 +330,6 @@ function Invoke-Uninstall([string[]]$UninstallArgs) {
   return 0
 }
 
-function Get-TelemetryPath {
-  if ($env:AEL_TELEMETRY_PATH) { return $env:AEL_TELEMETRY_PATH }
-  return (Join-Path (Get-Location) ".ael\telemetry.json")
-}
-
-function Write-TelemetryConfig([bool]$Enabled) {
-  $path = Get-TelemetryPath
-  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
-  $payload = [ordered]@{
-    schema_version = "v0.2.1"
-    enabled = $Enabled
-    mode = "local-json"
-    hosted_endpoint = $null
-    events_path = ".ael/telemetry-events.jsonl"
-    updated_at = (Get-Date).ToUniversalTime().ToString("o").Replace("+00:00", "Z")
-  }
-  $payload | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $path -Encoding UTF8
-}
-
-function Get-TelemetryState {
-  $path = Get-TelemetryPath
-  if (-not (Test-Path $path)) { return "false" }
-  try {
-    $data = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
-    if ($data.enabled -eq $true) { return "true" }
-    return "false"
-  } catch {
-    return "invalid"
-  }
-}
-
-function Invoke-Telemetry([string[]]$TelemetryArgs) {
-  $action = if ($TelemetryArgs.Count -gt 0) { $TelemetryArgs[0] } else { "status" }
-  switch ($action) {
-    "enable" {
-      Write-TelemetryConfig $true
-      Write-AelOut "AEL telemetry enabled"
-    }
-    "disable" {
-      Write-TelemetryConfig $false
-      Write-AelOut "AEL telemetry disabled"
-    }
-    "status" {
-      $state = Get-TelemetryState
-      if ($state -eq "invalid") { Exit-WithError "telemetry config is invalid JSON: $(Get-TelemetryPath)" }
-      if ($state -eq "true") { Write-AelOut "AEL telemetry status: enabled" } else { Write-AelOut "AEL telemetry status: disabled" }
-    }
-    default { Exit-WithError "usage: ael telemetry [enable|disable|status]" }
-  }
-  Write-AelOut "mode=local-json"
-  Write-AelOut "config=$(Get-TelemetryPath)"
-  Write-AelOut "hosted_endpoint=none"
-  return 0
-}
-
 function Show-OnboardingHint {
   if ($env:AEL_NO_ONBOARDING -eq "1") { return }
   $text = @"
@@ -493,185 +432,25 @@ function Invoke-Install([string[]]$InstallArgs) {
   return 0
 }
 
-function Get-PersonaPath([string]$Role) {
-  $pwd = (Get-Location).Path
-  $candidates = @(
-    (Join-Path $pwd ".aiplus\agents\personas\$Role.md"),
-    (Join-Path $pwd ".aiplus\agents\personas\_stubs\$Role.md"),
-    (Join-Path $pwd ".aiplus\modules\aieconlab\core\templates\personas\$Role.md"),
-    (Join-Path $script:AelRoot "core\templates\personas\$Role.md"),
-    (Join-Path (Split-Path -Parent $script:AelRoot) "core\templates\personas\$Role.md")
-  )
-  foreach ($candidate in $candidates) {
-    if (Test-Path $candidate) { return $candidate }
-  }
-  return $null
-}
-
-function Get-FallbackPersona([string]$Role) {
-  switch ($Role) {
-    "advisor" { return "Advisor: research question framing, identification strategy, and paper risk tradeoffs." }
-    "pi" { return "PI: research project scope, milestone coordination, dispatch, and artifact integration." }
-    "ra-stata" { return "RA-Stata: empirical analysis, regression specifications, datasets, tables, robustness, and Stata reproducibility." }
-    "referee" { return "Referee: internal pre-submission review of methodology, argument structure, evidence, coherence, and academic rigor." }
-    default { return "${Role}: AiEconLab research role. Follow the installed persona when available." }
-  }
-}
-
-function Get-CliReferenceContext([string]$Role) {
-  if ($Role -notin @("pi", "advisor")) { return "" }
-  $path = Join-Path (Get-Location) ".aiplus\modules\aieconlab\core\templates\ael-cli-reference.md"
-  if (Test-Path $path) {
-    return "Installed AEL CLI reference path: $path"
-  }
-  return "AEL CLI reference path to consult when installed: $path"
-}
-
-function Build-HeadlessPrompt([string]$Role, [string]$RequestText) {
-  $personaPath = Get-PersonaPath $Role
-  if ($personaPath) {
-    $persona = (Get-Content -LiteralPath $personaPath -TotalCount 80 | ForEach-Object { Sanitize-Text $_ }) -join "`n"
-  } else {
-    $persona = Get-FallbackPersona $Role
-  }
-  $cliReference = Get-CliReferenceContext $Role
-@"
-You are the "$Role" role in AiEconLab (AEL), an applied-economics research team.
-Stay in this role for the full response. Use the persona below as binding context.
-Do not mention implementation substrate details.
-
-Persona:
----
-$persona
----
-
-AEL CLI reference:
----
-$cliReference
----
-
-User request:
-$RequestText
-
-When the user asks what your role is, include the literal text "AiEconLab", the
-resolved role name "$Role", and one concrete research responsibility from the persona.
-"@
-}
-
-function Get-RuntimeBinary([string]$Runtime) {
-  switch ($Runtime) {
-    "codex" { return "codex" }
-    "claude-code" { return "claude" }
-    "opencode" { return "opencode" }
-    default { Exit-WithError "unknown runtime: $Runtime" }
-  }
-}
-
-function Invoke-HeadlessTalk([string]$Runtime, [string]$Role, [string]$RequestText) {
-  $prompt = Build-HeadlessPrompt $Role $RequestText
-  switch ($Runtime) {
-    "codex" {
-      if (-not (Get-CommandNameOrDefault "codex")) { Exit-WithError "codex CLI not found on PATH" }
-      $answer = New-TemporaryFile
-      $log = New-TemporaryFile
-      try {
-        $cmdArgs = @("exec", "--skip-git-repo-check", "--cd", (Get-Location).Path, "--color", "never")
-        if ($env:AEL_CODEX_MODEL) { $cmdArgs += @("--model", $env:AEL_CODEX_MODEL) }
-        $cmdArgs += @("--output-last-message", $answer.FullName, $prompt)
-        & codex @cmdArgs > $log 2>&1
-        $status = $LASTEXITCODE
-        if ($status -eq 0) {
-          Get-Content -LiteralPath $answer.FullName | ForEach-Object { Write-SanitizedObject $_ }
-        } else {
-          Get-Content -LiteralPath $log.FullName | ForEach-Object { [Console]::Error.WriteLine((Sanitize-Text $_)) }
-        }
-        return $status
-      } finally {
-        Remove-Item -LiteralPath $answer.FullName, $log.FullName -Force -ErrorAction SilentlyContinue
-      }
-    }
-    "claude-code" {
-      if (-not (Get-CommandNameOrDefault "claude")) { Exit-WithError "claude CLI not found on PATH" }
-      $cmdArgs = @("--print", "--model", $(if ($env:AEL_CLAUDE_MODEL) { $env:AEL_CLAUDE_MODEL } else { "sonnet" }), $prompt)
-      & claude @cmdArgs 2>&1 | ForEach-Object { Write-SanitizedObject $_ }
-      return $LASTEXITCODE
-    }
-    "opencode" {
-      if (-not (Get-CommandNameOrDefault "opencode")) { Exit-WithError "opencode CLI not found on PATH" }
-      $model = if ($env:AEL_OPENCODE_MODEL) { $env:AEL_OPENCODE_MODEL } else { "openai/gpt-4o" }
-      $cmdArgs = @("run", "--dir", (Get-Location).Path, "--model", $model, $prompt)
-      & opencode @cmdArgs 2>&1 | ForEach-Object { Write-SanitizedObject $_ }
-      return $LASTEXITCODE
-    }
-    default {
-      Exit-WithError "unknown runtime: $Runtime"
-    }
-  }
-}
-
 function Invoke-Talk([string[]]$TalkArgs) {
-  $runtime = ""
-  $i = 0
-  while ($i -lt $TalkArgs.Count) {
-    $arg = $TalkArgs[$i]
-    if ($arg -eq "--runtime") {
-      if ($i + 1 -ge $TalkArgs.Count) { Exit-WithError "--runtime requires a value" }
-      $i++
-      $runtime = $TalkArgs[$i]
-    } elseif ($arg -like "--runtime=*") {
-      $runtime = $arg.Substring("--runtime=".Length)
-    } else {
-      break
-    }
-    $i++
-  }
-  $remaining = @()
-  if ($i -lt $TalkArgs.Count) { $remaining = $TalkArgs[$i..($TalkArgs.Count - 1)] }
-  if ($remaining.Count -lt 1) { Exit-WithError "usage: ael talk [--runtime RUNTIME] <role> [prompt...]" }
-  $role = $remaining[0]
-  $requestParts = @()
-  if ($remaining.Count -gt 1) { $requestParts = $remaining[1..($remaining.Count - 1)] }
+  return (Invoke-SubstrateInteractive (@("agent", "talk") + $TalkArgs))
+}
+
+function Get-RoleTalkArgs([string]$Role, [string[]]$Rest) {
   $fresh = $false
-  $filteredRequestParts = @()
-  foreach ($part in $requestParts) {
+  $filtered = @()
+  foreach ($part in $Rest) {
     if ($part -eq "--fresh") {
       $fresh = $true
     } else {
-      $filteredRequestParts += $part
+      $filtered += $part
     }
   }
-  $requestParts = $filteredRequestParts
-  if (-not $runtime) { $runtime = Runtime-FromManifest }
-  if (-not $runtime) { $runtime = Detect-Runtime }
-  if ($requestParts.Count -eq 0) {
-    $bin = Get-RuntimeBinary $runtime
-    if (-not (Get-CommandNameOrDefault $bin)) { Exit-WithError "$bin CLI not found on PATH" }
-    $talkArgs = @("agent", "talk")
-    if (-not $fresh) { $talkArgs += "--resume" }
-    $talkArgs += @("--runtime", $runtime, $role)
-    return (Invoke-SubstrateInteractive $talkArgs)
-  }
-  return (Invoke-HeadlessTalk $runtime $role ($requestParts -join " "))
-}
-
-function Show-TeamMembers {
-  $text = @"
-Core team:
-
-  pi / 项目经理         派单、跟进、汇总
-  advisor / 顾问        反思、识别策略、框架
-  writer / 写手         起草段落、引言、改稿
-  ra-stata / 实证 RA    回归、表格、Stata 代码
-  ra-python / 数据 RA   清洗、合并、Python 代码
-  theorist / 理论       识别假设、模型设计
-  referee / 内审        内部自审、catch 错误
-  replicator / 复现     clean-room 复跑
-  pm / 项目管理         Gantt、deadline、acceptance
-
-Tip: PI can summon experts (dof, rr-strategist, writer, econometrician,
-viz, lit-reviewer, etc.) - just ask PI.
-"@
-  Write-AelOut $text
+  $talkArgs = @("agent", "talk")
+  if (-not $fresh) { $talkArgs += "--resume" }
+  $talkArgs += $Role
+  $talkArgs += $filtered
+  return $talkArgs
 }
 
 function Maybe-PrintFirstWelcome {
@@ -684,23 +463,6 @@ function Maybe-PrintFirstWelcome {
     New-Item -ItemType Directory -Force -Path $markerDir | Out-Null
     New-Item -ItemType File -Force -Path $marker | Out-Null
   }
-}
-
-function Detect-RoleFromInput([string]$Raw) {
-  $lower = $Raw.ToLowerInvariant()
-  if ($lower -in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
-    return $lower
-  }
-  if ($lower -match "advisor|顾问|反思|识别|框架|战略|咨询|\brd\b|reflect|reflection") { return "advisor" }
-  if ($lower -match "ra-stata|ra_stata|ra stata|stata|回归|实证.*ra|跑表|跑回归") { return "ra-stata" }
-  if ($lower -match "ra-python|ra_python|ra python|python.*ra|数据清洗|清洗|合并.*数据|python") { return "ra-python" }
-  if ($lower -match "replicator|复现|复跑|clean.room|replication") { return "replicator" }
-  if ($lower -match "referee|内审|自审|审稿") { return "referee" }
-  if ($lower -match "theorist|理论|模型|识别假设|推导") { return "theorist" }
-  if ($lower -match "writer|写手|起草|写段落|draft|引言|introduction|写作") { return "writer" }
-  if ($lower -match "pm|项目经理|gantt|deadline|项目管理|acceptance") { return "pm" }
-  if ($lower -match "pi|项目经理|派单|下达|执行|orchestrat|coordinator") { return "pi" }
-  return ""
 }
 
 function Invoke-ChatDefault {
@@ -718,41 +480,7 @@ Then run "ael" to chat with your team in plain language.
   }
 
   Maybe-PrintFirstWelcome
-  Write-AelOut "AEL - 你想跟谁聊？ / who do you want to talk to?"
-  Write-AelOut ""
-  Show-TeamMembers
-  Write-AelOut ""
-  Write-AelOut "Type a name, slug, or describe what you need (中英文皆可)."
-  Write-AelOut '"q" / Ctrl-D to leave. Empty = PI.'
-  Write-AelOut ""
-  Write-AelRaw "> "
-
-  $userInput = $null
-  if ($script:AelPipelineInput -and $script:AelPipelineInput.Count -gt 0) {
-    $userInput = [string]$script:AelPipelineInput[0]
-  } else {
-    $userInput = [Console]::In.ReadLine()
-  }
-  $trimmed = if ($null -eq $userInput) { "" } else { ($userInput -replace "\s+", "").ToLowerInvariant() }
-  if ($trimmed -in @("q", "quit", "exit", "bye")) { exit 0 }
-
-  if (-not $trimmed) {
-    $role = "pi"
-    Write-AelOut "-> pi (default)"
-    Write-AelOut ""
-  } else {
-    $role = Detect-RoleFromInput $userInput
-    if (-not $role) {
-      [Console]::Error.WriteLine("ael: could not match `"$userInput`" to a team member. Defaulting to PI.")
-      $role = "pi"
-    } else {
-      Write-AelOut "-> $role"
-      Write-AelOut ""
-    }
-  }
-  if ($env:AEL_LOBBY_ROUTE_ONLY -eq "1") { return 0 }
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath talk $role
-  return $LASTEXITCODE
+  return (Invoke-SubstrateInteractive @())
 }
 
 function Invoke-Main([string[]]$Argv) {
@@ -761,9 +489,14 @@ function Invoke-Main([string[]]$Argv) {
   if ($Argv.Count -gt 1) { $rest = $Argv[1..($Argv.Count - 1)] }
   switch ($cmd) {
     "" { return (Invoke-ChatDefault) }
-    "chat" { return (Invoke-ChatDefault) }
+    "chat" {
+      if ($rest.Count -gt 0) {
+        Exit-WithError "ael chat does not accept arguments. Use 'ael' for the lobby, or 'ael `"..."`' for natural-language routing."
+      }
+      return (Invoke-ChatDefault)
+    }
     { $_ -in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm") } {
-      return (Invoke-Talk (@($cmd) + $rest))
+      return (Invoke-SubstrateInteractive (Get-RoleTalkArgs $cmd $rest))
     }
     "-h" { Show-Usage; return 0 }
     "--help" { Show-Usage; return 0 }
@@ -778,19 +511,23 @@ function Invoke-Main([string[]]$Argv) {
     "update" { return (Invoke-Update $rest) }
     "uninstall" { return (Invoke-Uninstall $rest) }
     "route" { return (Invoke-SubstrateVisible (@("agent", "route") + $rest)) }
-    "telemetry" { return (Invoke-Telemetry $rest) }
+    "telemetry" { Exit-WithError "ael telemetry has been removed" }
     "invite" { return (Invoke-SubstrateVisible (@("agent", "invite") + $rest)) }
     "dismiss" { return (Invoke-SubstrateVisible (@("agent", "dismiss") + $rest)) }
     "integrate" { return (Invoke-SubstrateVisible (@("agent", "integrate") + $rest)) }
     "substrate" { return (Invoke-SubstrateVisible $rest) }
     { $Argv.Count -eq 1 -and -not $cmd.StartsWith("-") } {
-      return (Invoke-Talk @($cmd))
+      return (Invoke-SubstrateInteractive @("agent", "talk", $cmd))
     }
-    default { Exit-WithError "unknown command: $cmd" }
+    default {
+      if ($Argv.Count -gt 1) {
+        Exit-WithError "unknown command or multi-word natural-language input: $($Argv -join ' '). Use 'ael `"..."`' for freeform requests, or 'ael talk ...' for explicit chat."
+      }
+      Exit-WithError "unknown command: $cmd"
+    }
   }
 }
 
-$script:AelPipelineInput = @($input)
 $status = 0
 $output = Invoke-Main @($args)
 foreach ($item in @($output)) {
