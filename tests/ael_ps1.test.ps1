@@ -186,4 +186,35 @@ function Invoke-AelPs1 {
     $chat.Status | Should -Be 0
     (Get-Content -LiteralPath $chatLog -Raw).Trim() | Should -Be ""
   }
+
+  It "flags default SWE consultant config under an AEL project" {
+    $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
+    Set-Content -LiteralPath (Join-Path $project ".aiplus\manifest.json") -Value '{"runtimeAdapters":["codex"],"modules":{"aieconlab":{"version":"test"}}}' -Encoding UTF8
+
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`necho DOCTOR_STATUS=PASS`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf 'DOCTOR_STATUS=PASS\n'`n" -Encoding ASCII
+      chmod +x $support
+    }
+
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "core\templates\consultant-team.aieconlab.toml") -Destination (Join-Path $project ".aiplus\consultant-team.toml") -Force
+    $aelConfig = Invoke-AelPs1 -Arguments @("doctor") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+    }
+    $aelConfig.Status | Should -Be 0
+    $aelConfig.Output | Should -Match "PASS ael_consultant_team_research_config"
+
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "vendor\aiplus\assets\aiplus-auto-team-consultant\core\templates\consultant-team.default.toml") -Destination (Join-Path $project ".aiplus\consultant-team.toml") -Force
+    $defaultConfig = Invoke-AelPs1 -Arguments @("doctor") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+    }
+    $defaultConfig.Status | Should -Not -Be 0
+    $defaultConfig.Output | Should -Match "NEEDS_FIX ael_consultant_team_mismatch"
+  }
 }

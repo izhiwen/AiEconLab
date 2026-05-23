@@ -484,6 +484,64 @@ Then run "ael" to chat with your team in plain language.
   return (Invoke-SubstrateInteractive @())
 }
 
+function Test-AieconlabProject {
+  $root = Get-Location
+  if (Test-Path (Join-Path $root ".aiplus\modules\aieconlab")) { return $true }
+  $manifest = Join-Path $root ".aiplus\manifest.json"
+  if ((Test-Path $manifest) -and ((Get-Content -LiteralPath $manifest -Raw) -match '"aieconlab"')) {
+    return $true
+  }
+  $team = Join-Path $root ".aiplus\team.toml"
+  if ((Test-Path $team) -and ((Get-Content -LiteralPath $team -Raw) -match '(?m)^\s*(active_team|team)\s*=\s*"?aieconlab"?')) {
+    return $true
+  }
+  return $false
+}
+
+function Test-AelConsultantTeam {
+  if (-not (Test-AieconlabProject)) { return 0 }
+  $consultant = Join-Path (Get-Location) ".aiplus\consultant-team.toml"
+  if (-not (Test-Path $consultant)) { return 0 }
+
+  $text = Get-Content -LiteralPath $consultant -Raw
+  $missing = $false
+  foreach ($needle in @(
+    'id = "design"',
+    'id = "contribution"',
+    'id = "reproducibility"',
+    'id = "irb"',
+    'id = "ai_integration"',
+    'id = "top_tier_referee"',
+    'id = "jmp_audience"',
+    'id = "external_replicator"',
+    'id = "submission"',
+    'id = "working-paper-post"',
+    'id = "referee-response-send"',
+    'id = "data-share"',
+    'id = "authorship-change"'
+  )) {
+    if (-not $text.Contains($needle)) { $missing = $true }
+  }
+  if ($text -notmatch 'light[.]review_mode\s*=\s*"skip"') { $missing = $true }
+  if ($text -match 'id = "(product_market|ux_plain_english|trust_safety|implementation_qa|runtime_qa|strategic_critic)"') {
+    $missing = $true
+  }
+
+  if ($missing) {
+    Write-AelOut 'NEEDS_FIX ael_consultant_team_mismatch expected=aieconlab_research_config path=.aiplus/consultant-team.toml fix="ael install"'
+    return 1
+  }
+  Write-AelOut "PASS ael_consultant_team_research_config path=.aiplus/consultant-team.toml"
+  return 0
+}
+
+function Invoke-Doctor([string[]]$DoctorArgs) {
+  $status = Invoke-SubstrateVisible (@("doctor") + $DoctorArgs)
+  $consultantStatus = Test-AelConsultantTeam
+  if ($status -ne 0) { return $status }
+  return $consultantStatus
+}
+
 function Invoke-Main([string[]]$Argv) {
   $cmd = if ($Argv.Count -gt 0) { $Argv[0] } else { "" }
   $rest = @()
@@ -509,7 +567,7 @@ function Invoke-Main([string[]]$Argv) {
     "talk" { return (Invoke-Talk $rest) }
     "status" { return (Invoke-SubstrateVisible (@("agent", "status") + $rest)) }
     "refresh" { return (Invoke-SubstrateVisible (@("refresh") + $rest)) }
-    "doctor" { return (Invoke-SubstrateVisible (@("doctor") + $rest)) }
+    "doctor" { return (Invoke-Doctor $rest) }
     "update" { return (Invoke-Update $rest) }
     "uninstall" { return (Invoke-Uninstall $rest) }
     "route" { return (Invoke-SubstrateVisible (@("agent", "route") + $rest)) }

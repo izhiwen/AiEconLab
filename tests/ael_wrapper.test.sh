@@ -273,6 +273,43 @@ case "$newer_path_out" in
     ;;
 esac
 
+ael_consultant_project="$(make_project)"
+cp core/templates/consultant-team.aieconlab.toml "$ael_consultant_project/.aiplus/consultant-team.toml"
+ael_consultant_out="$(
+  cd "$ael_consultant_project" && \
+    PATH="$newer_path_bin:$PATH" \
+    AEL_AIPLUS_BIN="$older_support_bin" \
+    "$ael_abs" doctor 2>&1
+)"
+case "$ael_consultant_out" in
+  *"PASS ael_consultant_team_research_config"*) ;;
+  *)
+    printf '%s\n' "$ael_consultant_out"
+    fail "ael doctor must pass the AEL research consultant team config"
+    ;;
+esac
+
+default_consultant_project="$(make_project)"
+cp vendor/aiplus/assets/aiplus-auto-team-consultant/core/templates/consultant-team.default.toml \
+  "$default_consultant_project/.aiplus/consultant-team.toml"
+set +e
+default_consultant_out="$(
+  cd "$default_consultant_project" && \
+    PATH="$newer_path_bin:$PATH" \
+    AEL_AIPLUS_BIN="$older_support_bin" \
+    "$ael_abs" doctor 2>&1
+)"
+default_consultant_status=$?
+set -e
+[ "$default_consultant_status" -ne 0 ] || fail "ael doctor must fail when AEL project has default SWE consultant config"
+case "$default_consultant_out" in
+  *"NEEDS_FIX ael_consultant_team_mismatch"*) ;;
+  *)
+    printf '%s\n' "$default_consultant_out"
+    fail "ael doctor must flag default SWE consultant config under AEL"
+    ;;
+esac
+
 update_tmp="$(mktemp -d)"
 update_install="$update_tmp/install/bin"
 update_libexec="$update_tmp/install/libexec"

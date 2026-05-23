@@ -975,6 +975,52 @@ doctor_aiplus_path_check() {
   return 0
 }
 
+project_has_aieconlab() {
+  [ -d "$PWD/.aiplus/modules/aieconlab" ] && return 0
+  [ -f "$PWD/.aiplus/manifest.json" ] && grep -q '"aieconlab"' "$PWD/.aiplus/manifest.json" && return 0
+  [ -f "$PWD/.aiplus/team.toml" ] && grep -Eq '^[[:space:]]*(active_team|team)[[:space:]]*=[[:space:]]*"?aieconlab"?' "$PWD/.aiplus/team.toml" && return 0
+  return 1
+}
+
+doctor_ael_consultant_team_check() {
+  project_has_aieconlab || return 0
+
+  local consultant="$PWD/.aiplus/consultant-team.toml"
+  [ -f "$consultant" ] || return 0
+
+  local missing=0 needle
+  for needle in \
+    'id = "design"' \
+    'id = "contribution"' \
+    'id = "reproducibility"' \
+    'id = "irb"' \
+    'id = "ai_integration"' \
+    'id = "top_tier_referee"' \
+    'id = "jmp_audience"' \
+    'id = "external_replicator"' \
+    'id = "submission"' \
+    'id = "working-paper-post"' \
+    'id = "referee-response-send"' \
+    'id = "data-share"' \
+    'id = "authorship-change"'; do
+    if ! grep -Fq "$needle" "$consultant"; then
+      missing=1
+    fi
+  done
+  if ! grep -Eq 'light[.]review_mode[[:space:]]*=[[:space:]]*"skip"' "$consultant"; then
+    missing=1
+  fi
+  if grep -Eq 'id = "(product_market|ux_plain_english|trust_safety|implementation_qa|runtime_qa|strategic_critic)"' "$consultant"; then
+    missing=1
+  fi
+
+  if [ "$missing" = "1" ]; then
+    printf 'NEEDS_FIX ael_consultant_team_mismatch expected=aieconlab_research_config path=.aiplus/consultant-team.toml fix="ael install"\n'
+    return 1
+  fi
+  printf 'PASS ael_consultant_team_research_config path=.aiplus/consultant-team.toml\n'
+}
+
 doctor_cmd() {
   local fix="0" yes="0" status=0
   local -a substrate_args=()
@@ -1002,6 +1048,7 @@ doctor_cmd() {
   else
     run_substrate_visible doctor || status=$?
   fi
+  doctor_ael_consultant_team_check || status=$?
   doctor_aiplus_path_check "$fix" "$yes" || status=$?
   return "$status"
 }
