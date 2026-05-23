@@ -36,6 +36,7 @@ Usage:
   ael                                             open the lobby - pick or describe who you want to talk to
   ael <role>                                      shortcut: resume the last chat with that role
   ael status                                      show installed team + active runtime
+  ael refresh [--dry-run]                         refresh managed project assets
   ael doctor [--fix] [--yes]                      self-check and fix common drift
 
 Roles you can chat with directly:
@@ -507,6 +508,7 @@ function Invoke-Main([string[]]$Argv) {
     "install" { return (Invoke-Install $rest) }
     "talk" { return (Invoke-Talk $rest) }
     "status" { return (Invoke-SubstrateVisible (@("agent", "status") + $rest)) }
+    "refresh" { return (Invoke-SubstrateVisible (@("refresh") + $rest)) }
     "doctor" { return (Invoke-SubstrateVisible (@("doctor") + $rest)) }
     "update" { return (Invoke-Update $rest) }
     "uninstall" { return (Invoke-Uninstall $rest) }

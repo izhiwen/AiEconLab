@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Added explicit `ael refresh [--dry-run]` delegation to the AiPlus refresh
+  primitive now that AiPlus v0.7.6 has released it. This prevents `refresh`
+  from being treated as a natural-language role request.
 - Dogfood hotfix: single freeform invocations such as
   `ael "我想反思 RD 设计"` now delegate to `aiplus agent talk <input>` so
   aiplus `[role_aliases]` can resolve the requested AEL role instead of

@@ -43,6 +43,7 @@ Usage:
   ael                                            open the lobby — pick or describe who you want to talk to
   ael <role>                                     shortcut: resume the last chat with that role
   ael status                                     show installed team + active runtime
+  ael refresh [--dry-run]                        refresh managed project assets
   ael doctor [--fix] [--yes]                     self-check and fix common drift
 
 Roles you can chat with directly:
@@ -1141,6 +1142,10 @@ main() {
     status)
       shift
       run_substrate_visible agent status "$@"
+      ;;
+    refresh)
+      shift
+      run_substrate_visible refresh "$@"
       ;;
     doctor)
       shift

@@ -2,8 +2,9 @@
 
 Date: 2026-05-22
 
-Scope: AEL `main` at v0.3.0 after the AiPlus v0.7.5 vendor sync. This is a
-planning document for the next wrapper-thinning pass; it is not a release plan.
+Scope: AEL `main` at v0.3.0 after the AiPlus v0.7.6 vendor sync. This is a
+planning document for wrapper-thinning and substrate-alignment work; it is not
+a release plan.
 
 ## Alignment Rule
 
@@ -27,6 +28,7 @@ Public Unix wrapper help lists:
 - `ael talk`
 - `ael route`
 - `ael status`
+- `ael refresh`
 - `ael doctor`
 - `ael install`
 - `ael update`
@@ -65,7 +67,7 @@ cleanup patch.
 | `ael uninstall` | Removes installed AEL wrapper/support; `--purge` removes project `.aiplus`. | `aiplus uninstall` is not equivalent | No | AEL install paths and explicit purge behavior. | Purge removes substrate project state; must stay explicit and not grow semantics. | Medium | KEEP |
 | `ael install` | Local flow detects runtime, runs `aiplus install <runtime> --allow-version-skew`, `aiplus add aieconlab`, `aiplus agent set-team aieconlab`, and `aiplus mcp-register --runtime ...`; dry-run is local prose. | `aiplus install`, `aiplus add`, `aiplus agent set-team`, `aiplus mcp-register` | Not yet | AEL can choose `aieconlab` team/assets and supported runtimes. | AEL duplicates installer sequencing and dry-run wording; Windows and Unix implementations differ. | High | DELEGATE |
 | `ael telemetry` | Removed; wrappers now return a clear removal error instead of writing local JSON. | None today; possible future `aiplus velocity` | No | Only if Owner later approves real AiPlus-backed research instrumentation. | Historical command had no demonstrated product value and created non-substrate semantics. | Low | DELETE_DONE |
-| `ael refresh` | No explicit command. Because it is a single unknown token, Unix treats it as `aiplus agent talk refresh`; Windows treats it as `ael talk refresh`. | `aiplus refresh ...` | Should be yes once surfaced | Brand/help text only; all preservation semantics must come from AiPlus. | Dangerous future name collision: adding docs before wrapper case would route to talk, not refresh. | High for v0.7.6 UX | WAIT_FOR_AIPLUS |
+| `ael refresh` | Explicit thin proxy to `aiplus refresh ...` through the bundled substrate support binary. | `aiplus refresh ...` | Yes | Brand/help text only; all preservation semantics must come from AiPlus. | Added after AiPlus v0.7.6 released the refresh MVP. AEL does not implement refresh logic. | Low | DELEGATE_DONE |
 | `ael memory ...` | No explicit command. Single `ael memory` routes to talk; multi-arg forms now return an AEL error. | `aiplus memory ...` | No public AEL wrapper now | AEL personas may instruct agents to use AiPlus memory primitives. | AEL should not invent memory CRUD. Prior `ael memory status` idea conflicts with the new alignment rule unless Owner approves. | Medium | WAIT_FOR_AIPLUS |
 | `ael secret-broker ...` | No public wrapper. Single token routes to talk; multi-arg forms now return an AEL error instead of raw substrate passthrough. | `aiplus secret-broker ...` | No public AEL wrapper | Persona docs may mention AiPlus broker directly for agents. | AEL does not own secret semantics and must not wrap or alter them. | High | KEEP_HIDDEN |
 | `ael substrate ...` | Hidden raw escape to bundled support binary. | `aiplus ...` | Yes, but intentionally hidden | Developer escape hatch only. | Can trigger substrate side effects under an AEL-looking command; Owner has approved keeping it hidden for now. | Medium | KEEP_DEV_ONLY |
@@ -100,12 +102,11 @@ bundled support.
 
 ### Refresh
 
-Future `ael refresh` must be an explicit thin proxy to `aiplus refresh ...`.
-It must inherit AiPlus preservation semantics for memory, dispatch logs,
-execution state, runtime logs, locks, lane worktrees, user files, and
-non-managed blocks. Do not implement AEL refresh before AiPlus v0.7.6 refresh is
-green and released. Also do not document `ael refresh` until the wrapper has an
-explicit case, because today `ael refresh` routes to talk.
+`ael refresh` is now an explicit thin proxy to `aiplus refresh ...`, added only
+after AiPlus v0.7.6 released the refresh MVP. It inherits AiPlus preservation
+semantics for memory, dispatch logs, execution state, runtime logs, locks, lane
+worktrees, user files, and non-managed blocks. AEL must not add refresh logic
+of its own.
 
 ### Route
 
@@ -149,7 +150,7 @@ AiPlus-owned primitive such as `aiplus velocity`.
    `AIPLUS_BRAND`; only add AEL filtering if Owner explicitly accepts wrapper
    sanitization debt.
 2. Add an explicit `refresh` case only after AiPlus v0.7.6 refresh is released:
-   `ael refresh [args...]` -> `aiplus refresh [args...]`.
+   `ael refresh [args...]` -> `aiplus refresh [args...]`. Done.
 3. Delete accidental command paths: broad unknown multi-arg passthrough is done;
    keep `chat` as a no-argument legacy lobby alias; keep `substrate` hidden
    dev-only for now per Owner decision.
@@ -180,7 +181,8 @@ AiPlus-owned primitive such as `aiplus velocity`.
 
 ### Wait For AiPlus
 
-- v0.7.6 refresh MVP must be green and released before `ael refresh`.
+- Refresh semantics remain AiPlus-owned; AEL only delegates to the released
+  AiPlus refresh MVP.
 - Status branding should ideally be fixed in AiPlus shared status.
 - Route queued/execution/status wording belongs to AiPlus.
 - Memory bridge and memory command semantics belong to AiPlus/persona
@@ -189,8 +191,8 @@ AiPlus-owned primitive such as `aiplus velocity`.
 ### Release Blockers
 
 - `ael status` branding leak: `AiPlus Agent Team v0.1`.
-- Any `ael refresh` release before AiPlus v0.7.6 refresh is released and AEL has
-  an explicit thin delegate case.
+- Status-branding PR #136 was merged after the v0.7.6 tag; AEL must wait for a
+  later AiPlus release before claiming `ael status` is brand-clean.
 - Any path that downgrades newer PATH `aiplus`; currently fixed, must stay
   covered.
 - Windows wrapper still needs live PowerShell validation before public v1.0.

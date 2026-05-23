@@ -30,6 +30,7 @@ once and every persona automatically learns it.
 | Owner says... | Persona answers with... |
 |---|---|
 | "What is installed in this project?" | `ael status` |
+| "How do I refresh this project's managed AEL files?" | `ael refresh --dry-run` to preview, then `ael refresh` to apply |
 | "Something feels broken / I see NEEDS_FIX" | `ael doctor --fix` |
 | "Is there a newer version of AEL?" | `ael update --dry-run` (shows what would change) then `ael update` to apply |
 | "I don't want AEL anymore" | `ael uninstall --yes` (removes wrapper) OR `ael uninstall --purge --yes` (also removes project team config) |

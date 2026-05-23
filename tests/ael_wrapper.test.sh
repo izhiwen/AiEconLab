@@ -31,7 +31,7 @@ version="$(./ael --version)"
 [ "$version" = "AEL 0.3.0 (aiplus 0.6.19+)" ] || fail "unexpected ael version output: $version"
 
 help="$(./ael --help)"
-for cmd in "ael install" "ael update" "ael uninstall" "ael doctor" "ael status"; do
+for cmd in "ael install" "ael update" "ael uninstall" "ael doctor" "ael status" "ael refresh"; do
   case "$help" in
     *"$cmd"*) ;;
     *) fail "ael --help missing AEL-specific command: $cmd" ;;
@@ -209,6 +209,17 @@ case "$status_out" in
   *)
     printf '%s\n' "$status_out"
     fail "ael status must remain AEL-handled via support binary"
+    ;;
+esac
+
+refresh_project="$(make_project)"
+refresh_out="$(cd "$refresh_project" && AEL_AIPLUS_BIN="$support_bin" "$ael_abs" refresh --dry-run)"
+case "$refresh_out" in
+  *"SUPPORT_ARGS=refresh --dry-run"*\
+*"SUPPORT_BRAND=AEL"*) ;;
+  *)
+    printf '%s\n' "$refresh_out"
+    fail "ael refresh must delegate explicitly to substrate refresh"
     ;;
 esac
 
