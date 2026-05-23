@@ -24,10 +24,10 @@ ael install
 ael
 ```
 
-The first command installs the `ael` CLI. Inside a paper or replication
-project, just running `ael` sets up adapters for supported runtimes on
-`PATH`, opens the lobby, and asks who you want to talk to. If more than one
-runtime is installed, AEL also asks which runtime to use.
+The first command installs the `ael` CLI. On macOS/Linux, inside a paper or
+replication project, just running `ael` sets up adapters for supported
+runtimes on `PATH`, opens the lobby, and asks who you want to talk to. On
+Windows, run `ael install` once in the project first, then run `ael`.
 
 ## I'm New — Start Here
 
@@ -183,9 +183,11 @@ cd MyPaperProject
 ael
 ```
 
-On first run, AEL installs adapters for the supported runtime CLIs it finds
-on `PATH` (Codex, Claude Code, OpenCode). If it finds one runtime, it uses
-that runtime. If it finds more than one, the lobby asks you to choose.
+On macOS/Linux first run, AEL installs adapters for the supported runtime
+CLIs it finds on `PATH` (Codex, Claude Code, OpenCode). If it finds one
+runtime, it uses that runtime. If it finds more than one, the lobby asks you
+to choose. On Windows, use `ael install` once before opening the lobby with
+`ael`.
 
 You can still set up or refresh a runtime explicitly:
 

@@ -125,6 +125,13 @@ for adapter in codex claude-code opencode; do
   grep -q "\"${adapter}\"" "$manifest" \
     || fail "manifest missing adapter: $adapter"
 done
+python3 - <<'PY' || fail "manifest aiplus_min_version must be 0.7.6"
+import json
+with open("aiplus-module.json", encoding="utf-8") as fh:
+    manifest = json.load(fh)
+if manifest.get("requires", {}).get("aiplus_min_version") != "0.7.6":
+    raise SystemExit(1)
+PY
 pass "module_manifest_present (declares 3 adapters)"
 
 # ---------------------------------------------------------------------

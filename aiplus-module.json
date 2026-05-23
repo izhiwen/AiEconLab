@@ -7,7 +7,7 @@
   "license": "Apache-2.0",
   "abbreviation": "AEL",
   "requires": {
-    "aiplus_min_version": "0.5.13",
+    "aiplus_min_version": "0.7.6",
     "substrate_modules": [
       "aiplus-agent-memory",
       "aiplus-compact-reminder",
@@ -57,7 +57,7 @@
   "installHints": [
     "Install permanent virtual applied-economics research team (AiEconLab / AEL) with 8 core roles, 14-specialist expert directory, and a research-tuned consultant team.",
     "Default toolchain: Python + Stata + LaTeX. Requires git for worktree provisioning.",
-    "Depends on aiplus >= 0.5.13 (which ships the AEL claude-code adapter install path) and the three substrate modules listed in `requires.substrate_modules`.",
+    "Depends on aiplus >= 0.7.6 for current AEL wrapper and refresh behavior, plus the three substrate modules listed in `requires.substrate_modules`.",
     "Install replaces the default SWE consultant team (`.aiplus/consultant-team.toml`) with the research-tuned `consultant-team.aieconlab.toml` (5 expert seats + 3 personas + 5 owner gates, LIGHT tier skips consult).",
     "Claude Code adapter (v0.2+): when `claude-code` is among the project's runtime adapters, install writes 22 subagents (8 core + 14 experts) to `.claude/agents/aieconlab-*.md`, 4 slash commands to `.claude/commands/aiel-*.md`, and an AEL managed block in `CLAUDE.md` (separate markers from AiPlus's block).",
     "OpenCode adapter (v0.3+): when `opencode` is among the project's runtime adapters, install writes the same 22 AEL subagents to `.opencode/agents/aieconlab-*.md` and 4 slash commands to `.opencode/commands/aiel-*.md`.",
@@ -144,7 +144,7 @@
       "AiEconLab (abbreviation: AEL) introduced as a sibling to aiplus-agent-team for applied-economics research workflows.",
       "Core 8 roles mirror agent-team's tier structure but are renamed for academic research.",
       "Brand-decoupled from AiPlus but functionally depends on the AiPlus substrate.",
-      "v0.2.0 ships the Claude Code adapter (`adapters/claude-code/`) so AEL agents auto-route in Claude Code sessions after install. Requires aiplus >= 0.5.13.",
+      "v0.2.0 ships the Claude Code adapter (`adapters/claude-code/`) so AEL agents auto-route in Claude Code sessions after install.",
       "v0.3.0 ships the OpenCode adapter (`adapters/opencode/`) so AEL agents and slash commands install into OpenCode projects."
     ]
   }

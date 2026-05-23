@@ -62,7 +62,8 @@ Environment variables:
   AEL_AIPLUS_BIN=/path/to/ael-support             use a specific bundled runtime
 
 Recommended flow:
-  ael                               # auto-sets-up the team on first run, then opens the lobby
+  ael install                       # Windows: set up the team once per project
+  ael                               # then open the lobby - pick who you want
                                     # type/say who you want (PI, Advisor, ...)
                                     # or "我想反思 RD 设计" and it routes you to Advisor
 
@@ -407,13 +408,38 @@ function Invoke-Install([string[]]$InstallArgs) {
   if (-not $runtime) { $runtime = Detect-Runtime }
   if ($dryRun) {
     Write-AelOut "AEL install dry-run"
-    Write-AelOut "  runtime=$runtime"
-    Write-AelOut "  would bootstrap the project runtime adapter"
-    Write-AelOut "  would install the AiEconLab research team"
-    Write-AelOut "  would set AiEconLab as the active team"
-    Write-AelOut "  would register the MCP server with $runtime (native tool-use for chat)"
+    $dryRunRuntimes = if ($runtime -eq "all") { @("codex", "claude-code", "opencode") } else { @($runtime) }
+    foreach ($dryRunRuntime in $dryRunRuntimes) {
+      Write-AelOut "  runtime=$dryRunRuntime"
+      Write-AelOut "    would bootstrap the project runtime adapter"
+      Write-AelOut "    would install the AiEconLab research team"
+      Write-AelOut "    would set AiEconLab as the active team"
+      Write-AelOut "    would register the MCP server with $dryRunRuntime (native tool-use for chat)"
+    }
     Write-AelOut "AEL_DRY_RUN=PASS"
     return 0
+  }
+  if ($runtime -eq "all") {
+    $failures = 0
+    $summary = @()
+    foreach ($installRuntime in @("codex", "claude-code", "opencode")) {
+      $result = Invoke-InstallRuntimeFlow -Runtime $installRuntime -PassArgs $passArgs
+      if ($result.Success) {
+        Write-AelOut "AEL install runtime=$installRuntime status=PASS"
+        $summary += "$installRuntime PASS"
+      } else {
+        $failures++
+        [Console]::Error.WriteLine("AEL install runtime=$installRuntime status=FAIL step=$($result.Step) reason=$($result.Reason)")
+        $summary += "$installRuntime FAIL ($($result.Reason))"
+      }
+    }
+    Write-AelOut "AEL installed: $($summary -join ', ')"
+    if ($failures -eq 0) {
+      Write-AelOut "Next: ael                  # chat with your team in plain English / Chinese"
+      Show-OnboardingHint
+      return 0
+    }
+    return 1
   }
   $installArgs = @("install", $runtime, "--allow-version-skew") + $passArgs
   $status = Invoke-SubstrateQuiet $installArgs
@@ -431,6 +457,31 @@ function Invoke-Install([string[]]$InstallArgs) {
   Write-AelOut "Next: ael                  # chat with your team in plain English / Chinese"
   Show-OnboardingHint
   return 0
+}
+
+function Get-InstallFailureReason([int]$Status) {
+  if ($Status -eq 0) { return "" }
+  return "exit_code=$Status"
+}
+
+function Invoke-InstallRuntimeFlow([string]$Runtime, [string[]]$PassArgs) {
+  $status = Invoke-SubstrateQuiet (@("install", $Runtime, "--allow-version-skew") + $PassArgs)
+  if ($status -ne 0) {
+    return [pscustomobject]@{ Success = $false; Step = "install"; Reason = (Get-InstallFailureReason $status) }
+  }
+  $status = Invoke-SubstrateQuiet @("add", "aieconlab")
+  if ($status -ne 0) {
+    return [pscustomobject]@{ Success = $false; Step = "add"; Reason = (Get-InstallFailureReason $status) }
+  }
+  $status = Invoke-SubstrateQuiet @("agent", "set-team", "aieconlab")
+  if ($status -ne 0) {
+    return [pscustomobject]@{ Success = $false; Step = "set-team"; Reason = (Get-InstallFailureReason $status) }
+  }
+  $status = Invoke-SubstrateQuiet @("mcp-register", "--runtime", $Runtime)
+  if ($status -ne 0) {
+    return [pscustomobject]@{ Success = $false; Step = "mcp-register"; Reason = (Get-InstallFailureReason $status) }
+  }
+  return [pscustomobject]@{ Success = $true; Step = ""; Reason = "" }
 }
 
 function Invoke-Talk([string[]]$TalkArgs) {

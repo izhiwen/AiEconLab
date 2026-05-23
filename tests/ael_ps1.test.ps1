@@ -187,6 +187,44 @@ function Invoke-AelPs1 {
     (Get-Content -LiteralPath $chatLog -Raw).Trim() | Should -Be ""
   }
 
+  It "installs all runtimes in sequence" {
+    $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $project, $fakeBin | Out-Null
+
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`necho %*>>%AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf '%s\n' ""`$*"" >>""`$AEL_SUPPORT_LOG""`n" -Encoding ASCII
+      chmod +x $support
+    }
+
+    $log = Join-Path $fakeBin "install-all.log"
+    $result = Invoke-AelPs1 -Arguments @("install", "all") -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $log
+      AEL_NO_ONBOARDING = "1"
+    }
+    $result.Status | Should -Be 0
+    $result.Output | Should -Match "AEL install runtime=codex status=PASS"
+    $result.Output | Should -Match "AEL install runtime=claude-code status=PASS"
+    $result.Output | Should -Match "AEL install runtime=opencode status=PASS"
+    $result.Output | Should -Match "AEL installed: codex PASS, claude-code PASS, opencode PASS"
+
+    $calls = Get-Content -LiteralPath $log
+    $calls | Should -Contain "install codex --allow-version-skew"
+    $calls | Should -Contain "install claude-code --allow-version-skew"
+    $calls | Should -Contain "install opencode --allow-version-skew"
+    ($calls | Where-Object { $_ -eq "add aieconlab" }).Count | Should -Be 3
+    ($calls | Where-Object { $_ -eq "agent set-team aieconlab" }).Count | Should -Be 3
+    $calls | Should -Contain "mcp-register --runtime codex"
+    $calls | Should -Contain "mcp-register --runtime claude-code"
+    $calls | Should -Contain "mcp-register --runtime opencode"
+  }
+
   It "flags default SWE consultant config under an AEL project" {
     $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))

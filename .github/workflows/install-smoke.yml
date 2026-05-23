@@ -534,9 +534,14 @@ jobs:
 
           $help = & ael --help | Out-String
           Write-Host $help
-          foreach ($command in "install","update","uninstall","chat","talk","route","status","doctor","telemetry","invite","dismiss","integrate") {
+          foreach ($command in "install","update","uninstall","talk","route","status","doctor","refresh") {
             if ($help -notmatch "ael $command") {
               throw "ael --help missing command: $command"
+            }
+          }
+          foreach ($hidden in "chat","telemetry","invite","dismiss","integrate","substrate") {
+            if ($help -match "ael $hidden") {
+              throw "ael --help should not advertise hidden command: $hidden"
             }
           }
           if ($help -match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {

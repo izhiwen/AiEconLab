@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Windows CI native help checks now match the current public AEL command
+  surface: hidden/legacy commands stay hidden from `ael --help`.
+- Windows `ael install all` now installs `codex`, `claude-code`, and
+  `opencode` in sequence with a per-runtime PASS/FAIL summary instead of
+  treating `all` as a substrate runtime name.
+- Windows help and README guidance now make the Windows setup flow explicit:
+  run `ael install` once in the project, then run bare `ael` to open the
+  lobby. Unix/macOS first-run auto-setup is unchanged.
+- `aiplus-module.json` now declares `aiplus_min_version = 0.7.6` so direct
+  `aiplus add aieconlab` users are not pointed at substrates older than the
+  current AEL refresh-compatible floor.
 - Added explicit `ael refresh [--dry-run]` delegation to the AiPlus refresh
   primitive now that AiPlus v0.7.6 has released it. This prevents `refresh`
   from being treated as a natural-language role request.

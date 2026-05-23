@@ -20,9 +20,9 @@ ael install
 ael
 ```
 
-第一步安装 `ael` 命令；在论文或复现项目中直接运行 `ael`，AEL 会在首次运行时
-自动安装当前 `PATH` 上可用 runtime 的 adapter，然后打开 lobby。若检测到多个
-runtime，lobby 会再问你要用 Codex、Claude Code 还是 OpenCode。
+第一步安装 `ael` 命令；在 macOS/Linux 的论文或复现项目中直接运行 `ael`，AEL
+会在首次运行时自动安装当前 `PATH` 上可用 runtime 的 adapter，然后打开 lobby。
+Windows 上请先在项目里运行一次 `ael install`，再运行 `ael`。
 
 ## 演示
 
@@ -91,8 +91,9 @@ cd MyPaperProject
 ael
 ```
 
-首次运行时，AEL 会为 `PATH` 上检测到的 Codex、Claude Code、OpenCode 自动安装
-adapter；只有一个 runtime 时直接使用它，多个 runtime 时会让你选择。
+macOS/Linux 首次运行时，AEL 会为 `PATH` 上检测到的 Codex、Claude Code、OpenCode
+自动安装 adapter；只有一个 runtime 时直接使用它，多个 runtime 时会让你选择。
+Windows 上请先运行一次 `ael install`，再运行 `ael` 打开 lobby。
 
 也可以显式安装或刷新某个运行环境：
 
