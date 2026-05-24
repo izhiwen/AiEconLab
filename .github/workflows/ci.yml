@@ -11,25 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
       - name: Validate JSON files
         run: |
           set -euo pipefail
-          find . -name "*.json" -not -path "./.git/*" -print0 | while IFS= read -r -d '' f; do
+          find . -name "*.json" -not -path "./.git/*" -not -path "./vendor/*" -print0 | while IFS= read -r -d '' f; do
             jq empty "$f" || { echo "::error file=$f::invalid JSON"; exit 1; }
           done
       - name: Validate YAML files
         run: |
           set -euo pipefail
           pip install --quiet yamllint
-          find . \( -name "*.yaml" -o -name "*.yml" \) -not -path "./.git/*" -not -path "./.aiplus/*" | while read -r f; do
+          find . \( -name "*.yaml" -o -name "*.yml" \) -not -path "./.git/*" -not -path "./.aiplus/*" -not -path "./vendor/*" | while read -r f; do
             yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" "$f"
           done
-          # .aiplus/ contains internal data files, excluded from yamllint
+          # .aiplus/ contains internal data files and vendor/ is upstream source,
+          # both excluded from yamllint.
       - name: Validate TOML files
         run: |
           set -euo pipefail
           pip install --quiet tomli
-          find . -name "*.toml" -not -path "./.git/*" -print0 | while IFS= read -r -d '' f; do
+          find . -name "*.toml" -not -path "./.git/*" -not -path "./vendor/*" -print0 | while IFS= read -r -d '' f; do
             python3 -c "import tomli; tomli.loads(open('$f').read())" || exit 1
           done
       - name: Run acceptance test
