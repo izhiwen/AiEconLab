@@ -336,7 +336,7 @@ case "${1:-}" in
 esac
 SH
 chmod +x "$update_install/ael" "$update_pkg/bin/ael" "$update_pkg/libexec/ael-support"
-update_os="$(uname -s)"
+update_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 update_arch="$(uname -m)"
 case "$update_arch" in
   arm64|aarch64) update_arch="aarch64" ;;
