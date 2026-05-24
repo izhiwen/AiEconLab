@@ -4,15 +4,25 @@
 
 [中文 README](README.zh-CN.md)
 
-AiEconLab gives AI-assisted economics projects a research-team structure.
-Instead of asking one chat to be PI, RA, theorist, referee, and replicator at
-once, AEL gives each role a separate persona, workspace boundary, and set of
-responsibilities.
+AiEconLab, or AEL, gives an economics paper project a small AI research team.
+Instead of asking one chat to be your advisor, PI, RA, theorist, referee, and
+replicator at the same time, you talk to the right role for the job.
+
+Use AEL when you want help with:
+
+- thinking through a research idea
+- pressure-testing identification
+- planning data work or regressions
+- reviewing draft claims before they get too strong
+- checking reproducibility and replication-package risk
+- organizing the next steps in a paper project
+
+The fastest start:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
 cd MyPaperProject
-ael                              # auto-sets-up the team, then opens the lobby
+ael
 ```
 
 Windows PowerShell:
@@ -24,248 +34,179 @@ ael install
 ael
 ```
 
-The first command installs the `ael` CLI. On macOS/Linux, inside a paper or
-replication project, just running `ael` sets up adapters for supported
-runtimes on `PATH`, opens the lobby, and asks who you want to talk to. On
-Windows, run `ael install` once in the project first, then run `ael`.
+## Start Here
 
-## I'm New — Start Here
+1. Install one supported AI coding runtime first: Claude Code, Codex, or
+   OpenCode. Open it once by itself and make sure it works.
+2. Install AEL with the command above.
+3. Go to a paper, replication, or data project folder and run `ael`.
+4. Pick who you want to talk to: PI, Advisor, RA-Stata, RA-Python, Referee, or
+   another role.
 
-If you've never used Claude Code, Codex, or OpenCode before, do these
-three things first (in this order). It'll save you an hour.
+On macOS/Linux, `ael` can set up the project on first run. On Windows, run
+`ael install` once inside the project, then run `ael`.
 
-### Step 1: Install ONE AI coding agent first
+If the installer says the command is not on `PATH`, use the one-line fix it
+prints, then open a new terminal.
 
-Pick ONE to start (you can add more later):
+## What You Type
 
-- **Claude Code** (recommended for most researchers) — install from
-  [claude.com/download](https://claude.com/download). Comes with
-  Claude Pro; no separate API key needed.
-- **Codex** — OpenAI's CLI. Requires a paid OpenAI account.
-- **OpenCode** — open source, runs local or remote models.
-
-Confirm the agent works on its own first (open it, ask "hi") before
-adding AEL on top.
-
-### Step 2: Install AEL
-
-Open the macOS Terminal app, paste this **one line**, and press Enter:
+Open the lobby:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
-```
-
-On Windows, open PowerShell and run:
-
-```powershell
-irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex
-```
-
-If it says "command not added to PATH," follow the one-line fix it
-prints. This is a one-time setup per machine.
-
-### Step 3: Try it in a paper project
-
-Make a folder for a paper (or use an existing one), then:
-
-```bash
-cd MyPaperProject       # the folder where your paper lives
-ael                     # auto-sets-up the team, then opens the lobby
-```
-
-Pick PI to start with your project manager, or pick Advisor / writer / RA
-directly. Tell it what you want:
-"I'm starting a paper on X, what should I think about first?" → PI hands
-it to Advisor. "Draft an introduction for the identification strategy" →
-PI dispatches to Writer. You stay in one window; PI orchestrates.
-
-### Common first-day questions
-
-- **"Do I need an API key?"** Not if you already have Claude Pro or
-  ChatGPT Plus desktop. Only needed for batch / unattended runs.
-- **"Will it touch my real paper files?"** No — read-only by default.
-  Each role gets its own isolated workspace under the project's hidden
-  team directory.
-- **"How do I undo the install?"** Run `ael uninstall --yes`; add `--purge`
-  inside one project to also remove that project's hidden team state.
-- **"Is my data uploaded anywhere?"** No. All local. Roles log inside
-  your project, never to a server.
-- **"It says `NEEDS_FIX` — what now?"** Run `ael doctor --fix`. The
-  most common fix is rerunning `ael install` to refresh the adapter.
-  If you're still stuck, open a GitHub issue with the doctor output.
-
----
-
-## Demo
-
-<!-- demo recording temporarily removed from the repo to keep clone size small.
-     Replacement: a hosted short-form recording (asciinema / loom) is planned
-     for v0.2.x. -->
-*(demo recording — coming back as a hosted asset in a future release)*
-
-## What AEL Adds
-
-AEL is built for applied economists who use AI assistants across long paper
-projects: data cleaning, Stata regressions, Python merges, identification
-debates, literature positioning, seminar revisions, replication packages, and
-referee responses.
-
-It gives you:
-
-- **Advisor** for strategic second opinions on framing, identification risk,
-  and publication tradeoffs.
-- **PI** for scoping tasks, dispatching roles, integrating results, and keeping
-  the project coherent.
-- **Theorist** for identification strategy, mechanisms, instruments, and model
-  logic.
-- **RA-Stata** for Stata analysis, regression tables, robustness checks, and
-  reproducible `.do` workflows.
-- **RA-Python** for data cleaning, scraping, matching, GIS, and Python
-  pipelines.
-- **Referee** for pre-submission critique before a draft leaves the team.
-- **Replicator** for clean-room reruns and replication-package failures.
-- **PM** for deadlines, scope, blockers, and milestone discipline.
-
-There are also specialist roles for literature review, writing, econometrics,
-LLM-as-measurement validation, reproducibility engineering, historical sources,
-IRB/sensitive-data review, visualization, computation, survey experiments,
-degrees-of-freedom auditing, R&R strategy, job talks, and coauthor coordination.
-
-## How the Team Works in Your Runtime
-
-- **Switch roles in plain language.** Mid-session, say "you are PI",
-  "take the referee role", or "switch to RA-Stata" and the agent
-  responds as that role, with that role's research memory loaded.
-  No CLI command. Works in Codex, Claude Code, and OpenCode
-  interactive mode.
-
-- **Intent-aware guardrails when PI delegates.** Before PI hands
-  off anything risky to an RA — deleting files, modifying live
-  data, publishing changes — the coordinator understands what
-  you're actually asking for, not just the words you typed.
-  Rephrasing or putting things in quotes can't slip a destructive
-  command through. Especially useful when replication scripts
-  touch shared archives or paper drafts.
-
-- **Parallel review and QA for fast PI → RA → Referee cycles.**
-  Review and QA steps run side by side, and each role's workspace
-  stays warm between tasks. A typical robustness-table iteration
-  lands in ~8-10 min instead of ~15-20, same quality bar. AEL
-  inherits this from the underlying AiPlus.
-
-## Install
-
-Install the CLI:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
-```
-
-Windows PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex
-```
-
-If the installer says the target directory is not on `PATH`, add it:
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-On Windows, the installer prints a one-line PowerShell command when
-the install directory is not on `PATH`.
-
-Then start AEL inside a project:
-
-```bash
-cd MyPaperProject
 ael
 ```
 
-On macOS/Linux first run, AEL installs adapters for the supported runtime
-CLIs it finds on `PATH` (Codex, Claude Code, OpenCode). If it finds one
-runtime, it uses that runtime. If it finds more than one, the lobby asks you
-to choose. On Windows, use `ael install` once before opening the lobby with
-`ael`.
-
-You can still set up or refresh a runtime explicitly:
+Talk to the PI, who coordinates work:
 
 ```bash
-ael install codex
-ael install claude-code
-ael install opencode
+ael pi
 ```
 
-Verify the project setup:
+Ask the Advisor for a second opinion:
+
+```bash
+ael advisor
+```
+
+Go directly to a role when the task is clear:
+
+```bash
+ael ra-stata
+ael ra-python
+ael referee
+ael replicator
+```
+
+Start a fresh session instead of resuming the last one:
+
+```bash
+ael advisor --fresh
+```
+
+Check or repair the project setup:
 
 ```bash
 ael status
 ael doctor
+ael doctor --fix
 ```
 
-## Daily Use
-
-Talk to the Advisor:
+Refresh AEL-managed project files after an update:
 
 ```bash
-ael talk advisor "Is this identification strategy credible enough for a top-field submission?"
+ael refresh --dry-run
+ael refresh
 ```
 
-Route work through the PI:
+## Which Role Should I Pick?
 
-```bash
-ael route pi "scope the next robustness table and dispatch the right RA"
+Use **Advisor** when you want strategic judgment:
+
+- Is this research question worth pursuing?
+- Is the identification strategy credible?
+- Is this a top-field paper, a field paper, or a nice appendix?
+- What is the biggest referee risk?
+
+Use **PI** when you want work organized:
+
+- Break this into tasks.
+- Decide who should do what.
+- Check what is in flight.
+- Turn Advisor feedback into concrete next steps.
+
+Use **RA-Stata** for regressions, tables, Stata workflows, and robustness
+checks.
+
+Use **RA-Python** for cleaning, merging, scraping, GIS, text processing, and
+Python pipelines.
+
+Use **Theorist** for identification assumptions, mechanisms, models,
+instruments, and interpretation.
+
+Use **Referee** before you trust a claim. Referee reads like a skeptical
+reviewer.
+
+Use **Replicator** before numbers leave the project. Replicator checks whether
+the result can be rerun cleanly.
+
+Use **PM** for deadlines, blockers, milestones, and keeping the paper moving.
+
+## Typical Workflows
+
+Early idea:
+
+```text
+ael advisor
+"I am thinking about a paper on X. What are the three biggest design risks?"
 ```
 
-Talk to implementation roles when the task is already clear:
+Turn a decision into work:
 
-```bash
-ael talk ra-stata "Sketch the Stata plan for the main IV table."
-ael talk ra-python "Plan the merge checks for the county-level panel."
-ael talk referee "Give me the harsh pre-submission read of this abstract."
+```text
+ael pi
+"Advisor thinks the main risk is topic selection. Plan the next validation step."
 ```
 
-Bring in an expert:
+Before showing a result:
 
-```bash
-ael invite llm-measurement
-ael talk llm-measurement "Review my text-as-data validation plan."
+```text
+ael referee
+"Read this abstract and tell me the easiest reject reason."
 ```
 
-Note: `AEL_BYPASS` was removed in v0.3.0; use your normal safe-mode runtime
-settings when you want approval prompts.
+Before relying on a table:
 
-## Why Roles Matter
+```text
+ael replicator
+"Check whether the main table can be reproduced from a clean checkout."
+```
 
-One long-lived AI chat tends to blur responsibilities. The same assistant that
-debugged a Stata loop starts drafting prose with code-shaped habits. The same
-assistant that helped frame the intro becomes too invested to act like a
-skeptical referee.
+## What AEL Adds
 
-AEL keeps those jobs separate:
+AEL adds research roles and research discipline to an AI-assisted project:
 
-- RA memories stay focused on data, variables, and code decisions.
-- Theorist and Referee critiques do not get diluted by execution context.
-- PI owns integration instead of letting parallel work collide silently.
-- Replicator gets a clean-room mandate rather than sharing the builder's
-  assumptions.
+- role-specific personas
+- project-local memory
+- team memory for shared decisions
+- separate work boundaries for different roles
+- economics-focused expert roles
+- a research-tuned consultant team for medium and heavy tasks
+- STOP-gates for actions that need the human Owner
 
-The result is not "more agents" for its own sake. It is a project structure
-that matches how serious research teams already work.
+It is not a promise that AI can run your research project alone. The human
+researcher remains the Owner. AEL helps structure the work so the AI assistant
+does not blur roles, overclaim results, or forget project context.
+
+## Consultant Team
+
+AEL has its own consultant team. It is not the default software-engineering
+consultant team.
+
+The AEL consultant team is built for economics research:
+
+- design credibility
+- contribution framing
+- day-1 reproducibility
+- IRB and disclosure risk
+- LLM-as-measurement validity
+
+Light tasks skip the consultant. Medium and heavy tasks can trigger it before
+work is dispatched.
 
 ## LLM-as-Measurement
 
 AEL includes an LLM-as-measurement specialist for projects that use language
 models to score archival text, survey responses, open-ended documents, or other
-unstructured sources. This role focuses on validation design: multi-model
-agreement, held-out human labels, inter-rater statistics, prompt-version
-stability, and measurement-error implications for the empirical result.
+unstructured sources.
+
+The specialist focuses on validation: multi-model agreement, hand-coded labels,
+inter-rater reliability, prompt-version stability, and measurement-error risk.
 
 Companion example:
 [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo).
 
-![Pairwise LLM correlation heatmap (294 archival docs × 5 frontier LLMs, mean ρ ≈ 0.92)](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
+![Pairwise LLM correlation heatmap](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
 
 ## Safety
 
@@ -275,15 +216,51 @@ AEL stays local to your project. It does not:
 - run as a background daemon
 - store restricted-data paths or secrets in role personas
 - modify unrelated projects
-- auto-approve Owner-gated actions such as journal submission, public posting,
-  referee-response sending, data sharing, or authorship changes
+- auto-approve journal submissions, public paper posts, referee responses,
+  data sharing, authorship changes, or other Owner-gated actions
 
-The CLI installs project files under local project state and uses your selected
-runtime to answer as the requested role.
+Each role can help prepare work, but the human Owner decides when something
+external, sensitive, or irreversible happens.
 
-## Release Build
+## Demo
 
-For maintainers:
+*(demo recording coming back as a hosted asset in a future release)*
+
+## Troubleshooting
+
+Check the project:
+
+```bash
+ael doctor
+```
+
+Let AEL fix common local drift:
+
+```bash
+ael doctor --fix
+```
+
+Preview an update:
+
+```bash
+ael update --dry-run
+```
+
+Remove the installed command, keeping project files:
+
+```bash
+ael uninstall --yes
+```
+
+Remove the installed command and this project's AEL state:
+
+```bash
+ael uninstall --purge --yes
+```
+
+## For Maintainers
+
+Build a release package:
 
 ```bash
 git submodule update --init --recursive
@@ -293,17 +270,9 @@ scripts/build-ael.sh --package
 The release workflow publishes platform tarballs and SHA256 sidecars for the
 installer.
 
-## Development
-
-### Automated AiPlus version tracking
-
-A daily GitHub Action watches the AiPlus upstream repo for new stable tags and
-automatically opens a PR to bump the vendored substrate. Human review is
-required before merge; auto-bump never merges itself.
-
 ## Advanced
 
-AEL is built on the AiPlus agent substrate; the supported user-facing product
+AEL is built on the AiPlus agent substrate. The supported user-facing product
 surface is the `ael` CLI and this repository.
 
 ## License

@@ -2,8 +2,22 @@
 
 [English README](README.md)
 
-AiEconLab（AEL）为经济学论文项目提供一套 AI 研究团队结构。它不是让一个聊天窗口同时扮演
-PI、RA、理论作者、审稿人和复现者，而是把这些职责拆成清晰的角色，每个角色有独立的工作边界和人格设定。
+AiEconLab，简称 AEL，是给经济学论文项目用的一支 AI 研究团队。
+
+它不是让一个聊天窗口同时扮演 Advisor、PI、RA、理论作者、审稿人和复现者。
+AEL 把这些职责拆开：你需要判断研究方向时找 Advisor，需要推进任务时找 PI，
+需要跑回归时找 RA，需要挑错时找 Referee。
+
+AEL 适合用来：
+
+- 想清楚一个研究想法值不值得做
+- 反思识别策略是否可信
+- 规划数据清洗、合并、回归和稳健性检验
+- 在论文写得太满之前先找人挑刺
+- 检查结果能不能复现
+- 管理一篇论文接下来的任务
+
+最快开始：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
@@ -20,147 +34,227 @@ ael install
 ael
 ```
 
-第一步安装 `ael` 命令；在 macOS/Linux 的论文或复现项目中直接运行 `ael`，AEL
-会在首次运行时自动安装当前 `PATH` 上可用 runtime 的 adapter，然后打开 lobby。
-Windows 上请先在项目里运行一次 `ael install`，再运行 `ael`。
+## 从这里开始
 
-## 演示
+1. 先装一个支持的 AI coding runtime：Claude Code、Codex 或 OpenCode。
+   先单独打开它，确认能正常聊天。
+2. 用上面的命令安装 AEL。
+3. 进入你的论文、复现或数据项目文件夹，运行 `ael`。
+4. 选择你要找谁：PI、Advisor、RA-Stata、RA-Python、Referee，或其他角色。
 
-<!-- demo 录屏暂时移出仓库以减小 clone 体积；将以外链形式在 v0.2.x 重新发布 -->
-*(demo 录屏正在重新制作，下个版本会以外链托管的形式回归)*
+macOS/Linux 上，第一次在项目里运行 `ael` 时会自动设置项目。Windows 上请先在
+项目里运行一次 `ael install`，再运行 `ael`。
 
-## 角色
+如果安装器提示命令不在 `PATH`，照它打印出来的一行命令修一下，然后重新打开终端。
 
-- **Advisor**：研究问题、识别策略、投稿风险和长期项目取舍的第二意见。
-- **PI**：拆任务、派发角色、整合结果、维持项目主线。
-- **Theorist**：识别策略、机制、工具变量、模型逻辑。
-- **RA-Stata**：Stata 回归、表格、稳健性检验、可复现 `.do` 流程。
-- **RA-Python**：数据清洗、抓取、匹配、GIS、Python 管线。
-- **Referee**：投稿前的内部审稿人，专门挑出论文最脆弱的地方。
-- **Replicator**：从干净环境重跑项目，找复现包和依赖问题。
-- **PM**：期限、范围、阻塞项和里程碑管理。
+## 你会输入什么
 
-AEL 还包含文献、写作、计量、LLM-as-measurement、复现工程、史料、IRB/敏感数据、
-可视化、计算、实验设计、自由度审计（DoF）、R&R 策略、Job Talk 和合作者协调等专家角色。
-
-## 团队在你的 runtime 里怎么干活
-
-- **用人话切角色。** session 中途说"你是 PI"、"take the referee
-  role"、"切到 RA-Stata"，agent 就会用那个角色回应你，并加载它
-  的研究内存。不用 CLI 命令。Codex、Claude Code、OpenCode
-  （交互模式）都支持。
-
-- **PI 派任务时的意图感知护栏。** PI 把任务交给 RA 之前，
-  如果涉及危险操作（删文件、改 live 数据、发布改动），
-  Coordinator 会先理解你到底想做什么，而不只是匹配字眼。
-  改个说法、加引号都骗不过去了 —— replication 脚本碰共享
-  档案或论文稿时特别有用。
-
-- **评审和 QA 并行，PI → RA → Referee cycle 更快。** review
-  和 QA 步骤同时跑，每个角色的工作区在任务之间保持就绪。
-  典型 robustness 表迭代周期 ~8-10 分钟，不再 ~15-20，质量
-  门槛不变。AEL 从底层 AiPlus 自动继承这一速度。
-
-## 安装
-
-安装 CLI：
+打开大厅：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.sh | bash
-```
-
-Windows PowerShell：
-
-```powershell
-irm https://raw.githubusercontent.com/izhiwen/AiEconLab/main/install.ps1 | iex
-```
-
-如果安装器提示目标目录不在 `PATH`，加入：
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Windows 安装器会在目标目录不在 `PATH` 时打印一行可复制的
-PowerShell 命令。
-
-在项目中启动 AEL：
-
-```bash
-cd MyPaperProject
 ael
 ```
 
-macOS/Linux 首次运行时，AEL 会为 `PATH` 上检测到的 Codex、Claude Code、OpenCode
-自动安装 adapter；只有一个 runtime 时直接使用它，多个 runtime 时会让你选择。
-Windows 上请先运行一次 `ael install`，再运行 `ael` 打开 lobby。
-
-也可以显式安装或刷新某个运行环境：
+找 PI，让它帮你拆任务、派工、汇总：
 
 ```bash
-ael install codex
-ael install claude-code
-ael install opencode
+ael pi
 ```
 
-检查安装：
+找 Advisor，做战略判断和第二意见：
+
+```bash
+ael advisor
+```
+
+任务已经很明确时，直接找具体角色：
+
+```bash
+ael ra-stata
+ael ra-python
+ael referee
+ael replicator
+```
+
+不想接着上次聊，想开一个新会话：
+
+```bash
+ael advisor --fresh
+```
+
+检查或修复项目设置：
 
 ```bash
 ael status
 ael doctor
+ael doctor --fix
 ```
 
-## 日常使用
-
-与 Advisor 对话：
+更新后刷新 AEL 管理的项目文件：
 
 ```bash
-ael talk advisor "这个识别策略够不够支撑 top-field 投稿？"
+ael refresh --dry-run
+ael refresh
 ```
 
-让 PI 拆任务并派发：
+## 我该找哪个角色？
 
-```bash
-ael route pi "规划下一张稳健性表，并派给合适的 RA"
+找 **Advisor**，当你想要判断：
+
+- 这个题目值不值得做？
+- 这个识别策略站不站得住？
+- 这是 top-field 论文、领域期刊论文，还是 appendix 结果？
+- 审稿人最容易攻击哪里？
+
+找 **PI**，当你想要推进：
+
+- 把这个想法拆成任务。
+- 决定谁来做什么。
+- 看现在有哪些事在进行。
+- 把 Advisor 的意见变成下一步工作。
+
+找 **RA-Stata**：回归、表格、Stata、稳健性检验。
+
+找 **RA-Python**：数据清洗、合并、抓取、GIS、文本处理、Python 管线。
+
+找 **Theorist**：识别假设、机制、模型、工具变量、解释。
+
+找 **Referee**：在你相信一个 claim 之前，让它像审稿人一样挑刺。
+
+找 **Replicator**：在数字离开项目之前，检查能不能从干净环境复现。
+
+找 **PM**：deadline、阻塞项、里程碑、项目节奏。
+
+## 常见用法
+
+早期想法：
+
+```text
+ael advisor
+"我想做一个关于 X 的论文。最大的三个设计风险是什么？"
 ```
 
-任务已经明确时，也可以直接找具体角色：
+把判断变成任务：
 
-```bash
-ael talk ra-stata "给主 IV 表写一个 Stata 执行计划。"
-ael talk referee "用最苛刻的审稿人视角读一下这个摘要。"
+```text
+ael pi
+"Advisor 觉得最大风险是样本选择。请规划下一步验证。"
 ```
 
-## 为什么要分角色
+对外展示前先挨打：
 
-长项目里，一个 AI 聊天窗口很容易混淆职责：刚调过 Stata 的助手开始写带代码味的引言；
-刚帮你论证识别策略的助手又很难像真正审稿人一样挑刺。AEL 把职责拆开：
+```text
+ael referee
+"用最苛刻审稿人的角度读一下这个摘要，告诉我最容易被拒的理由。"
+```
 
-- RA 的记忆专注于数据、变量和代码决策。
-- Theorist 和 Referee 的批评不被执行细节稀释。
-- PI 负责整合，避免并行工作互相覆盖。
-- Replicator 以干净环境重跑，而不是继承构建者的假设。
+相信一张表之前：
+
+```text
+ael replicator
+"检查主表能不能从干净 checkout 复现。"
+```
+
+## AEL 到底加了什么
+
+AEL 给 AI 辅助研究加的是团队结构和研究纪律：
+
+- 每个角色有自己的 persona
+- 项目本地记忆
+- 团队共享记忆
+- 不同角色有清楚的工作边界
+- 面向经济学的专家角色
+- 为中等和重任务准备的研究版 consultant team
+- 需要 Owner 决定的 STOP-gates
+
+它不是说 AI 可以自己做完一篇论文。人类研究者仍然是 Owner。AEL 的作用是让 AI
+帮忙时不乱串角色、不乱夸结果、不忘项目上下文。
+
+## Consultant Team
+
+AEL 有自己的 consultant team，不是默认的软件工程 consultant team。
+
+AEL 的 consultant team 是为经济学研究准备的：
+
+- 识别策略可信度
+- 论文贡献和定位
+- 从第一天开始的复现要求
+- IRB 和披露风险
+- LLM-as-measurement 的测量有效性
+
+小任务会跳过 consultant。中等和重任务可以先触发 consultant，再派给具体角色做。
 
 ## LLM-as-Measurement
 
-AEL 内置 LLM-as-measurement 专家，适用于用大模型给档案文本、开放式回答、
-历史文献或其他非结构化材料打分的论文。该角色关注多模型一致性、人工标注验证、
-评分稳定性、prompt 版本管理，以及测量误差对估计结果的影响。
+AEL 内置 LLM-as-measurement 专家，适合用大模型给档案文本、开放式回答、
+历史文献或其他非结构化材料打分的论文。
+
+这个角色关注：多模型一致性、人工标注验证、评分稳定性、prompt 版本管理，
+以及测量误差会不会影响实证结论。
 
 示例项目：
 [Multi-LLM-Validation-Demo](https://github.com/izhiwen/Multi-LLM-Validation-Demo)。
 
-![两两 LLM 相关性热力图（294 篇档案 × 5 个前沿 LLM，平均 ρ ≈ 0.92）](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
+![两两 LLM 相关性热力图](https://raw.githubusercontent.com/izhiwen/Multi-LLM-Validation-Demo/main/figures/multi_llm_correlation_heatmap.png)
 
 ## 安全边界
 
-AEL 保持在你的本地项目内。它不会：
+AEL 留在你的本地项目里。它不会：
 
 - 上传项目文件、记忆或对话记录
 - 作为后台守护进程运行
-- 在角色设定中保存受限数据路径或密钥
+- 在角色设定里保存受限数据路径或密钥
 - 修改无关项目
-- 自动批准投稿、公开 working paper、发送 referee response、共享数据或改变作者顺序
+- 自动批准投稿、公开 working paper、发送 referee response、共享数据、改变作者顺序等 Owner-gated actions
+
+角色可以帮你准备材料，但外部、敏感、不可逆的动作仍然由人类 Owner 决定。
+
+## 演示
+
+*(demo 录屏将在未来版本以外链形式回归)*
+
+## 出问题时
+
+检查项目：
+
+```bash
+ael doctor
+```
+
+让 AEL 修复常见本地漂移：
+
+```bash
+ael doctor --fix
+```
+
+预览更新：
+
+```bash
+ael update --dry-run
+```
+
+只删除安装好的命令，保留项目文件：
+
+```bash
+ael uninstall --yes
+```
+
+删除安装好的命令，也删除当前项目里的 AEL 状态：
+
+```bash
+ael uninstall --purge --yes
+```
+
+## 维护者
+
+构建 release package：
+
+```bash
+git submodule update --init --recursive
+scripts/build-ael.sh --package
+```
+
+release workflow 会发布平台 tarball 和 SHA256 sidecar，供安装器使用。
 
 ## 高级说明
 
