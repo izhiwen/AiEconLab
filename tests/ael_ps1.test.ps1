@@ -187,6 +187,33 @@ function Invoke-AelPs1 {
     (Get-Content -LiteralPath $chatLog -Raw).Trim() | Should -Be ""
   }
 
+  It "preserves lobby stdin and visible substrate output" {
+    $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
+    Set-Content -LiteralPath (Join-Path $project ".aiplus\manifest.json") -Value '{"runtimeAdapters":["codex"]}' -Encoding UTF8
+
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`nset /p request=`r`necho stdin=%request% args=%* > %AEL_SUPPORT_LOG%`r`necho AEL routed %request%`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nIFS= read -r request || true`nprintf 'stdin=%s args=%s\n' ""`$request"" ""`$*"" >""`$AEL_SUPPORT_LOG""`nprintf 'AEL routed %s\n' ""`$request""`n" -Encoding ASCII
+      chmod +x $support
+    }
+
+    $log = Join-Path $fakeBin "support-stdin.log"
+    $result = Invoke-AelPs1 -WorkingDirectory $project -InputText "advisor" -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $log
+      AEL_NO_ONBOARDING = "1"
+    }
+    $result.Status | Should -Be 0
+    (Get-Content -LiteralPath $log -Raw).Trim() | Should -Be "stdin=advisor args="
+    $result.Output | Should -Match "AEL routed advisor"
+  }
+
   It "installs all runtimes in sequence" {
     $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))

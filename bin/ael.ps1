@@ -208,8 +208,8 @@ function Invoke-SubstrateVisible([string[]]$SubArgs) {
 
 function Invoke-SubstrateInteractive([string[]]$SubArgs) {
   $bin = Get-SubstrateBin
-  $process = Start-Process -FilePath $bin -ArgumentList $SubArgs -NoNewWindow -Wait -PassThru
-  return $process.ExitCode
+  & $bin @SubArgs
+  return $LASTEXITCODE
 }
 
 function Invoke-Update([string[]]$UpdateArgs) {
@@ -601,7 +601,7 @@ function Invoke-Main([string[]]$Argv) {
     "" { return (Invoke-ChatDefault) }
     "chat" {
       if ($rest.Count -gt 0) {
-        Exit-WithError "ael chat does not accept arguments. Use 'ael' for the lobby, or 'ael `"..."`' for natural-language routing."
+        Exit-WithError 'ael chat does not accept arguments. Use ''ael'' for the lobby, or ''ael "..."'' for natural-language routing.'
       }
       return (Invoke-ChatDefault)
     }
@@ -632,7 +632,8 @@ function Invoke-Main([string[]]$Argv) {
     }
     default {
       if ($Argv.Count -gt 1) {
-        Exit-WithError "unknown command or multi-word natural-language input: $($Argv -join ' '). Use 'ael `"..."`' for freeform requests, or 'ael talk ...' for explicit chat."
+        $joinedArgs = $Argv -join ' '
+        Exit-WithError ('unknown command or multi-word natural-language input: {0}. Use ''ael "..."'' for freeform requests, or ''ael talk ...'' for explicit chat.' -f $joinedArgs)
       }
       Exit-WithError "unknown command: $cmd"
     }
