@@ -4,7 +4,7 @@ name: Headless /aiel-talk Execution
 # execution for the four high-priority AEL roles. It intentionally checks
 # transcript markers from the runtime output rather than installed files.
 
-on:
+"on":
   workflow_dispatch:
   pull_request:
     branches: [main]

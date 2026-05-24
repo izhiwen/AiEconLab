@@ -8,7 +8,7 @@ name: AiPlus Drift Check
 # This is part of the AEL → aiplus sync automation pipeline. See
 # docs/dev/aiplus-drift-workflow.md for the full design rationale.
 
-on:
+"on":
   schedule:
     # Daily at 09:00 UTC (= ~17:00 China time). aiplus moves fast — when
     # we polled weekly, vendor drift was reliably >10 commits by Friday.

@@ -9,7 +9,7 @@ name: Install Smoke Test
 #
 # Runs on every push and PR; ~5 minutes with cargo cache, ~10 cold.
 
-on:
+"on":
   push:
     branches: [main]
   pull_request:

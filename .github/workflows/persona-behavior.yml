@@ -18,7 +18,7 @@
 
 name: persona behavior
 
-on:
+"on":
   pull_request:
     paths:
       - 'core/templates/personas/**'

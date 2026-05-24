@@ -6,7 +6,7 @@ name: Install Order Matrix
 # minutes. The nightly schedule and manual dispatch run the full 9-case x
 # 3-OS sweep.
 
-on:
+"on":
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, labeled]

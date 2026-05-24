@@ -1,6 +1,6 @@
 name: Release Install Proof
 
-on:
+"on":
   workflow_dispatch:
 
 jobs:

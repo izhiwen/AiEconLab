@@ -16,7 +16,7 @@
 
 name: notify aiplus on release
 
-on:
+"on":
   release:
     types: [published]
   # Allow a manual trigger so a maintainer can re-fire the dispatch
