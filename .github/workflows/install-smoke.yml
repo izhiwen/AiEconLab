@@ -596,7 +596,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "ael talk failed with exit code $LASTEXITCODE"
           }
-          if ($talk -match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {
+          if ($talk -match "\bAiPlus\b|\bAIPLUS\b") {
             throw "ael talk output was not sanitized"
           }
           if ($talk -notmatch "AEL") {
