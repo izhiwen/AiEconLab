@@ -580,7 +580,7 @@ jobs:
             throw "ael lobby fallback leaked substrate branding"
           }
 
-          $talk = & ael talk --runtime codex pi "What is your role?" 2>&1 | Out-String
+          $talk = & ael talk --runtime codex pi 2>&1 | Out-String
           Write-Host $talk
           if ($LASTEXITCODE -ne 0) {
             throw "ael talk failed with exit code $LASTEXITCODE"
