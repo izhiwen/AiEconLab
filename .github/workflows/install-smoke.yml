@@ -568,20 +568,17 @@ jobs:
             throw "ael install did not write .aiplus/manifest.json"
           }
 
-          foreach ($inputText in "pi","advisor","我想反思") {
-            $env:AEL_LOBBY_ROUTE_ONLY = "1"
-            $lobby = $inputText | & ael 2>&1 | Out-String
-            Write-Host $lobby
-            if ($LASTEXITCODE -ne 0) {
-              throw "ael lobby failed for input: $inputText"
-            }
-            if ($inputText -eq "我想反思") {
-              if ($lobby -notmatch "-> advisor") { throw "lobby did not route reflection intent to advisor" }
-            } elseif ($lobby -notmatch "-> $inputText") {
-              throw "lobby did not route exact slug: $inputText"
-            }
+          $lobby = & ael 2>&1 | Out-String
+          Write-Host $lobby
+          if ($LASTEXITCODE -ne 0) {
+            throw "ael lobby fallback failed with exit code $LASTEXITCODE"
           }
-          Remove-Item Env:\AEL_LOBBY_ROUTE_ONLY -ErrorAction SilentlyContinue
+          if ($lobby -notmatch "AEL Lobby requires an interactive terminal") {
+            throw "ael lobby fallback did not use AEL branding"
+          }
+          if ($lobby -match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {
+            throw "ael lobby fallback leaked substrate branding"
+          }
 
           $talk = & ael talk --runtime codex pi "What is your role?" 2>&1 | Out-String
           Write-Host $talk
