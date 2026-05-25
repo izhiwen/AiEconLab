@@ -104,7 +104,23 @@ function Read-TextFileOrEmpty {
       $runtime = Join-Path $fakeBin "claude.cmd"
       Set-Content -LiteralPath $runtime -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
       $support = Join-Path $fakeBin "ael-support.cmd"
-      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+      Set-Content -LiteralPath $support -Value @'
+@echo off
+set "out="
+:loop
+if "%~1"=="" goto done
+if defined out goto append
+set "out=%~1"
+goto shift_arg
+:append
+set "out=%out% %~1"
+:shift_arg
+shift
+goto loop
+:done
+> "%AEL_SUPPORT_LOG%" echo %out%
+exit /b 0
+'@ -Encoding ASCII
     } else {
       $runtime = Join-Path $fakeBin "claude"
       Set-Content -LiteralPath $runtime -Value "#!/usr/bin/env bash`nexit 0`n" -Encoding ASCII
