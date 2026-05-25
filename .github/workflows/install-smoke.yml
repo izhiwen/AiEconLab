@@ -555,7 +555,7 @@ jobs:
               throw "ael --help should not advertise hidden command: $hidden"
             }
           }
-          if ($help -match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {
+          if ($help -cmatch "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {
             throw "ael --help leaks substrate branding"
           }
 
@@ -587,7 +587,7 @@ jobs:
           if ($lobby -notmatch "AEL Lobby requires an interactive terminal") {
             throw "ael lobby fallback did not use AEL branding"
           }
-          if ($lobby -match "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {
+          if ($lobby -cmatch "\bAiPlus\b|\baiplus\b|\bAIPLUS\b") {
             throw "ael lobby fallback leaked substrate branding"
           }
 
@@ -596,7 +596,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "ael talk failed with exit code $LASTEXITCODE"
           }
-          if ($talk -match "\bAiPlus\b|\bAIPLUS\b") {
+          if ($talk -cmatch "\bAiPlus\b|\bAIPLUS\b") {
             throw "ael talk output was not sanitized"
           }
           if ($talk -notmatch "AEL") {
