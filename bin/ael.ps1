@@ -209,11 +209,11 @@ function Invoke-SubstrateVisible([string[]]$SubArgs) {
 function Invoke-SubstrateInteractive([string[]]$SubArgs) {
   $bin = Get-SubstrateBin
   if ($SubArgs.Count -gt 0) {
-    $process = Start-Process -FilePath $bin -ArgumentList $SubArgs -NoNewWindow -Wait -PassThru
+    & $bin @SubArgs
   } else {
-    $process = Start-Process -FilePath $bin -NoNewWindow -Wait -PassThru
+    & $bin
   }
-  return $process.ExitCode
+  return $LASTEXITCODE
 }
 
 function Invoke-Update([string[]]$UpdateArgs) {
