@@ -17,6 +17,18 @@ Use AEL when you want help with:
 - checking reproducibility and replication-package risk
 - organizing the next steps in a paper project
 
+## Start Here
+
+1. Install one supported AI coding runtime first:
+   [Claude Code](https://code.claude.com/docs/en/getting-started),
+   [Codex](https://developers.openai.com/codex/cli), or
+   [OpenCode](https://opencode.ai/docs/). Open it once by itself and make
+   sure it works.
+2. Install AEL with the command below.
+3. Go to a paper, replication, or data project folder and run `ael`.
+4. Pick who you want to talk to: PI, Advisor, RA-Stata, RA-Python, Referee, or
+   another role.
+
 The fastest start:
 
 ```bash
@@ -33,15 +45,6 @@ cd MyPaperProject
 ael install
 ael
 ```
-
-## Start Here
-
-1. Install one supported AI coding runtime first: Claude Code, Codex, or
-   OpenCode. Open it once by itself and make sure it works.
-2. Install AEL with the command above.
-3. Go to a paper, replication, or data project folder and run `ael`.
-4. Pick who you want to talk to: PI, Advisor, RA-Stata, RA-Python, Referee, or
-   another role.
 
 On macOS/Linux, `ael` can set up the project on first run. On Windows, run
 `ael install` once inside the project, then run `ael`.
@@ -74,8 +77,10 @@ Go directly to a role when the task is clear:
 ```bash
 ael ra-stata
 ael ra-python
+ael theorist
 ael referee
 ael replicator
+ael pm
 ```
 
 Start a fresh session instead of resuming the last one:
@@ -105,7 +110,7 @@ Use **Advisor** when you want strategic judgment:
 
 - Is this research question worth pursuing?
 - Is the identification strategy credible?
-- Is this a top-field paper, a field paper, or a nice appendix?
+- How ambitious is this realistically?
 - What is the biggest referee risk?
 
 Use **PI** when you want work organized:
@@ -224,7 +229,8 @@ external, sensitive, or irreversible happens.
 
 ## Demo
 
-*(demo recording coming back as a hosted asset in a future release)*
+The v1.0.0 readiness demo will link here when Lane B publishes the hosted
+terminal recording.
 
 ## Troubleshooting
 
