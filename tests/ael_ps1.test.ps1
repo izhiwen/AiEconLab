@@ -41,6 +41,14 @@ function Invoke-AelPs1 {
   }
 }
 
+function Read-TextFileOrEmpty {
+  param([string]$Path)
+
+  $text = Get-Content -LiteralPath $Path -Raw
+  if ($null -eq $text) { return "" }
+  return $text
+}
+
 }
 
   It "prints the Windows wrapper version" {
@@ -175,7 +183,7 @@ function Invoke-AelPs1 {
       AEL_NO_ONBOARDING = "1"
     }
     $lobby.Status | Should -Be 0
-    ([string](Get-Content -LiteralPath $lobbyLog -Raw)).Trim() | Should -Be ""
+    (Read-TextFileOrEmpty -Path $lobbyLog).Trim() | Should -Be ""
 
     $chatLog = Join-Path $fakeBin "support-chat.log"
     $chat = Invoke-AelPs1 -Arguments @("chat") -WorkingDirectory $project -Environment @{
@@ -184,7 +192,7 @@ function Invoke-AelPs1 {
       AEL_NO_ONBOARDING = "1"
     }
     $chat.Status | Should -Be 0
-    ([string](Get-Content -LiteralPath $chatLog -Raw)).Trim() | Should -Be ""
+    (Read-TextFileOrEmpty -Path $chatLog).Trim() | Should -Be ""
   }
 
   It "installs all runtimes in sequence" {
