@@ -505,6 +505,17 @@ jobs:
 
           $fakeBin = Join-Path $env:RUNNER_TEMP "ael-native-fake-bin"
           New-Item -ItemType Directory -Force -Path $fakeBin | Out-Null
+          $fakeCodexSource = Join-Path $fakeBin "codex.rs"
+          Set-Content -Path $fakeCodexSource -Encoding UTF8 -Value @'
+          fn main() {
+              println!("AEL fake codex session");
+          }
+          '@
+          rustc $fakeCodexSource -o "$fakeBin\codex.exe"
+          if ($LASTEXITCODE -ne 0) {
+            throw "failed to build fake codex runtime"
+          }
+          Copy-Item "$fakeBin\codex.exe" "$fakeBin\codex" -Force
           Set-Content -Path "$fakeBin\codex.cmd" -Encoding ASCII -Value @'
           @echo off
           set "answer="
