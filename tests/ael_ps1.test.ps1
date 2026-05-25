@@ -161,7 +161,7 @@ function Invoke-AelPs1 {
     $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
     if ($isWindowsPlatform) {
       $support = Join-Path $fakeBin "ael-support.cmd"
-      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+      Set-Content -LiteralPath $support -Value "@echo off`r`nif ""%*""=="""" (`r`n  type nul > ""%AEL_SUPPORT_LOG%""`r`n) else (`r`n  echo %* > ""%AEL_SUPPORT_LOG%""`r`n)`r`nexit /b 0`r`n" -Encoding ASCII
     } else {
       $support = Join-Path $fakeBin "ael-support"
       Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf '%s\n' ""`$*"" >""`$AEL_SUPPORT_LOG""`n" -Encoding ASCII
@@ -248,7 +248,21 @@ function Invoke-AelPs1 {
     $aelConfig.Status | Should -Be 0
     $aelConfig.Output | Should -Match "PASS ael_consultant_team_research_config"
 
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "vendor\aiplus\assets\aiplus-auto-team-consultant\core\templates\consultant-team.default.toml") -Destination (Join-Path $project ".aiplus\consultant-team.toml") -Force
+    Set-Content -LiteralPath (Join-Path $project ".aiplus\consultant-team.toml") -Value @'
+schema_version = "0.1"
+
+[[members]]
+id = "product_market"
+
+[[members]]
+id = "ai_integration"
+
+[owner_gates]
+push = true
+
+[user_evidence]
+enabled = true
+'@ -Encoding UTF8
     $defaultConfig = Invoke-AelPs1 -Arguments @("doctor") -WorkingDirectory $project -Environment @{
       AEL_AIPLUS_BIN = $support
     }
