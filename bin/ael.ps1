@@ -208,8 +208,12 @@ function Invoke-SubstrateVisible([string[]]$SubArgs) {
 
 function Invoke-SubstrateInteractive([string[]]$SubArgs) {
   $bin = Get-SubstrateBin
-  $process = Start-Process -FilePath $bin -ArgumentList $SubArgs -NoNewWindow -Wait -PassThru
-  return $process.ExitCode
+  if ($SubArgs.Count -gt 0) {
+    & $bin @SubArgs
+  } else {
+    & $bin
+  }
+  return $LASTEXITCODE
 }
 
 function Invoke-Update([string[]]$UpdateArgs) {
@@ -661,8 +665,18 @@ function Test-AelConsultantTeam {
 }
 
 function Invoke-Doctor([string[]]$DoctorArgs) {
-  $status = Invoke-SubstrateVisible (@("doctor") + $DoctorArgs)
-  $consultantStatus = Test-AelConsultantTeam
+  $bin = Get-SubstrateBin
+  $subArgs = @("doctor") + $DoctorArgs
+  & $bin @subArgs
+  $status = $LASTEXITCODE
+  $consultantStatus = 0
+  foreach ($item in @(Test-AelConsultantTeam)) {
+    if ($item -is [int]) {
+      $consultantStatus = [int]$item
+    } elseif ($null -ne $item) {
+      Write-AelOut $item
+    }
+  }
   if ($status -ne 0) { return $status }
   return $consultantStatus
 }
@@ -675,7 +689,7 @@ function Invoke-Main([string[]]$Argv) {
     "" { return (Invoke-ChatDefault) }
     "chat" {
       if ($rest.Count -gt 0) {
-        Exit-WithError "ael chat does not accept arguments. Use 'ael' for the lobby, or 'ael `"..."`' for natural-language routing."
+        Exit-WithError "ael chat does not accept arguments. Use 'ael' for the lobby, or 'ael `"...`"' for natural-language routing."
       }
       return (Invoke-ChatDefault)
     }
@@ -706,7 +720,7 @@ function Invoke-Main([string[]]$Argv) {
     }
     default {
       if ($Argv.Count -gt 1) {
-        Exit-WithError "unknown command or multi-word natural-language input: $($Argv -join ' '). Use 'ael `"..."`' for freeform requests, or 'ael talk ...' for explicit chat."
+        Exit-WithError "unknown command or multi-word natural-language input: $($Argv -join ' '). Use 'ael `"...`"' for freeform requests, or 'ael talk ...' for explicit chat."
       }
       Exit-WithError "unknown command: $cmd"
     }

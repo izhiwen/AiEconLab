@@ -50,6 +50,14 @@ function New-AelPersonas {
   }
 }
 
+function Read-TextFileOrEmpty {
+  param([string]$Path)
+
+  $text = Get-Content -LiteralPath $Path -Raw
+  if ($null -eq $text) { return "" }
+  return $text
+}
+
 }
 
   It "prints the Windows wrapper version" {
@@ -105,7 +113,23 @@ function New-AelPersonas {
       $runtime = Join-Path $fakeBin "claude.cmd"
       Set-Content -LiteralPath $runtime -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
       $support = Join-Path $fakeBin "ael-support.cmd"
-      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+      Set-Content -LiteralPath $support -Value @'
+@echo off
+set "out="
+:loop
+if "%~1"=="" goto done
+if defined out goto append
+set "out=%~1"
+goto shift_arg
+:append
+set "out=%out% %~1"
+:shift_arg
+shift
+goto loop
+:done
+> "%AEL_SUPPORT_LOG%" echo %out%
+exit /b 0
+'@ -Encoding ASCII
     } else {
       $runtime = Join-Path $fakeBin "claude"
       Set-Content -LiteralPath $runtime -Value "#!/usr/bin/env bash`nexit 0`n" -Encoding ASCII
@@ -171,7 +195,7 @@ function New-AelPersonas {
     $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
     if ($isWindowsPlatform) {
       $support = Join-Path $fakeBin "ael-support.cmd"
-      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+      Set-Content -LiteralPath $support -Value "@echo off`r`nif ""%*""=="""" (`r`n  type nul > ""%AEL_SUPPORT_LOG%""`r`n) else (`r`n  echo %* > ""%AEL_SUPPORT_LOG%""`r`n)`r`nexit /b 0`r`n" -Encoding ASCII
     } else {
       $support = Join-Path $fakeBin "ael-support"
       Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf '%s\n' ""`$*"" >""`$AEL_SUPPORT_LOG""`n" -Encoding ASCII
@@ -185,7 +209,7 @@ function New-AelPersonas {
       AEL_NO_ONBOARDING = "1"
     }
     $lobby.Status | Should -Be 0
-    (Get-Content -LiteralPath $lobbyLog -Raw).Trim() | Should -Be ""
+    (Read-TextFileOrEmpty -Path $lobbyLog).Trim() | Should -Be ""
 
     $chatLog = Join-Path $fakeBin "support-chat.log"
     $chat = Invoke-AelPs1 -Arguments @("chat") -WorkingDirectory $project -Environment @{
@@ -194,7 +218,7 @@ function New-AelPersonas {
       AEL_NO_ONBOARDING = "1"
     }
     $chat.Status | Should -Be 0
-    (Get-Content -LiteralPath $chatLog -Raw).Trim() | Should -Be ""
+    (Read-TextFileOrEmpty -Path $chatLog).Trim() | Should -Be ""
   }
 
   It "prints first-run progress and enters the lobby in a fresh project" {
@@ -306,7 +330,21 @@ function New-AelPersonas {
     $aelConfig.Status | Should -Be 0
     $aelConfig.Output | Should -Match "PASS ael_consultant_team_research_config"
 
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "vendor\aiplus\assets\aiplus-auto-team-consultant\core\templates\consultant-team.default.toml") -Destination (Join-Path $project ".aiplus\consultant-team.toml") -Force
+    Set-Content -LiteralPath (Join-Path $project ".aiplus\consultant-team.toml") -Value @'
+schema_version = "0.1"
+
+[[members]]
+id = "product_market"
+
+[[members]]
+id = "ai_integration"
+
+[owner_gates]
+push = true
+
+[user_evidence]
+enabled = true
+'@ -Encoding UTF8
     $defaultConfig = Invoke-AelPs1 -Arguments @("doctor") -WorkingDirectory $project -Environment @{
       AEL_AIPLUS_BIN = $support
     }
