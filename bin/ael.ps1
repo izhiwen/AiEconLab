@@ -413,7 +413,10 @@ function Write-InstallProgressStart([string]$Label, [bool]$ShowProgress) {
 }
 
 function Write-InstallProgressDone([string]$Label, [bool]$ShowProgress) {
-  if ($ShowProgress) { [Console]::Out.WriteLine("ael:   ✓ $Label") }
+  if ($ShowProgress) {
+    $check = [char]0x2713
+    [Console]::Out.WriteLine("ael:   $check $Label")
+  }
 }
 
 function Ensure-ProjectReadyForLobby {
@@ -427,7 +430,7 @@ function Ensure-ProjectReadyForLobby {
     return
   }
 
-  [Console]::Out.WriteLine("ael: first time in this project — setting up the AEL research team...")
+  [Console]::Out.WriteLine("ael: first time in this project - setting up the AEL research team...")
   $installed = @()
   foreach ($runtime in $availableRuntimes) {
     $result = Invoke-InstallRuntimeFlow -Runtime $runtime -PassArgs @() -ShowProgress $true

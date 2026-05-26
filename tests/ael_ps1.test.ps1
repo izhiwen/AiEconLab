@@ -218,6 +218,7 @@ function New-AelPersonas {
     }
 
     $log = Join-Path $fakeBin "fresh-lobby.log"
+    $check = [regex]::Escape([string][char]0x2713)
     $result = Invoke-AelPs1 -WorkingDirectory $project -Environment @{
       AEL_AIPLUS_BIN = $support
       AEL_SUPPORT_LOG = $log
@@ -227,13 +228,13 @@ function New-AelPersonas {
     $result.Status | Should -Be 0
     $result.Output | Should -Match "ael: first time in this project"
     $result.Output | Should -Match "ael:   installing runtime adapter \(codex\)\.\.\."
-    $result.Output | Should -Match "ael:   ✓ installing runtime adapter \(codex\)"
+    $result.Output | Should -Match "ael:   $check installing runtime adapter \(codex\)"
     $result.Output | Should -Match "ael:   adding aieconlab team\.\.\."
-    $result.Output | Should -Match "ael:   ✓ adding aieconlab team"
+    $result.Output | Should -Match "ael:   $check adding aieconlab team"
     $result.Output | Should -Match "ael:   setting active team\.\.\."
-    $result.Output | Should -Match "ael:   ✓ setting active team"
+    $result.Output | Should -Match "ael:   $check setting active team"
     $result.Output | Should -Match "ael:   registering MCP server\.\.\."
-    $result.Output | Should -Match "ael:   ✓ registering MCP server"
+    $result.Output | Should -Match "ael:   $check registering MCP server"
     $result.Output | Should -Match "AEL set up for: codex"
 
     $calls = Get-Content -LiteralPath $log
