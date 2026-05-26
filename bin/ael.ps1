@@ -40,15 +40,15 @@ Usage:
   ael doctor [--fix] [--yes]                      self-check and fix common drift
 
 Roles you can chat with directly:
-  ael pi                                          项目经理 - 派单、跟进、汇总
-  ael advisor                                     顾问 - 反思、识别策略、框架
-  ael writer                                      写手 - 起草段落、引言、改稿
-  ael ra-stata                                    实证 RA - 回归、表格、Stata
-  ael ra-python                                   数据 RA - 清洗、合并、Python
-  ael theorist                                    理论 - 识别假设、模型
-  ael referee                                     内审 - 内部自审
-  ael replicator                                  复现 - clean-room 复跑
-  ael pm                                          项目管理 - Gantt、deadline
+  ael pi                                          PI - triage, dispatch, synthesize
+  ael advisor                                     Advisor - reflect, strategy, framing
+  ael writer                                      Writer - draft and revise prose
+  ael ra-stata                                    Empirical RA - regressions, tables, Stata
+  ael ra-python                                   Data RA - cleaning, merging, Python
+  ael theorist                                    Theory - assumptions and models
+  ael referee                                     Internal referee - critical review
+  ael replicator                                  Replicator - clean-room rerun
+  ael pm                                          Project management - timeline, deadlines
 
 Advanced (you rarely need these once you are in chat):
   ael talk [--runtime RUNTIME] <role> [prompt...]
@@ -65,7 +65,7 @@ Recommended flow:
   ael install                       # Windows: set up the team once per project
   ael                               # then open the lobby - pick who you want
                                     # type/say who you want (PI, Advisor, ...)
-                                    # or "我想反思 RD 设计" and it routes you to Advisor
+                                    # or "reflect on my RD design" and it routes you to Advisor
 
 Two-window pattern (for serious paper work):
   Window 1: ael advisor             # consult on framing / identification
