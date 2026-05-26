@@ -376,6 +376,72 @@ function Runtime-FromManifest {
   return ""
 }
 
+function Test-ProjectHasAelPersonas {
+  $personaDir = Join-Path (Get-Location) ".aiplus\agents\personas"
+  foreach ($role in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
+    if (-not (Test-Path (Join-Path $personaDir "$role.md"))) { return $false }
+  }
+  return $true
+}
+
+function Test-ProjectReadyForLobby {
+  $manifest = Join-Path (Get-Location) ".aiplus\manifest.json"
+  return ((Test-Path $manifest) -and (Test-ProjectHasAelPersonas))
+}
+
+function Get-AvailableRuntimes {
+  $runtimes = @()
+  if (Get-CommandNameOrDefault "codex") { $runtimes += "codex" }
+  if (Get-CommandNameOrDefault "claude") { $runtimes += "claude-code" }
+  if (Get-CommandNameOrDefault "opencode") { $runtimes += "opencode" }
+  return $runtimes
+}
+
+function Write-NoRuntimeFound {
+  [Console]::Error.WriteLine(@"
+ael: no runtime found on PATH.
+
+Install at least one supported AI coding runtime, then run "ael" again:
+  Claude Code: https://claude.com/download
+  Codex:       https://developers.openai.com/codex
+  OpenCode:    https://opencode.ai
+"@)
+}
+
+function Write-InstallProgressStart([string]$Label, [bool]$ShowProgress) {
+  if ($ShowProgress) { [Console]::Out.WriteLine("ael:   $Label...") }
+}
+
+function Write-InstallProgressDone([string]$Label, [bool]$ShowProgress) {
+  if ($ShowProgress) { [Console]::Out.WriteLine("ael:   ✓ $Label") }
+}
+
+function Ensure-ProjectReadyForLobby {
+  $script:AelEnsureProjectReadyStatus = 0
+  if (Test-ProjectReadyForLobby) { return }
+
+  $availableRuntimes = @(Get-AvailableRuntimes)
+  if ($availableRuntimes.Count -eq 0) {
+    Write-NoRuntimeFound
+    $script:AelEnsureProjectReadyStatus = 1
+    return
+  }
+
+  [Console]::Out.WriteLine("ael: first time in this project — setting up the AEL research team...")
+  $installed = @()
+  foreach ($runtime in $availableRuntimes) {
+    $result = Invoke-InstallRuntimeFlow -Runtime $runtime -PassArgs @() -ShowProgress $true
+    if (-not $result.Success) {
+      [Console]::Error.WriteLine("ael: auto-install failed for $runtime at $($result.Step): $($result.Reason)")
+      $script:AelEnsureProjectReadyStatus = 1
+      return
+    }
+    $installed += $runtime
+  }
+
+  [Console]::Out.WriteLine("AEL set up for: $($installed -join ', ')")
+}
+
 function Invoke-Install([string[]]$InstallArgs) {
   $runtime = ""
   $dryRun = $false
@@ -464,23 +530,38 @@ function Get-InstallFailureReason([int]$Status) {
   return "exit_code=$Status"
 }
 
-function Invoke-InstallRuntimeFlow([string]$Runtime, [string[]]$PassArgs) {
+function Invoke-InstallRuntimeFlow([string]$Runtime, [string[]]$PassArgs, [bool]$ShowProgress = $false) {
+  $label = "installing runtime adapter ($Runtime)"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet (@("install", $Runtime, "--allow-version-skew") + $PassArgs)
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "install"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
+
+  $label = "adding aieconlab team"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet @("add", "aieconlab")
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "add"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
+
+  $label = "setting active team"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet @("agent", "set-team", "aieconlab")
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "set-team"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
+
+  $label = "registering MCP server"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet @("mcp-register", "--runtime", $Runtime)
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "mcp-register"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
   return [pscustomobject]@{ Success = $true; Step = ""; Reason = "" }
 }
 
@@ -518,18 +599,8 @@ function Maybe-PrintFirstWelcome {
 }
 
 function Invoke-ChatDefault {
-  if (-not (Test-Path (Join-Path (Get-Location) ".aiplus\manifest.json"))) {
-    $message = @"
-ael: this project is not set up yet.
-
-Run this once to install the research team:
-  ael install
-
-Then run "ael" to chat with your team in plain language.
-"@
-    [Console]::Error.WriteLine($message)
-    exit 1
-  }
+  Ensure-ProjectReadyForLobby
+  if ($script:AelEnsureProjectReadyStatus -ne 0) { return $script:AelEnsureProjectReadyStatus }
 
   Maybe-PrintFirstWelcome
   return (Invoke-SubstrateInteractive @())
