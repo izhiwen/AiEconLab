@@ -650,23 +650,32 @@ EOF
 auto_install_available_runtimes() {
   AEL_LOBBY_RUNTIMES=()
   local runtime bin
+  local -a available_runtimes=()
   for runtime in codex claude-code opencode; do
     bin="$(runtime_binary "$runtime")"
     if ! command -v "$bin" >/dev/null 2>&1; then
       continue
     fi
+    available_runtimes+=("$runtime")
+  done
+
+  if [ "${#available_runtimes[@]}" -eq 0 ]; then
+    print_no_runtime_found
+    return 1
+  fi
+
+  printf 'ael: first time in this project — setting up the AEL research team...\n'
+  AEL_INSTALL_PROGRESS=1
+  for runtime in "${available_runtimes[@]}"; do
     if ! install_runtime_flow "$runtime"; then
       printf 'ael: auto-install failed for %s at %s: %s\n' \
         "$runtime" "$AEL_INSTALL_FAILURE_STEP" "$AEL_INSTALL_FAILURE_REASON" >&2
+      AEL_INSTALL_PROGRESS=0
       return 1
     fi
     AEL_LOBBY_RUNTIMES+=("$runtime")
   done
-
-  if [ "${#AEL_LOBBY_RUNTIMES[@]}" -eq 0 ]; then
-    print_no_runtime_found
-    return 1
-  fi
+  AEL_INSTALL_PROGRESS=0
 
   printf 'AEL set up for: '
   join_install_summary "${AEL_LOBBY_RUNTIMES[@]}"
@@ -717,40 +726,62 @@ print_install_dry_run_for_runtime() {
   printf '    would register the MCP server with %s (native tool-use for chat)\n' "$runtime"
 }
 
+install_progress_start() {
+  [ "${AEL_INSTALL_PROGRESS:-0}" = "1" ] || return 0
+  printf 'ael:   %s...\n' "$1"
+}
+
+install_progress_done() {
+  [ "${AEL_INSTALL_PROGRESS:-0}" = "1" ] || return 0
+  printf 'ael:   ✓ %s\n' "$1"
+}
+
 install_runtime_flow() {
   local runtime="$1"
   shift
-  local output step
+  local output step progress_label
   AEL_INSTALL_FAILURE_REASON=""
   AEL_INSTALL_FAILURE_STEP=""
 
   step="install"
+  progress_label="installing runtime adapter ($runtime)"
+  install_progress_start "$progress_label"
   if ! run_substrate_capture output install "$runtime" --allow-version-skew "$@"; then
     AEL_INSTALL_FAILURE_STEP="$step"
     AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
     return 1
   fi
+  install_progress_done "$progress_label"
 
   step="add"
+  progress_label="adding aieconlab team"
+  install_progress_start "$progress_label"
   if ! run_substrate_capture output add aieconlab; then
     AEL_INSTALL_FAILURE_STEP="$step"
     AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
     return 1
   fi
+  install_progress_done "$progress_label"
 
   step="set-team"
+  progress_label="setting active team"
+  install_progress_start "$progress_label"
   if ! run_substrate_capture output agent set-team aieconlab; then
     AEL_INSTALL_FAILURE_STEP="$step"
     AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
     return 1
   fi
+  install_progress_done "$progress_label"
 
   step="mcp-register"
+  progress_label="registering MCP server"
+  install_progress_start "$progress_label"
   if ! run_substrate_capture output mcp-register --runtime "$runtime"; then
     AEL_INSTALL_FAILURE_STEP="$step"
     AEL_INSTALL_FAILURE_REASON="$(install_failure_reason "$output")"
     return 1
   fi
+  install_progress_done "$progress_label"
 }
 
 install_cmd() {

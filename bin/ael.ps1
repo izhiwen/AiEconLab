@@ -40,15 +40,15 @@ Usage:
   ael doctor [--fix] [--yes]                      self-check and fix common drift
 
 Roles you can chat with directly:
-  ael pi                                          项目经理 - 派单、跟进、汇总
-  ael advisor                                     顾问 - 反思、识别策略、框架
-  ael writer                                      写手 - 起草段落、引言、改稿
-  ael ra-stata                                    实证 RA - 回归、表格、Stata
-  ael ra-python                                   数据 RA - 清洗、合并、Python
-  ael theorist                                    理论 - 识别假设、模型
-  ael referee                                     内审 - 内部自审
-  ael replicator                                  复现 - clean-room 复跑
-  ael pm                                          项目管理 - Gantt、deadline
+  ael pi                                          PI - triage, dispatch, synthesize
+  ael advisor                                     Advisor - reflect, strategy, framing
+  ael writer                                      Writer - draft and revise prose
+  ael ra-stata                                    Empirical RA - regressions, tables, Stata
+  ael ra-python                                   Data RA - cleaning, merging, Python
+  ael theorist                                    Theory - assumptions and models
+  ael referee                                     Internal referee - critical review
+  ael replicator                                  Replicator - clean-room rerun
+  ael pm                                          Project management - timeline, deadlines
 
 Advanced (you rarely need these once you are in chat):
   ael talk [--runtime RUNTIME] <role> [prompt...]
@@ -65,7 +65,7 @@ Recommended flow:
   ael install                       # Windows: set up the team once per project
   ael                               # then open the lobby - pick who you want
                                     # type/say who you want (PI, Advisor, ...)
-                                    # or "我想反思 RD 设计" and it routes you to Advisor
+                                    # or "reflect on my RD design" and it routes you to Advisor
 
 Two-window pattern (for serious paper work):
   Window 1: ael advisor             # consult on framing / identification
@@ -208,8 +208,12 @@ function Invoke-SubstrateVisible([string[]]$SubArgs) {
 
 function Invoke-SubstrateInteractive([string[]]$SubArgs) {
   $bin = Get-SubstrateBin
-  $process = Start-Process -FilePath $bin -ArgumentList $SubArgs -NoNewWindow -Wait -PassThru
-  return $process.ExitCode
+  if ($SubArgs.Count -gt 0) {
+    & $bin @SubArgs
+  } else {
+    & $bin
+  }
+  return $LASTEXITCODE
 }
 
 function Invoke-Update([string[]]$UpdateArgs) {
@@ -376,6 +380,75 @@ function Runtime-FromManifest {
   return ""
 }
 
+function Test-ProjectHasAelPersonas {
+  $personaDir = Join-Path (Get-Location) ".aiplus\agents\personas"
+  foreach ($role in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
+    if (-not (Test-Path (Join-Path $personaDir "$role.md"))) { return $false }
+  }
+  return $true
+}
+
+function Test-ProjectReadyForLobby {
+  $manifest = Join-Path (Get-Location) ".aiplus\manifest.json"
+  return ((Test-Path $manifest) -and (Test-ProjectHasAelPersonas))
+}
+
+function Get-AvailableRuntimes {
+  $runtimes = @()
+  if (Get-CommandNameOrDefault "codex") { $runtimes += "codex" }
+  if (Get-CommandNameOrDefault "claude") { $runtimes += "claude-code" }
+  if (Get-CommandNameOrDefault "opencode") { $runtimes += "opencode" }
+  return $runtimes
+}
+
+function Write-NoRuntimeFound {
+  [Console]::Error.WriteLine(@"
+ael: no runtime found on PATH.
+
+Install at least one supported AI coding runtime, then run "ael" again:
+  Claude Code: https://claude.com/download
+  Codex:       https://developers.openai.com/codex
+  OpenCode:    https://opencode.ai
+"@)
+}
+
+function Write-InstallProgressStart([string]$Label, [bool]$ShowProgress) {
+  if ($ShowProgress) { [Console]::Out.WriteLine("ael:   $Label...") }
+}
+
+function Write-InstallProgressDone([string]$Label, [bool]$ShowProgress) {
+  if ($ShowProgress) {
+    $check = [char]0x2713
+    [Console]::Out.WriteLine("ael:   $check $Label")
+  }
+}
+
+function Ensure-ProjectReadyForLobby {
+  $script:AelEnsureProjectReadyStatus = 0
+  if (Test-ProjectReadyForLobby) { return }
+
+  $availableRuntimes = @(Get-AvailableRuntimes)
+  if ($availableRuntimes.Count -eq 0) {
+    Write-NoRuntimeFound
+    $script:AelEnsureProjectReadyStatus = 1
+    return
+  }
+
+  [Console]::Out.WriteLine("ael: first time in this project - setting up the AEL research team...")
+  $installed = @()
+  foreach ($runtime in $availableRuntimes) {
+    $result = Invoke-InstallRuntimeFlow -Runtime $runtime -PassArgs @() -ShowProgress $true
+    if (-not $result.Success) {
+      [Console]::Error.WriteLine("ael: auto-install failed for $runtime at $($result.Step): $($result.Reason)")
+      $script:AelEnsureProjectReadyStatus = 1
+      return
+    }
+    $installed += $runtime
+  }
+
+  [Console]::Out.WriteLine("AEL set up for: $($installed -join ', ')")
+}
+
 function Invoke-Install([string[]]$InstallArgs) {
   $runtime = ""
   $dryRun = $false
@@ -464,23 +537,38 @@ function Get-InstallFailureReason([int]$Status) {
   return "exit_code=$Status"
 }
 
-function Invoke-InstallRuntimeFlow([string]$Runtime, [string[]]$PassArgs) {
+function Invoke-InstallRuntimeFlow([string]$Runtime, [string[]]$PassArgs, [bool]$ShowProgress = $false) {
+  $label = "installing runtime adapter ($Runtime)"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet (@("install", $Runtime, "--allow-version-skew") + $PassArgs)
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "install"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
+
+  $label = "adding aieconlab team"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet @("add", "aieconlab")
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "add"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
+
+  $label = "setting active team"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet @("agent", "set-team", "aieconlab")
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "set-team"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
+
+  $label = "registering MCP server"
+  Write-InstallProgressStart $label $ShowProgress
   $status = Invoke-SubstrateQuiet @("mcp-register", "--runtime", $Runtime)
   if ($status -ne 0) {
     return [pscustomobject]@{ Success = $false; Step = "mcp-register"; Reason = (Get-InstallFailureReason $status) }
   }
+  Write-InstallProgressDone $label $ShowProgress
   return [pscustomobject]@{ Success = $true; Step = ""; Reason = "" }
 }
 
@@ -518,18 +606,8 @@ function Maybe-PrintFirstWelcome {
 }
 
 function Invoke-ChatDefault {
-  if (-not (Test-Path (Join-Path (Get-Location) ".aiplus\manifest.json"))) {
-    $message = @"
-ael: this project is not set up yet.
-
-Run this once to install the research team:
-  ael install
-
-Then run "ael" to chat with your team in plain language.
-"@
-    [Console]::Error.WriteLine($message)
-    exit 1
-  }
+  Ensure-ProjectReadyForLobby
+  if ($script:AelEnsureProjectReadyStatus -ne 0) { return $script:AelEnsureProjectReadyStatus }
 
   Maybe-PrintFirstWelcome
   return (Invoke-SubstrateInteractive @())
@@ -587,8 +665,18 @@ function Test-AelConsultantTeam {
 }
 
 function Invoke-Doctor([string[]]$DoctorArgs) {
-  $status = Invoke-SubstrateVisible (@("doctor") + $DoctorArgs)
-  $consultantStatus = Test-AelConsultantTeam
+  $bin = Get-SubstrateBin
+  $subArgs = @("doctor") + $DoctorArgs
+  & $bin @subArgs
+  $status = $LASTEXITCODE
+  $consultantStatus = 0
+  foreach ($item in @(Test-AelConsultantTeam)) {
+    if ($item -is [int]) {
+      $consultantStatus = [int]$item
+    } elseif ($null -ne $item) {
+      Write-AelOut $item
+    }
+  }
   if ($status -ne 0) { return $status }
   return $consultantStatus
 }
@@ -601,7 +689,7 @@ function Invoke-Main([string[]]$Argv) {
     "" { return (Invoke-ChatDefault) }
     "chat" {
       if ($rest.Count -gt 0) {
-        Exit-WithError "ael chat does not accept arguments. Use 'ael' for the lobby, or 'ael `"..."`' for natural-language routing."
+        Exit-WithError "ael chat does not accept arguments. Use 'ael' for the lobby, or 'ael `"...`"' for natural-language routing."
       }
       return (Invoke-ChatDefault)
     }
@@ -632,7 +720,7 @@ function Invoke-Main([string[]]$Argv) {
     }
     default {
       if ($Argv.Count -gt 1) {
-        Exit-WithError "unknown command or multi-word natural-language input: $($Argv -join ' '). Use 'ael `"..."`' for freeform requests, or 'ael talk ...' for explicit chat."
+        Exit-WithError "unknown command or multi-word natural-language input: $($Argv -join ' '). Use 'ael `"...`"' for freeform requests, or 'ael talk ...' for explicit chat."
       }
       Exit-WithError "unknown command: $cmd"
     }

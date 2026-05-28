@@ -41,6 +41,23 @@ function Invoke-AelPs1 {
   }
 }
 
+function New-AelPersonas {
+  param([string]$Project)
+  $personaDir = Join-Path $Project ".aiplus\agents\personas"
+  New-Item -ItemType Directory -Force -Path $personaDir | Out-Null
+  foreach ($role in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
+    Set-Content -LiteralPath (Join-Path $personaDir "$role.md") -Value "# $role" -Encoding UTF8
+  }
+}
+
+function Read-TextFileOrEmpty {
+  param([string]$Path)
+
+  $text = Get-Content -LiteralPath $Path -Raw
+  if ($null -eq $text) { return "" }
+  return $text
+}
+
 }
 
   It "prints the Windows wrapper version" {
@@ -96,7 +113,23 @@ function Invoke-AelPs1 {
       $runtime = Join-Path $fakeBin "claude.cmd"
       Set-Content -LiteralPath $runtime -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
       $support = Join-Path $fakeBin "ael-support.cmd"
-      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+      Set-Content -LiteralPath $support -Value @'
+@echo off
+set "out="
+:loop
+if "%~1"=="" goto done
+if defined out goto append
+set "out=%~1"
+goto shift_arg
+:append
+set "out=%out% %~1"
+:shift_arg
+shift
+goto loop
+:done
+> "%AEL_SUPPORT_LOG%" echo %out%
+exit /b 0
+'@ -Encoding ASCII
     } else {
       $runtime = Join-Path $fakeBin "claude"
       Set-Content -LiteralPath $runtime -Value "#!/usr/bin/env bash`nexit 0`n" -Encoding ASCII
@@ -157,11 +190,12 @@ function Invoke-AelPs1 {
     $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
     Set-Content -LiteralPath (Join-Path $project ".aiplus\manifest.json") -Value '{"runtimeAdapters":["codex"]}' -Encoding UTF8
+    New-AelPersonas -Project $project
 
     $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
     if ($isWindowsPlatform) {
       $support = Join-Path $fakeBin "ael-support.cmd"
-      Set-Content -LiteralPath $support -Value "@echo off`r`necho %* > %AEL_SUPPORT_LOG%`r`nexit /b 0`r`n" -Encoding ASCII
+      Set-Content -LiteralPath $support -Value "@echo off`r`nif ""%*""=="""" (`r`n  type nul > ""%AEL_SUPPORT_LOG%""`r`n) else (`r`n  echo %* > ""%AEL_SUPPORT_LOG%""`r`n)`r`nexit /b 0`r`n" -Encoding ASCII
     } else {
       $support = Join-Path $fakeBin "ael-support"
       Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nprintf '%s\n' ""`$*"" >""`$AEL_SUPPORT_LOG""`n" -Encoding ASCII
@@ -175,7 +209,7 @@ function Invoke-AelPs1 {
       AEL_NO_ONBOARDING = "1"
     }
     $lobby.Status | Should -Be 0
-    (Get-Content -LiteralPath $lobbyLog -Raw).Trim() | Should -Be ""
+    (Read-TextFileOrEmpty -Path $lobbyLog).Trim() | Should -Be ""
 
     $chatLog = Join-Path $fakeBin "support-chat.log"
     $chat = Invoke-AelPs1 -Arguments @("chat") -WorkingDirectory $project -Environment @{
@@ -184,7 +218,55 @@ function Invoke-AelPs1 {
       AEL_NO_ONBOARDING = "1"
     }
     $chat.Status | Should -Be 0
-    (Get-Content -LiteralPath $chatLog -Raw).Trim() | Should -Be ""
+    (Read-TextFileOrEmpty -Path $chatLog).Trim() | Should -Be ""
+  }
+
+  It "prints first-run progress and enters the lobby in a fresh project" {
+    $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $project, $fakeBin | Out-Null
+
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $runtime = Join-Path $fakeBin "codex.cmd"
+      Set-Content -LiteralPath $runtime -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`nif ""%~1""=="""" (`r`n  echo LOBBY>>%AEL_SUPPORT_LOG%`r`n) else (`r`n  echo %*>>%AEL_SUPPORT_LOG%`r`n)`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $runtime = Join-Path $fakeBin "codex"
+      Set-Content -LiteralPath $runtime -Value "#!/usr/bin/env bash`nexit 0`n" -Encoding ASCII
+      chmod +x $runtime
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nif [ ""`$#"" -eq 0 ]; then`n  printf 'LOBBY\n' >>""`$AEL_SUPPORT_LOG""`nelse`n  printf '%s\n' ""`$*"" >>""`$AEL_SUPPORT_LOG""`nfi`nexit 0`n" -Encoding ASCII
+      chmod +x $support
+    }
+
+    $log = Join-Path $fakeBin "fresh-lobby.log"
+    $check = [regex]::Escape([string][char]0x2713)
+    $result = Invoke-AelPs1 -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $log
+      AEL_NO_ONBOARDING = "1"
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $result.Status | Should -Be 0
+    $result.Output | Should -Match "ael: first time in this project"
+    $result.Output | Should -Match "ael:   installing runtime adapter \(codex\)\.\.\."
+    $result.Output | Should -Match "ael:   $check installing runtime adapter \(codex\)"
+    $result.Output | Should -Match "ael:   adding aieconlab team\.\.\."
+    $result.Output | Should -Match "ael:   $check adding aieconlab team"
+    $result.Output | Should -Match "ael:   setting active team\.\.\."
+    $result.Output | Should -Match "ael:   $check setting active team"
+    $result.Output | Should -Match "ael:   registering MCP server\.\.\."
+    $result.Output | Should -Match "ael:   $check registering MCP server"
+    $result.Output | Should -Match "AEL set up for: codex"
+
+    $calls = Get-Content -LiteralPath $log
+    $calls | Should -Contain "install codex --allow-version-skew"
+    $calls | Should -Contain "add aieconlab"
+    $calls | Should -Contain "agent set-team aieconlab"
+    $calls | Should -Contain "mcp-register --runtime codex"
+    $calls | Should -Contain "LOBBY"
   }
 
   It "installs all runtimes in sequence" {
@@ -248,7 +330,21 @@ function Invoke-AelPs1 {
     $aelConfig.Status | Should -Be 0
     $aelConfig.Output | Should -Match "PASS ael_consultant_team_research_config"
 
-    Copy-Item -LiteralPath (Join-Path $RepoRoot "vendor\aiplus\assets\aiplus-auto-team-consultant\core\templates\consultant-team.default.toml") -Destination (Join-Path $project ".aiplus\consultant-team.toml") -Force
+    Set-Content -LiteralPath (Join-Path $project ".aiplus\consultant-team.toml") -Value @'
+schema_version = "0.1"
+
+[[members]]
+id = "product_market"
+
+[[members]]
+id = "ai_integration"
+
+[owner_gates]
+push = true
+
+[user_evidence]
+enabled = true
+'@ -Encoding UTF8
     $defaultConfig = Invoke-AelPs1 -Arguments @("doctor") -WorkingDirectory $project -Environment @{
       AEL_AIPLUS_BIN = $support
     }
