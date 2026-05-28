@@ -41,6 +41,15 @@ function Invoke-AelPs1 {
   }
 }
 
+function New-AelPersonas {
+  param([string]$Project)
+  $personaDir = Join-Path $Project ".aiplus\agents\personas"
+  New-Item -ItemType Directory -Force -Path $personaDir | Out-Null
+  foreach ($role in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
+    Set-Content -LiteralPath (Join-Path $personaDir "$role.md") -Value "# $role" -Encoding UTF8
+  }
+}
+
 function Read-TextFileOrEmpty {
   param([string]$Path)
 
@@ -181,6 +190,7 @@ exit /b 0
     $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Force -Path (Join-Path $project ".aiplus"), $fakeBin | Out-Null
     Set-Content -LiteralPath (Join-Path $project ".aiplus\manifest.json") -Value '{"runtimeAdapters":["codex"]}' -Encoding UTF8
+    New-AelPersonas -Project $project
 
     $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
     if ($isWindowsPlatform) {
@@ -209,6 +219,54 @@ exit /b 0
     }
     $chat.Status | Should -Be 0
     (Read-TextFileOrEmpty -Path $chatLog).Trim() | Should -Be ""
+  }
+
+  It "prints first-run progress and enters the lobby in a fresh project" {
+    $project = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    $fakeBin = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $project, $fakeBin | Out-Null
+
+    $isWindowsPlatform = [System.IO.Path]::DirectorySeparatorChar -eq "\"
+    if ($isWindowsPlatform) {
+      $runtime = Join-Path $fakeBin "codex.cmd"
+      Set-Content -LiteralPath $runtime -Value "@echo off`r`nexit /b 0`r`n" -Encoding ASCII
+      $support = Join-Path $fakeBin "ael-support.cmd"
+      Set-Content -LiteralPath $support -Value "@echo off`r`nif ""%~1""=="""" (`r`n  echo LOBBY>>%AEL_SUPPORT_LOG%`r`n) else (`r`n  echo %*>>%AEL_SUPPORT_LOG%`r`n)`r`nexit /b 0`r`n" -Encoding ASCII
+    } else {
+      $runtime = Join-Path $fakeBin "codex"
+      Set-Content -LiteralPath $runtime -Value "#!/usr/bin/env bash`nexit 0`n" -Encoding ASCII
+      chmod +x $runtime
+      $support = Join-Path $fakeBin "ael-support"
+      Set-Content -LiteralPath $support -Value "#!/usr/bin/env bash`nif [ ""`$#"" -eq 0 ]; then`n  printf 'LOBBY\n' >>""`$AEL_SUPPORT_LOG""`nelse`n  printf '%s\n' ""`$*"" >>""`$AEL_SUPPORT_LOG""`nfi`nexit 0`n" -Encoding ASCII
+      chmod +x $support
+    }
+
+    $log = Join-Path $fakeBin "fresh-lobby.log"
+    $check = [regex]::Escape([string][char]0x2713)
+    $result = Invoke-AelPs1 -WorkingDirectory $project -Environment @{
+      AEL_AIPLUS_BIN = $support
+      AEL_SUPPORT_LOG = $log
+      AEL_NO_ONBOARDING = "1"
+      PATH = "$fakeBin$([IO.Path]::PathSeparator)$env:PATH"
+    }
+    $result.Status | Should -Be 0
+    $result.Output | Should -Match "ael: first time in this project"
+    $result.Output | Should -Match "ael:   installing runtime adapter \(codex\)\.\.\."
+    $result.Output | Should -Match "ael:   $check installing runtime adapter \(codex\)"
+    $result.Output | Should -Match "ael:   adding aieconlab team\.\.\."
+    $result.Output | Should -Match "ael:   $check adding aieconlab team"
+    $result.Output | Should -Match "ael:   setting active team\.\.\."
+    $result.Output | Should -Match "ael:   $check setting active team"
+    $result.Output | Should -Match "ael:   registering MCP server\.\.\."
+    $result.Output | Should -Match "ael:   $check registering MCP server"
+    $result.Output | Should -Match "AEL set up for: codex"
+
+    $calls = Get-Content -LiteralPath $log
+    $calls | Should -Contain "install codex --allow-version-skew"
+    $calls | Should -Contain "add aieconlab"
+    $calls | Should -Contain "agent set-team aieconlab"
+    $calls | Should -Contain "mcp-register --runtime codex"
+    $calls | Should -Contain "LOBBY"
   }
 
   It "installs all runtimes in sequence" {

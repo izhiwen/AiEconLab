@@ -387,16 +387,93 @@ printf '%s\n' "$*" >>"$AEL_SUPPORT_LOG"
 exit 0
 SH
 chmod +x "$auto_bin/codex" "$auto_support"
+
+auto_lobby_log="$(mktemp)"
+auto_lobby_out="$(
+  cd "$no_manifest" && \
+    PATH="$delegate_bin:$auto_bin:$PATH" \
+    AEL_AIPLUS_BIN="$auto_support" \
+    AEL_SUPPORT_LOG="$auto_lobby_log" \
+    "$ael_abs"
+)"
+case "$auto_lobby_out" in
+  *"ael: first time in this project"*\
+*"ael:   installing runtime adapter (codex)..."*\
+*"ael:   ✓ installing runtime adapter (codex)"*\
+*"ael:   adding aieconlab team..."*\
+*"ael:   ✓ adding aieconlab team"*\
+*"ael:   setting active team..."*\
+*"ael:   ✓ setting active team"*\
+*"ael:   registering MCP server..."*\
+*"ael:   ✓ registering MCP server"*\
+*"AEL set up for: codex"*\
+*"ARGS="*) ;;
+  *)
+    printf '%s\n' "$auto_lobby_out"
+    fail "fresh lobby must print first-run progress then delegate to lobby"
+    ;;
+esac
+case "$(cat "$auto_lobby_log")" in
+  *"install codex --allow-version-skew"*\
+*"add aieconlab"*\
+*"agent set-team aieconlab"*\
+*"mcp-register --runtime codex"*) ;;
+  *)
+    cat "$auto_lobby_log"
+    fail "fresh lobby did not run AEL install flow"
+    ;;
+esac
+
+fail_manifest="$(mktemp -d)"
+fail_support="$(mktemp)"
+cat >"$fail_support" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >>"$AEL_SUPPORT_LOG"
+if [ "${1:-}" = "add" ]; then
+  printf 'missing team bits\n'
+  exit 7
+fi
+exit 0
+SH
+chmod +x "$fail_support"
+fail_log="$(mktemp)"
+set +e
+fail_out="$(
+  cd "$fail_manifest" && \
+    PATH="$delegate_bin:$auto_bin:$PATH" \
+    AEL_AIPLUS_BIN="$fail_support" \
+    AEL_SUPPORT_LOG="$fail_log" \
+    "$ael_abs" 2>&1
+)"
+fail_status=$?
+set -e
+[ "$fail_status" -ne 0 ] || fail "fresh auto-install failure must fail"
+case "$fail_out" in
+  *"ael:   installing runtime adapter (codex)..."*\
+*"ael:   ✓ installing runtime adapter (codex)"*\
+*"ael:   adding aieconlab team..."*\
+*"ael: auto-install failed for codex at add: missing team bits"*) ;;
+  *)
+    printf '%s\n' "$fail_out"
+    fail "fresh auto-install failure must preserve captured error reason"
+    ;;
+esac
+
+no_manifest_role="$(mktemp -d)"
 auto_log="$(mktemp)"
 auto_out="$(
-  cd "$no_manifest" && \
+  cd "$no_manifest_role" && \
     PATH="$delegate_bin:$auto_bin:$PATH" \
     AEL_AIPLUS_BIN="$auto_support" \
     AEL_SUPPORT_LOG="$auto_log" \
     "$ael_abs" pi
 )"
 case "$auto_out" in
-  *"AEL set up for: codex"*\
+  *"ael: first time in this project"*\
+*"ael:   installing runtime adapter (codex)..."*\
+*"ael:   ✓ registering MCP server"*\
+*"AEL set up for: codex"*\
 *"ARGS=agent talk --resume pi"*) ;;
   *)
     printf '%s\n' "$auto_out"
