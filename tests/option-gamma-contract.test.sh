@@ -26,7 +26,14 @@ fail() {
 }
 
 command -v git >/dev/null 2>&1 || fail "git is required"
-command -v aiplus >/dev/null 2>&1 || fail "aiplus is required"
+
+# Graceful skip in environments without aiplus (e.g., the lightweight
+# validate-assets CI job). The contract is still exercised in install-smoke
+# jobs where aiplus is installed. Pattern mirrors tests/install_sh.test.sh.
+if ! command -v aiplus >/dev/null 2>&1; then
+  echo "AEL_OPTION_GAMMA_CONTRACT_TEST=SKIP (aiplus not available in this environment)"
+  exit 0
+fi
 
 CLONE_DIR="$TMP_DIR/AiEconLab"
 export HOME="$TMP_DIR/home"
