@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "editor"
+display_name = "Editor"
+tier = "owner_facing"
+default_specialty = "review-coordinator"
+warm_bench_ttl_seconds = 3600
+
+[persona]
+system_prompt_file = "personas/editor.md"
+voice = "editor"
+escalation_target = "owner"
+
+[workspace]
+needs_worktree = false
+worktree_branch = "review/editor"
+worktree_path = "../{project_name}.editor"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/editor"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["Editor", "审稿编辑", "编辑", "预审编辑", "审稿协调", "三审汇总"]
+english_aliases = ["editor", "review-editor", "review battery", "pre-submission editor", "synthesize reviewers"]
