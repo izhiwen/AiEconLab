@@ -539,7 +539,7 @@ jobs:
 
           $version = & ael --version 2>&1 | Out-String
           Write-Host $version
-          if ($version.Trim() -ne "AEL 0.3.0 (aiplus 0.6.19+)") {
+          if ($version.Trim() -ne "AEL 0.4.0 (aiplus 0.6.19+)") {
             throw "unexpected ael --version output: $version"
           }
 

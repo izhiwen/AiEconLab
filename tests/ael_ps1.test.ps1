@@ -63,7 +63,7 @@ function Read-TextFileOrEmpty {
   It "prints the Windows wrapper version" {
     $result = Invoke-AelPs1 -Arguments @("--version")
     $result.Status | Should -Be 0
-    $result.Output.Trim() | Should -Be "AEL 0.3.0 (aiplus 0.6.19+)"
+    $result.Output.Trim() | Should -Be "AEL 0.4.0 (aiplus 0.6.19+)"
   }
 
   It "shows all public commands and role shortcuts without substrate branding" {
