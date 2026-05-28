@@ -44,6 +44,8 @@ ael install
 ael
 ```
 
+Windows 支持目前只经过 CI 验证。如果你在使用 PowerShell 快速安装时遇到问题，请到 https://github.com/izhiwen/AiEconLab/issues 提 issue，我们想听到反馈。
+
 macOS/Linux 上，第一次在项目里运行 `ael` 时会自动设置项目。Windows 上请先在
 项目里运行一次 `ael install`，再运行 `ael`。
 

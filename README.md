@@ -46,6 +46,8 @@ ael install
 ael
 ```
 
+Windows support is currently CI-verified only. If you hit issues with the PowerShell quickstart, please open an issue at https://github.com/izhiwen/AiEconLab/issues — we'd like to hear about it.
+
 On macOS/Linux, `ael` can set up the project on first run. On Windows, run
 `ael install` once inside the project, then run `ael`.
 
