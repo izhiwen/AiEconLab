@@ -6,6 +6,11 @@ node_modules/
 .aiplus/agent-memory/
 .aiplus/agent-workspaces/
 .aiplus/agents/
+.aiplus/agents/active-team.txt
+.aiplus/agents/_teams/
+.aiplus/agents/personas/
+.aiplus/agents/experts/
+.aiplus/agents/*.toml
 .aiplus/velocity/
 *.tmp
 *.bak

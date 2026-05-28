@@ -68,6 +68,11 @@ sync_ael_asset() {
     tar -cf - \
       --exclude='./.git' \
       --exclude='./.github' \
+      --exclude='./.agents' \
+      --exclude='./.aiplus' \
+      --exclude='./.claude' \
+      --exclude='./.codex' \
+      --exclude='./.opencode' \
       --exclude='./vendor' \
       --exclude='./dist' \
       --exclude='./target' \
