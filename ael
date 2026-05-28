@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.3.0}"
+AEL_VERSION="${AEL_VERSION:-0.4.0}"
 AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
 AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
@@ -34,7 +34,7 @@ fi
 
 usage() {
   cat <<'EOF'
-AEL 0.3.0
+AEL 0.4.0
 
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
