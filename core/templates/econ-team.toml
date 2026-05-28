@@ -107,6 +107,9 @@ allow_direct_talk_to_others = true
 "introduction" = "writer"
 "写作" = "writer"
 "段落" = "writer"
+"editor" = "writer"
+"编辑" = "writer"
+"主编" = "writer"
 
 # --- referee (internal pre-submission critique) ---
 "referee" = "referee"
