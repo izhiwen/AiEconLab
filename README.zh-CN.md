@@ -17,6 +17,16 @@ AEL 适合用来：
 - 检查结果能不能复现
 - 管理一篇论文接下来的任务
 
+## 从这里开始
+
+1. 先装一个支持的 AI coding runtime：
+   [Claude Code](https://code.claude.com/docs/en/getting-started)、
+   [Codex](https://developers.openai.com/codex/cli) 或
+   [OpenCode](https://opencode.ai/docs/)。先单独打开它，确认能正常聊天。
+2. 用下面的命令安装 AEL。
+3. 进入你的论文、复现或数据项目文件夹，运行 `ael`。
+4. 选择你要找谁：PI、Advisor、RA-Stata、RA-Python、Referee，或其他角色。
+
 最快开始：
 
 ```bash
@@ -34,13 +44,7 @@ ael install
 ael
 ```
 
-## 从这里开始
-
-1. 先装一个支持的 AI coding runtime：Claude Code、Codex 或 OpenCode。
-   先单独打开它，确认能正常聊天。
-2. 用上面的命令安装 AEL。
-3. 进入你的论文、复现或数据项目文件夹，运行 `ael`。
-4. 选择你要找谁：PI、Advisor、RA-Stata、RA-Python、Referee，或其他角色。
+Windows 支持目前只经过 CI 验证。如果你在使用 PowerShell 快速安装时遇到问题，请到 https://github.com/izhiwen/AiEconLab/issues 提 issue，我们想听到反馈。
 
 macOS/Linux 上，第一次在项目里运行 `ael` 时会自动设置项目。Windows 上请先在
 项目里运行一次 `ael install`，再运行 `ael`。
@@ -72,8 +76,10 @@ ael advisor
 ```bash
 ael ra-stata
 ael ra-python
+ael theorist
 ael referee
 ael replicator
+ael pm
 ```
 
 不想接着上次聊，想开一个新会话：
@@ -103,7 +109,7 @@ ael refresh
 
 - 这个题目值不值得做？
 - 这个识别策略站不站得住？
-- 这是 top-field 论文、领域期刊论文，还是 appendix 结果？
+- 这个项目现实里应该做到多大野心？
 - 审稿人最容易攻击哪里？
 
 找 **PI**，当你想要推进：
@@ -211,7 +217,7 @@ AEL 留在你的本地项目里。它不会：
 
 ## 演示
 
-*(demo 录屏将在未来版本以外链形式回归)*
+v1.0.0 readiness 的 Lane B 发布托管终端录屏后，会在这里补上链接。
 
 ## 出问题时
 
@@ -258,7 +264,7 @@ release workflow 会发布平台 tarball 和 SHA256 sidecar，供安装器使用
 
 ## 高级说明
 
-AEL 构建在 AiPlus agent substrate 之上；受支持的用户入口是 `ael` CLI 和本仓库。
+AEL 构建在 AiPlus agent substrate 之上；对外支持的入口只有 `ael` CLI 和本仓库。
 
 ## 许可证
 
