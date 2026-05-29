@@ -24,11 +24,11 @@ jobs:
       matrix:
         # Platform set for v0.2.0+:
         # - macos-latest (macos-14, Apple Silicon)            → darwin-aarch64
-        # - windows-latest (preview, no ps1 installer yet)    → windows-x86_64
+        # - windows-2025 (preview, no ps1 installer yet)    → windows-x86_64
         # Linux x86_64 dropped in v0.2.0 to match upstream aiplus
         # (commit 59af425 narrowed pre-built binary platforms).
         # Intel Mac (darwin-x86_64) also dropped — Owner directive.
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-2025]
 
     steps:
       - name: Checkout AEL
@@ -89,7 +89,7 @@ jobs:
       - name: Attach to GitHub release
         if: startsWith(github.ref, 'refs/tags/') || inputs.release_tag != ''
         # Force bash on Windows too — the script uses `\` line continuation
-        # which PowerShell (the windows-latest default) parses as a unary
+        # which PowerShell (the windows-2025 default) parses as a unary
         # operator and fails on.
         shell: bash
         env:
