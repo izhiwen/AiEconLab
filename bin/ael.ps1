@@ -423,6 +423,68 @@ function Write-InstallProgressDone([string]$Label, [bool]$ShowProgress) {
   }
 }
 
+function Maybe-AutoUpdateForLobby {
+  # Lane P-minimal: lobby-entry auto-update wire-up.
+  # Reuses Get-LatestReleaseVersion / Get-CurrentInstalledVersion / Invoke-Update.
+  # Silent on non-TTY, network failure, or opt-out.
+
+  if ($env:AEL_OFFLINE -eq "1") { return }
+  if ($env:AEL_AUTO_UPDATE -in @("0", "false", "off", "no")) { return }
+
+  $cacheDir = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "ael" } else { Join-Path $env:USERPROFILE "AppData\Local\ael" }
+  $cacheFile = Join-Path $cacheDir "last-update-check"
+  try {
+    New-Item -ItemType Directory -Force -Path $cacheDir -ErrorAction Stop | Out-Null
+  } catch {
+    return
+  }
+  if (Test-Path $cacheFile) {
+    try {
+      $lastCheck = [int64](Get-Content -LiteralPath $cacheFile -ErrorAction Stop -TotalCount 1)
+      $now = [DateTimeOffset]::Now.ToUnixTimeSeconds()
+      if (($now - $lastCheck) -lt 86400) { return }
+    } catch {
+      # Cache corrupted; refresh below.
+    }
+  }
+  try {
+    [DateTimeOffset]::Now.ToUnixTimeSeconds() | Set-Content -LiteralPath $cacheFile -ErrorAction Stop
+  } catch {
+    # Tolerate write failure.
+  }
+
+  if ($env:CI -or [System.Console]::IsOutputRedirected) { return }
+
+  $current = $null
+  $latest = $null
+  try { $current = Get-CurrentInstalledVersion } catch { return }
+  try { $latest = Get-LatestReleaseVersion } catch { return }
+  if (-not $current -or -not $latest) { return }
+  if ($current -eq $latest) { return }
+
+  $curMajor = ($current -split '\.')[0]
+  $latMajor = ($latest -split '\.')[0]
+  if ($curMajor -ne $latMajor) {
+    [Console]::Error.WriteLine("ael: AEL major update available: $current -> $latest")
+    [Console]::Error.WriteLine("ael:   major version bump - run ``ael update`` manually")
+    return
+  }
+
+  [Console]::Error.WriteLine("ael: AEL update available: $current -> $latest")
+  [Console]::Error.WriteLine("ael:   updating...")
+  try {
+    Invoke-Update @() | Out-Null
+    [Console]::Error.WriteLine("ael:   AEL $latest installed; re-executing...")
+    $installedPs1 = Join-Path (Get-InstallDir) "ael.ps1"
+    if (Test-Path $installedPs1) {
+      & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installedPs1
+      exit $LASTEXITCODE
+    }
+  } catch {
+    [Console]::Error.WriteLine("ael:   auto-update failed; continuing with current version")
+  }
+}
+
 function Ensure-ProjectReadyForLobby {
   $script:AelEnsureProjectReadyStatus = 0
   if (Test-ProjectReadyForLobby) { return }
@@ -606,6 +668,7 @@ function Maybe-PrintFirstWelcome {
 }
 
 function Invoke-ChatDefault {
+  Maybe-AutoUpdateForLobby
   Ensure-ProjectReadyForLobby
   if ($script:AelEnsureProjectReadyStatus -ne 0) { return $script:AelEnsureProjectReadyStatus }
 
