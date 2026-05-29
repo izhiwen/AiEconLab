@@ -7,8 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-28
+
+### Added
+
+- `ael editor` coordination mode via writer extension — third review-battery
+  role alongside referee and replicator, surfaced in `ael --help` and
+  the recommended-flow guidance (#149).
+- First-run install progress UX: POSIX and PowerShell wrappers now stream
+  per-step progress during initial setup instead of waiting silently for
+  the substrate to finish (#146).
+- `tests/option-gamma-contract.test.sh`: enforces that a fresh `ael install`
+  yields `.aiplus/agents/active-team.txt='aieconlab'` via the install-time
+  `aiplus agent set-team aieconlab` chain. Graceful skip when `aiplus` is
+  not on PATH (mirrors `tests/install_sh.test.sh`) (#148).
+- README and README.zh-CN now carry an explicit "Windows support is
+  currently CI-verified only" footnote pointing at the issues tracker so
+  end-users know where to report PowerShell quickstart problems (#144).
+
 ### Fixed
 
+- PowerShell wrapper prompt quotes now escape correctly so non-ASCII
+  prompts survive Windows code-page conversion (#145).
+- `scripts/build-ael.sh` repo→vendor tar pipe now excludes `.agents`,
+  `.aiplus`, `.claude`, `.codex`, `.opencode` so dev runtime state
+  (memory, identities, dispatch logs) cannot ship to end-users in
+  `dist/*.tar.gz`. Existing `v0.3.0` release verified clean — no
+  recall needed, fix-forward only (#148).
+- `.gitignore` adds 5 specific runtime entries under `.aiplus/agents/`
+  (`active-team.txt`, `_teams/`, `personas/`, `experts/`, `*.toml`) as an
+  idempotent layer on top of the existing blanket rule. Long-term
+  consolidation (un-shadowing `.aiplus/modules/` and
+  `.aiplus/agent-memory/advisor/`) deferred to a follow-up lane (#148).
 - Windows CI native help checks now match the current public AEL command
   surface: hidden/legacy commands stay hidden from `ael --help`.
 - Windows `ael install all` now installs `codex`, `claude-code`, and
@@ -537,6 +567,7 @@ research workflows.
 submission, working-paper posting, referee response sending, data
 sharing, and authorship changes. See DESIGN.md §16.
 
-[unreleased]: https://github.com/izhiwen/AiEconLab/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/izhiwen/AiEconLab/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/izhiwen/AiEconLab/compare/v0.3.0...v0.4.0
 [0.1.1]: https://github.com/izhiwen/AiEconLab/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/izhiwen/AiEconLab/releases/tag/v0.1.0

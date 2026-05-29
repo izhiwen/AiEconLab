@@ -28,7 +28,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.3.0 (aiplus 0.6.19+)" ] || fail "unexpected ael version output: $version"
+[ "$version" = "AEL 0.4.0 (aiplus 0.6.19+)" ] || fail "unexpected ael version output: $version"
 
 help="$(./ael --help)"
 for cmd in "ael install" "ael update" "ael uninstall" "ael doctor" "ael status" "ael refresh"; do
@@ -318,7 +318,7 @@ update_pkg="$update_tmp/pkg/ael-v9.9.9"
 mkdir -p "$update_install" "$update_libexec" "$update_release" "$update_pkg/bin" "$update_pkg/libexec"
 cat >"$update_install/ael" <<'SH'
 #!/usr/bin/env bash
-printf 'AEL 0.3.0 (aiplus 0.6.19+)\n'
+printf 'AEL 0.4.0 (aiplus 0.6.19+)\n'
 SH
 cat >"$update_pkg/bin/ael" <<'SH'
 #!/usr/bin/env bash

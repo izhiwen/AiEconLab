@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$script:AelVersion = if ($env:AEL_VERSION) { $env:AEL_VERSION.TrimStart("v") } else { "0.3.0" }
+$script:AelVersion = if ($env:AEL_VERSION) { $env:AEL_VERSION.TrimStart("v") } else { "0.4.0" }
 $script:AelRepo = if ($env:AEL_REPO) { $env:AEL_REPO } else { "izhiwen/AiEconLab" }
 $script:MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.3.0" }
 $script:BinDir = Split-Path -Parent $PSCommandPath
