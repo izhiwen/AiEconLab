@@ -38,9 +38,10 @@ function New-AelWindowsReleasePackage {
   $packageName = "ael-v9.9.9-windows-x86_64"
   $package = Join-Path $packageParent $packageName
   New-Item -ItemType Directory -Force -Path (Join-Path $package "bin"), (Join-Path $package "libexec"), $release | Out-Null
-  Set-Content -LiteralPath (Join-Path $package "bin\ael.cmd") -Value "@echo off`r`necho AEL 9.9.9`r`n" -Encoding ASCII
-  Set-Content -LiteralPath (Join-Path $package "bin\ael.ps1") -Value "Write-Host 'AEL 9.9.9'`n" -Encoding ASCII
-  Set-Content -LiteralPath (Join-Path $package "libexec\ael-support.exe") -Value "fake support`n" -Encoding ASCII
+	  Set-Content -LiteralPath (Join-Path $package "bin\ael.cmd") -Value "@echo off`r`necho AEL 9.9.9`r`n" -Encoding ASCII
+	  Set-Content -LiteralPath (Join-Path $package "bin\ael.ps1") -Value "Write-Host 'AEL 9.9.9'`n" -Encoding ASCII
+	  Set-Content -LiteralPath (Join-Path $package "libexec\ael-support.exe") -Value "fake support`n" -Encoding ASCII
+	  Set-Content -LiteralPath (Join-Path $package "VERSION") -Value "9.9.9`n" -Encoding ASCII
 
   $asset = Join-Path $release "$packageName.tar.gz"
   & tar -C $packageParent -czf $asset $packageName
@@ -96,10 +97,11 @@ function New-AelWindowsReleasePackage {
     $result.Output | Should -Match "INSTALL_STATUS=PASS"
     $result.Output | Should -Match "PATH_NOTICE="
     $result.Output | Should -Match "cd MyProject"
-    Test-Path (Join-Path $install "ael.cmd") | Should -Be $true
-    Test-Path (Join-Path $install "ael.ps1") | Should -Be $true
-    Test-Path (Join-Path $libexec "ael-support.exe") | Should -Be $true
-  }
+	    Test-Path (Join-Path $install "ael.cmd") | Should -Be $true
+	    Test-Path (Join-Path $install "ael.ps1") | Should -Be $true
+	    Test-Path (Join-Path $libexec "ael-support.exe") | Should -Be $true
+	    Test-Path (Join-Path (Split-Path -Parent $install) "VERSION") | Should -Be $true
+	  }
 
   It "reports AddToPath intent during dry-run without editing PATH" {
     $result = Invoke-AelInstaller -Arguments @("-DryRun", "-AddToPath") -Environment @{

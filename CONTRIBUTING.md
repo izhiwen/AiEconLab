@@ -76,6 +76,19 @@ If you change the CLI surface or any role's invocation aliases, please
 update all three adapter READMEs (`adapters/codex/`,
 `adapters/claude-code/`, `adapters/opencode/`).
 
+## Release versioning
+
+The current AEL wrapper version is stored only in `VERSION`. If you change
+wrapper version behavior or prepare a release, follow `RELEASING.md` and run:
+
+```bash
+bash scripts/verify-version-consistency.sh
+```
+
+Do not bump `$MinimumSupported` as part of an ordinary release. That value is
+the oldest self-upgrade floor and changes only when AEL intentionally drops
+support for older wrappers.
+
 ## Commit messages
 
 Bilingual title preferred when the change is user-facing:

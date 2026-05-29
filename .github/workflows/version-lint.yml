@@ -1,0 +1,12 @@
+name: Version Consistency Lint
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify VERSION consumers
+        run: bash scripts/verify-version-consistency.sh

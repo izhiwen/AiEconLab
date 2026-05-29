@@ -7,6 +7,10 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Repo = if ($env:AEL_REPO) { $env:AEL_REPO } else { "izhiwen/AiEconLab" }
+# $MinimumSupported is the floor installer version this wrapper accepts
+# self-upgrade FROM. This is a product decision (bumping it breaks
+# users on older versions). Bump ONLY when consciously dropping support
+# for an older AEL release. NOT auto-bumped from VERSION file.
 $MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.3.0" }
 $LatestUrl = if ($env:AEL_RELEASES_LATEST_URL) { $env:AEL_RELEASES_LATEST_URL } else { "https://github.com/$Repo/releases/latest" }
 $VersionOverride = $env:AEL_VERSION
@@ -223,14 +227,19 @@ try {
   $Cmd = Get-ChildItem -LiteralPath $ExtractDir -Recurse -File -Filter "ael.cmd" | Select-Object -First 1
   $Ps1 = Get-ChildItem -LiteralPath $ExtractDir -Recurse -File -Filter "ael.ps1" | Select-Object -First 1
   $Support = Get-ChildItem -LiteralPath $ExtractDir -Recurse -File -Filter "ael-support.exe" | Select-Object -First 1
+  $Version = Get-ChildItem -LiteralPath $ExtractDir -Recurse -File -Filter "VERSION" | Select-Object -First 1
   if (-not $Cmd) { throw "release archive did not contain bin/ael.cmd" }
   if (-not $Ps1) { throw "release archive did not contain bin/ael.ps1" }
   if (-not $Support) { throw "release archive did not contain libexec/ael-support.exe" }
+  if (-not $Version) { throw "release archive did not contain VERSION" }
 
   New-Item -ItemType Directory -Force -Path $InstallDir, $LibexecDir | Out-Null
+  $RootDir = Split-Path -Parent $InstallDir
+  New-Item -ItemType Directory -Force -Path $RootDir | Out-Null
   Copy-Item -LiteralPath $Cmd.FullName -Destination (Join-Path $InstallDir "ael.cmd") -Force
   Copy-Item -LiteralPath $Ps1.FullName -Destination (Join-Path $InstallDir "ael.ps1") -Force
   Copy-Item -LiteralPath $Support.FullName -Destination (Join-Path $LibexecDir "ael-support.exe") -Force
+  Copy-Item -LiteralPath $Version.FullName -Destination (Join-Path $RootDir "VERSION") -Force
 
   Write-Host "INSTALL_STATUS=PASS"
   Write-Host "installed=$InstallDir\ael.cmd"

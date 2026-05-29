@@ -5,6 +5,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 ael_abs="$repo_root/ael"
+ael_version="$(cat "$repo_root/VERSION")"
+ael_expected_version="AEL $ael_version (aiplus 0.6.19+)"
 
 fail() {
   echo "::error::$*" >&2
@@ -28,7 +30,7 @@ bash -n ael
 bash -n scripts/build-ael.sh
 
 version="$(./ael --version)"
-[ "$version" = "AEL 0.4.0 (aiplus 0.6.19+)" ] || fail "unexpected ael version output: $version"
+[ "$version" = "$ael_expected_version" ] || fail "unexpected ael version output: $version"
 
 help="$(./ael --help)"
 for cmd in "ael install" "ael update" "ael uninstall" "ael doctor" "ael status" "ael refresh"; do
@@ -316,9 +318,9 @@ update_libexec="$update_tmp/install/libexec"
 update_release="$update_tmp/release"
 update_pkg="$update_tmp/pkg/ael-v9.9.9"
 mkdir -p "$update_install" "$update_libexec" "$update_release" "$update_pkg/bin" "$update_pkg/libexec"
-cat >"$update_install/ael" <<'SH'
+cat >"$update_install/ael" <<SH
 #!/usr/bin/env bash
-printf 'AEL 0.4.0 (aiplus 0.6.19+)\n'
+printf 'AEL %s (aiplus 0.6.19+)\n' "$ael_version"
 SH
 cat >"$update_pkg/bin/ael" <<'SH'
 #!/usr/bin/env bash
@@ -335,6 +337,7 @@ case "${1:-}" in
     ;;
 esac
 SH
+printf '9.9.9\n' >"$update_pkg/VERSION"
 chmod +x "$update_install/ael" "$update_pkg/bin/ael" "$update_pkg/libexec/ael-support"
 update_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 update_arch="$(uname -m)"

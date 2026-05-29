@@ -116,6 +116,7 @@ cat >"$package_root/libexec/ael-support" <<'SH'
 #!/usr/bin/env bash
 echo "fake support"
 SH
+printf '9.9.9\n' >"$package_root/VERSION"
 chmod +x "$package_root/bin/ael" "$package_root/libexec/ael-support"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -164,6 +165,10 @@ esac
 }
 [ -x "$install_root/libexec/ael-support" ] || {
   echo "::error::support binary not installed"
+  exit 1
+}
+[ "$(cat "$install_root/VERSION")" = "9.9.9" ] || {
+  echo "::error::VERSION not installed"
   exit 1
 }
 

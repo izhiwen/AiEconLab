@@ -1,13 +1,24 @@
 $ErrorActionPreference = "Stop"
 
-$script:AelVersion = if ($env:AEL_VERSION) { $env:AEL_VERSION.TrimStart("v") } else { "0.4.0" }
 $script:AelRepo = if ($env:AEL_REPO) { $env:AEL_REPO } else { "izhiwen/AiEconLab" }
-$script:MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.3.0" }
 $script:BinDir = Split-Path -Parent $PSCommandPath
 $script:AelRoot = $script:BinDir
 if (Test-Path (Join-Path (Split-Path -Parent $script:BinDir) "libexec")) {
   $script:AelRoot = Split-Path -Parent $script:BinDir
 }
+$script:VersionFile = Join-Path $script:AelRoot "VERSION"
+if (-not (Test-Path -LiteralPath $script:VersionFile)) {
+  $script:VersionFile = Join-Path (Split-Path -Parent $script:BinDir) "VERSION"
+}
+if (-not (Test-Path -LiteralPath $script:VersionFile)) {
+  $script:VersionFile = Join-Path $script:BinDir "VERSION"
+}
+$script:AelVersion = if ($env:AEL_VERSION) { $env:AEL_VERSION.TrimStart("v") } else { (Get-Content -LiteralPath $script:VersionFile -Raw).Trim() }
+# $MinimumSupported is the floor installer version this wrapper accepts
+# self-upgrade FROM. This is a product decision (bumping it breaks
+# users on older versions). Bump ONLY when consciously dropping support
+# for an older AEL release. NOT auto-bumped from VERSION file.
+$script:MinimumSupported = if ($env:AEL_MINIMUM_SUPPORTED_VERSION) { $env:AEL_MINIMUM_SUPPORTED_VERSION } else { "v0.3.0" }
 if ([string]::IsNullOrEmpty($env:AIPLUS_BRAND)) { $env:AIPLUS_BRAND = "AEL" }
 if ([string]::IsNullOrEmpty($env:AIPLUS_TEAM)) { $env:AIPLUS_TEAM = "aieconlab" }
 if ([string]::IsNullOrEmpty($env:AIPLUS_DEFAULT_ROLE)) { $env:AIPLUS_DEFAULT_ROLE = "pi" }
@@ -250,6 +261,7 @@ function Invoke-Update([string[]]$UpdateArgs) {
     Write-AelOut "would_replace=$targetInstall\ael.cmd"
     Write-AelOut "would_replace=$targetInstall\ael.ps1"
     Write-AelOut "would_replace=$targetLibexec\ael-support.exe"
+    Write-AelOut "would_replace=$(Join-Path (Split-Path -Parent $targetInstall) 'VERSION')"
     return 0
   }
 
@@ -268,13 +280,18 @@ function Invoke-Update([string[]]$UpdateArgs) {
     $cmd = Get-ChildItem -LiteralPath $extract -Recurse -File -Filter "ael.cmd" | Select-Object -First 1
     $ps1 = Get-ChildItem -LiteralPath $extract -Recurse -File -Filter "ael.ps1" | Select-Object -First 1
     $support = Get-ChildItem -LiteralPath $extract -Recurse -File -Filter "ael-support.exe" | Select-Object -First 1
+    $version = Get-ChildItem -LiteralPath $extract -Recurse -File -Filter "VERSION" | Select-Object -First 1
     if (-not $cmd) { Exit-WithError "release archive did not contain bin/ael.cmd" }
     if (-not $ps1) { Exit-WithError "release archive did not contain bin/ael.ps1" }
     if (-not $support) { Exit-WithError "release archive did not contain libexec/ael-support.exe" }
+    if (-not $version) { Exit-WithError "release archive did not contain VERSION" }
     New-Item -ItemType Directory -Force -Path $targetInstall, $targetLibexec | Out-Null
+    $targetRoot = Split-Path -Parent $targetInstall
+    New-Item -ItemType Directory -Force -Path $targetRoot | Out-Null
     Copy-Item -LiteralPath $cmd.FullName -Destination (Join-Path $targetInstall "ael.cmd") -Force
     Copy-Item -LiteralPath $ps1.FullName -Destination (Join-Path $targetInstall "ael.ps1") -Force
     Copy-Item -LiteralPath $support.FullName -Destination (Join-Path $targetLibexec "ael-support.exe") -Force
+    Copy-Item -LiteralPath $version.FullName -Destination (Join-Path $targetRoot "VERSION") -Force
     Write-AelOut "UPDATE_STATUS=PASS"
     Write-AelOut "installed=$targetInstall\ael.cmd"
     return 0
@@ -312,8 +329,9 @@ function Invoke-Uninstall([string[]]$UninstallArgs) {
   $removed = $false
   $install = Get-InstallDir
   $libexec = Get-LibexecDir
+  $root = Split-Path -Parent $install
   Write-AelOut "AEL uninstall"
-  foreach ($target in @((Join-Path $install "ael.cmd"), (Join-Path $install "ael.ps1"), (Join-Path $libexec "ael-support.exe"))) {
+  foreach ($target in @((Join-Path $install "ael.cmd"), (Join-Path $install "ael.ps1"), (Join-Path $libexec "ael-support.exe"), (Join-Path $root "VERSION"))) {
     if (Test-Path $target) {
       Remove-Item -LiteralPath $target -Force
       Write-AelOut "removed=$target"

@@ -224,6 +224,7 @@ echo "asset=$ASSET"
 echo "install_dir=$INSTALL_DIR"
 echo "libexec_dir=$LIBEXEC_DIR"
 echo "writes=$INSTALL_DIR/ael"
+echo "writes=$(dirname "$INSTALL_DIR")/VERSION"
 if [ "$ADD_TO_PATH" -eq 1 ]; then
   echo "shell_profile_edits=opt-in"
 else
@@ -250,6 +251,7 @@ tar -xzf "$TMP_DIR/$ASSET" -C "$TMP_DIR/extract"
 
 AEL_BIN="$(find "$TMP_DIR/extract" -type f -path "*/bin/ael" | head -n 1)"
 SUPPORT_BIN="$(find "$TMP_DIR/extract" -type f -path "*/libexec/ael-support" | head -n 1)"
+VERSION_FILE="$(find "$TMP_DIR/extract" -type f -path "*/VERSION" | head -n 1)"
 if [ ! -f "$AEL_BIN" ]; then
   echo "ERROR release archive did not contain bin/ael" >&2
   exit 1
@@ -258,10 +260,16 @@ if [ ! -f "$SUPPORT_BIN" ]; then
   echo "ERROR release archive did not contain libexec support binary" >&2
   exit 1
 fi
+if [ ! -f "$VERSION_FILE" ]; then
+  echo "ERROR release archive did not contain VERSION" >&2
+  exit 1
+fi
 
-mkdir -p "$INSTALL_DIR" "$LIBEXEC_DIR"
+INSTALL_ROOT="$(dirname "$INSTALL_DIR")"
+mkdir -p "$INSTALL_DIR" "$LIBEXEC_DIR" "$INSTALL_ROOT"
 cp "$AEL_BIN" "$INSTALL_DIR/ael"
 cp "$SUPPORT_BIN" "$LIBEXEC_DIR/ael-support"
+cp "$VERSION_FILE" "$INSTALL_ROOT/VERSION"
 chmod 755 "$INSTALL_DIR/ael" "$LIBEXEC_DIR/ael-support"
 
 echo "INSTALL_STATUS=PASS"
