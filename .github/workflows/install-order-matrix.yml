@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-2025]
         case:
           - id: h1_codex_ael_then_claude
             label: codex + aieconlab -> install claude-code (H1)
