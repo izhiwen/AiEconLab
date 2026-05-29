@@ -22,13 +22,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Platform set for v0.2.0+:
+        # Platform set for v0.5.0+:
         # - macos-latest (macos-14, Apple Silicon)            → darwin-aarch64
-        # - windows-2025 (preview, no ps1 installer yet)    → windows-x86_64
-        # Linux x86_64 dropped in v0.2.0 to match upstream aiplus
-        # (commit 59af425 narrowed pre-built binary platforms).
-        # Intel Mac (darwin-x86_64) also dropped — Owner directive.
-        os: [macos-latest, windows-2025]
+        # - windows-2025 (preview, no ps1 installer yet)      → windows-x86_64
+        # - ubuntu-latest (Lane M, v0.5.0+ re-introduction)   → linux-x86_64
+        # Intel Mac (darwin-x86_64) dropped — Owner directive.
+        # Linux ARM (linux-aarch64) dropped — would need ubuntu-arm runner.
+        os: [macos-latest, windows-2025, ubuntu-latest]
 
     steps:
       - name: Checkout AEL
@@ -49,6 +49,15 @@ jobs:
           key: ${{ runner.os }}-cargo-ael-${{ hashFiles('vendor/aiplus/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-ael-
+
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        # aiplus depends on `keyring` (cross-platform credential store)
+        # which on Linux uses libdbus via the `secret-service` backend.
+        # Same pattern as install-smoke.yml / install-order-matrix.yml.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config
 
       - name: Package AEL
         # Windows runner uses git-bash (default for `shell: bash`) so the
