@@ -475,6 +475,7 @@ jobs:
           Copy-Item "$aelRepo\bin\ael.cmd" "$pkg\bin\ael.cmd"
           Copy-Item "$aelRepo\bin\ael.ps1" "$pkg\bin\ael.ps1"
           Copy-Item $support "$pkg\libexec\ael-support.exe"
+          Set-Content -Path "$pkg\VERSION" -Value "0.3.0`n" -Encoding ASCII
           $asset = Join-Path $release "$pkgName.tar.gz"
           & tar -C $pkgRoot -czf $asset $pkgName
           if ($LASTEXITCODE -ne 0) {
@@ -501,6 +502,10 @@ jobs:
           }
           if (-not (Test-Path "$installLibexec\ael-support.exe")) {
             throw "install.ps1 did not install ael-support.exe"
+          }
+          $installedVersionFile = Join-Path (Split-Path -Parent $installBin) "VERSION"
+          if (-not (Test-Path $installedVersionFile)) {
+            throw "install.ps1 did not install VERSION"
           }
 
           $fakeBin = Join-Path $env:RUNNER_TEMP "ael-native-fake-bin"
@@ -539,7 +544,8 @@ jobs:
 
           $version = & ael --version 2>&1 | Out-String
           Write-Host $version
-          if ($version.Trim() -ne "AEL 0.3.0 (aiplus 0.6.19+)") {
+          $expectedAelVersion = (Get-Content $installedVersionFile -Raw).Trim()
+          if ($version.Trim() -ne "AEL $expectedAelVersion (aiplus 0.6.19+)") {
             throw "unexpected ael --version output: $version"
           }
 

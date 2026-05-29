@@ -3,7 +3,6 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.4.0}"
 AEL_REPO="${AEL_REPO:-izhiwen/AiEconLab}"
 AEL_INSTALL_DIR="${AEL_INSTALL_DIR:-$HOME/.local/bin}"
 AEL_LIBEXEC_DIR="${AEL_LIBEXEC_DIR:-$(dirname "$AEL_INSTALL_DIR")/libexec}"
@@ -32,10 +31,22 @@ if [ -d "$AEL_BIN_DIR/../libexec" ]; then
   AEL_ROOT="$(cd "$AEL_BIN_DIR/.." && pwd)"
 fi
 
-usage() {
-  cat <<'EOF'
-AEL 0.4.0
+read_ael_version() {
+  local candidate
+  for candidate in "$AEL_ROOT/VERSION" "$AEL_BIN_DIR/../VERSION" "$AEL_BIN_DIR/VERSION"; do
+    if [ -f "$candidate" ]; then
+      cat "$candidate"
+      return 0
+    fi
+  done
+  printf '0.0.0\n'
+}
 
+AEL_VERSION="${AEL_VERSION:-$(read_ael_version)}"
+
+usage() {
+  printf 'AEL %s\n\n' "$AEL_VERSION"
+  cat <<'EOF'
 Usage:
   ael install [codex|claude-code|opencode|all]   set up the research team here (once per project)
   ael update [--dry-run]                          update the installed ael CLI
@@ -431,6 +442,7 @@ update_cmd() {
     printf 'would_verify=%s/%s.sha256\n' "$base_url" "$asset"
     printf 'would_replace=%s/ael\n' "$target_install_dir"
     printf 'would_replace=%s/ael-support\n' "$target_libexec_dir"
+    printf 'would_replace=%s/VERSION\n' "$(dirname "$target_install_dir")"
     update_dry_run_aiplus_sync "$target_install_dir" "$target_libexec_dir/ael-support"
     return 0
   fi
@@ -439,7 +451,7 @@ update_cmd() {
   tmp_dir="$(mktemp -d)"
   cleanup_update() {
     rm -rf "$tmp_dir"
-    rm -f "$target_install_dir/ael.new" "$target_libexec_dir/ael-support.new"
+    rm -f "$target_install_dir/ael.new" "$target_libexec_dir/ael-support.new" "$(dirname "$target_install_dir")/VERSION.new"
   }
   trap cleanup_update EXIT INT TERM
 
@@ -450,18 +462,23 @@ update_cmd() {
   mkdir -p "$tmp_dir/extract"
   tar -xzf "$tmp_dir/$asset" -C "$tmp_dir/extract"
 
-  local new_ael new_support
+  local new_ael new_support new_version target_version_file
   new_ael="$(find "$tmp_dir/extract" -type f -path "*/bin/ael" | head -n 1)"
   new_support="$(find "$tmp_dir/extract" -type f -path "*/libexec/ael-support" | head -n 1)"
+  new_version="$(find "$tmp_dir/extract" -type f -path "*/VERSION" | head -n 1)"
+  target_version_file="$(dirname "$target_install_dir")/VERSION"
   [ -f "$new_ael" ] || die "release archive did not contain bin/ael"
   [ -f "$new_support" ] || die "release archive did not contain libexec/ael-support"
+  [ -f "$new_version" ] || die "release archive did not contain VERSION"
 
-  mkdir -p "$target_install_dir" "$target_libexec_dir"
+  mkdir -p "$target_install_dir" "$target_libexec_dir" "$(dirname "$target_version_file")"
   cp "$new_ael" "$target_install_dir/ael.new"
   cp "$new_support" "$target_libexec_dir/ael-support.new"
+  cp "$new_version" "$target_version_file.new"
   chmod 755 "$target_install_dir/ael.new" "$target_libexec_dir/ael-support.new"
   mv -f "$target_install_dir/ael.new" "$target_install_dir/ael"
   mv -f "$target_libexec_dir/ael-support.new" "$target_libexec_dir/ael-support"
+  mv -f "$target_version_file.new" "$target_version_file"
 
   trap - EXIT INT TERM
   rm -rf "$tmp_dir"
@@ -532,6 +549,15 @@ uninstall_cmd() {
     removed=1
   else
     printf 'not_found=%s/ael-support\n' "$target_libexec_dir"
+  fi
+  local target_version_file
+  target_version_file="$(dirname "$target_install_dir")/VERSION"
+  if [ -e "$target_version_file" ]; then
+    rm -f "$target_version_file"
+    printf 'removed=%s\n' "$target_version_file"
+    removed=1
+  else
+    printf 'not_found=%s\n' "$target_version_file"
   fi
   if [ "$purge" = "1" ] && [ -d "$PWD/.aiplus" ]; then
     rm -rf "$PWD/.aiplus"
@@ -1159,7 +1185,7 @@ require_delegate_aiplus() {
   parsed_version="$(printf '%s\n' "$raw_version" | extract_version_token)"
   [ -n "$parsed_version" ] || die "could not determine aiplus version. Run \`ael update\`."
   version_at_least "$parsed_version" "0.6.19" || \
-    die "AEL v0.4.0 requires aiplus v0.6.19+; found $parsed_version. Run \`ael update\`."
+    die "AEL v${AEL_VERSION#v} requires aiplus v0.6.19+; found $parsed_version. Run \`ael update\`."
 }
 
 role_talk_delegate_args() {

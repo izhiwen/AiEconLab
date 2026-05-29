@@ -3,8 +3,8 @@
 
 set -euo pipefail
 
-AEL_VERSION="${AEL_VERSION:-0.4.0}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+AEL_VERSION="${AEL_VERSION:-$(cat "$REPO_ROOT/VERSION")}"
 VENDOR_ROOT="$REPO_ROOT/vendor/aiplus"
 DIST_ROOT="$REPO_ROOT/dist"
 
@@ -131,6 +131,7 @@ if [ "$PACKAGE" -eq 1 ]; then
     cp "$REPO_ROOT/ael" "$package_dir/bin/ael"
     cp "$binary_path" "$package_dir/libexec/ael-support"
   fi
+  cp "$REPO_ROOT/VERSION" "$package_dir/VERSION"
   cp "$REPO_ROOT/LICENSE" "$package_dir/LICENSE"
   cp "$REPO_ROOT/README.md" "$package_dir/README.md"
   if ! is_windows_host; then
