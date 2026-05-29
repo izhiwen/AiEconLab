@@ -682,6 +682,59 @@ auto_install_available_runtimes() {
   printf '\n'
 }
 
+maybe_auto_update_for_lobby() {
+  # Lane P-minimal: lobby-entry auto-update wire-up.
+  # Reuses ael's existing update_cmd / latest_release_version /
+  # current_installed_version. Silent on non-TTY, network failure, or opt-out.
+
+  [ "${AEL_OFFLINE:-}" = "1" ] && return 0
+  case "${AEL_AUTO_UPDATE:-}" in 0|false|off|no) return 0 ;; esac
+
+  local cache_file="${HOME}/.cache/ael/last-update-check"
+  if ! mkdir -p "$(dirname "$cache_file")" 2>/dev/null; then
+    return 0
+  fi
+  if [ -f "$cache_file" ]; then
+    local last_check now
+    last_check="$(cat "$cache_file" 2>/dev/null || echo 0)"
+    now="$(date +%s)"
+    if [ "$((now - last_check))" -lt 86400 ]; then
+      return 0
+    fi
+  fi
+  date +%s > "$cache_file" 2>/dev/null || true
+
+  [ -t 1 ] || return 0
+
+  local current latest
+  current="$(current_installed_version 2>/dev/null || true)"
+  latest="$(latest_release_version 2>/dev/null || true)"
+  [ -z "$current" ] && return 0
+  [ -z "$latest" ] && return 0
+
+  current="$(normalize_version "$current")"
+  latest="$(normalize_version "$latest")"
+  [ "$current" = "$latest" ] && return 0
+
+  local cur_major lat_major
+  cur_major="$(printf '%s' "$current" | awk -F. '{print $1}')"
+  lat_major="$(printf '%s' "$latest" | awk -F. '{print $1}')"
+  if [ "$cur_major" != "$lat_major" ]; then
+    printf 'ael: AEL major update available: %s -> %s\n' "$current" "$latest" >&2
+    printf 'ael:   major version bump - run `ael update` manually\n' >&2
+    return 0
+  fi
+
+  printf 'ael: AEL update available: %s -> %s\n' "$current" "$latest" >&2
+  printf 'ael:   updating...\n' >&2
+  if update_cmd >/dev/null 2>&1; then
+    printf 'ael:   AEL %s installed; re-executing...\n' "$latest" >&2
+    exec "$(install_dir)/ael" "$@"
+  else
+    printf 'ael:   auto-update failed; continuing with current version\n' >&2
+  fi
+}
+
 ensure_project_ready_for_lobby() {
   if project_has_runtime_manifest && project_has_ael_personas; then
     load_manifest_runtimes
@@ -1156,6 +1209,7 @@ exec_aiplus_delegate() {
       ;;
   esac
 
+  maybe_auto_update_for_lobby "$@"
   require_delegate_aiplus
   ensure_project_ready_for_lobby
   warn_if_stale_team_config
