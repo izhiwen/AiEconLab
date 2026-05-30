@@ -2,7 +2,7 @@
   "schemaVersion": "0.1.0",
   "name": "aieconlab",
   "displayName": "AiEconLab",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "source": "bundled",
   "license": "Apache-2.0",
   "abbreviation": "AEL",
@@ -27,11 +27,13 @@
     "core/templates/consultant-team.aieconlab.toml",
     "core/templates/experts/dof-auditor.toml",
     "core/templates/experts/dof-auditor.md",
+    "core/templates/experts/editor.toml",
     "core/templates/experts/llm-measurement.toml",
     "core/templates/experts/rr-strategist.toml",
     "core/templates/experts/rr-strategist.md",
     "core/templates/personas/advisor.md",
     "core/templates/personas/dof-auditor.md",
+    "core/templates/personas/editor.md",
     "core/templates/personas/llm-measurement.md",
     "core/templates/personas/rr-strategist.md",
     "adapters/codex/subagents.toml",
@@ -93,6 +95,11 @@
       "id": "dof-auditor-expert",
       "path": "core/templates/experts/dof-auditor.toml",
       "description": "DOF-Auditor expert is present."
+    },
+    {
+      "id": "editor-expert",
+      "path": "core/templates/experts/editor.toml",
+      "description": "Editor expert is present (three-mode contract: prose / structural / coordination)."
     },
     {
       "id": "llm-measurement-expert",

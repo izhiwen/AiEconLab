@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "editor"
+display_name = "Editor"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/editor.md"
+voice = "editor"
+escalation_target = "pi"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/editor"
+worktree_path = "../{project_name}.editor"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/editor"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["编辑", "主编", "审稿改稿"]
+english_aliases = ["editor", "copy-edit", "line-edit", "structural-edit"]

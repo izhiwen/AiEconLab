@@ -54,6 +54,7 @@ Roles you can chat with directly:
   ael pi                                          PI - triage, dispatch, synthesize
   ael advisor                                     Advisor - reflect, strategy, framing
   ael writer                                      Writer - draft and revise prose
+  ael editor                                      Editor - line-edit / restructure / synthesize
   ael ra-stata                                    Empirical RA - regressions, tables, Stata
   ael ra-python                                   Data RA - cleaning, merging, Python
   ael theorist                                    Theory - assumptions and models
@@ -400,7 +401,7 @@ function Runtime-FromManifest {
 
 function Test-ProjectHasAelPersonas {
   $personaDir = Join-Path (Get-Location) ".aiplus\agents\personas"
-  foreach ($role in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
+  foreach ($role in @("pi", "advisor", "writer", "editor", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm")) {
     if (-not (Test-Path (Join-Path $personaDir "$role.md"))) { return $false }
   }
   return $true
@@ -774,7 +775,7 @@ function Invoke-Main([string[]]$Argv) {
       }
       return (Invoke-ChatDefault)
     }
-    { $_ -in @("pi", "advisor", "writer", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm") } {
+    { $_ -in @("pi", "advisor", "writer", "editor", "ra-stata", "ra-python", "theorist", "referee", "replicator", "pm") } {
       return (Invoke-SubstrateInteractive (Get-RoleTalkArgs $cmd $rest))
     }
     "-h" { Show-Usage; return 0 }

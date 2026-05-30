@@ -134,3 +134,8 @@ persona_file = "core/templates/personas/viz-specialist.md"
 name = "aieconlab-writer"
 description = "Writing and editing — intro, abstract, rebuttal, copy-edit, prose-level revision. Use for '写作', '编辑', 'Writer', 'rewrite', 'intro', 'abstract', 'rebuttal', 'copy-edit', or whenever the question is about prose expression rather than substance."
 persona_file = "core/templates/personas/writer.md"
+
+[[subagent]]
+name = "aieconlab-editor"
+description = "Editor — three-mode author-side editorial: line-edit (prose), restructure (structural), and reviewer-battery synthesis (coordination). Use for '编辑', '主编', '审稿改稿', 'editor', 'copy-edit', 'line-edit', 'structural-edit', or whenever an existing draft needs sharpening, re-organizing, or synthesizing across reviewers. Different from writer: writer drafts new prose; editor sharpens, restructures, and synthesizes. Different from referee: referee adjudicates with verdicts; editor never adjudicates."
+persona_file = "core/templates/personas/editor.md"

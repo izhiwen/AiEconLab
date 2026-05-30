@@ -22,7 +22,7 @@ subagents after `aiplus add aieconlab`. Full operating manual:
 - `aieconlab-dof-auditor` (degrees of freedom, small N, multiple testing)
 - `aieconlab-ethics-irb` · `aieconlab-historical-sources` · `aieconlab-job-talk-coach`
 - `aieconlab-lit-reviewer` · **`aieconlab-llm-measurement`** (the AEL headline expert) · `aieconlab-reproducibility`
-- `aieconlab-rr-strategist` (R&R / rebuttal strategy) · `aieconlab-survey-experiment` · `aieconlab-viz-specialist` · `aieconlab-writer`
+- `aieconlab-rr-strategist` (R&R / rebuttal strategy) · `aieconlab-survey-experiment` · `aieconlab-viz-specialist` · `aieconlab-writer` · `aieconlab-editor` (three-mode editorial: prose / structural / coordination)
 
 ### Natural-language → routing map
 
@@ -39,6 +39,7 @@ subagents after `aiplus add aieconlab`. Full operating manual:
 | "RCT 设计" / "power analysis" / "pre-registration" | aieconlab-survey-experiment |
 | "这图讲不清楚" / "figure isn't working" | aieconlab-viz-specialist |
 | "改写引言" / "rewrite intro" | aieconlab-writer |
+| "编辑" / "editor" / "copy-edit" / "line-edit" / "structural-edit" / "审稿改稿" | aieconlab-editor |
 | "需要 IRB 评估" / "anonymize" / "restricted data" | aieconlab-ethics-irb |
 
 ### Coordinator discipline

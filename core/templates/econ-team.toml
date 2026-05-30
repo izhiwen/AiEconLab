@@ -107,9 +107,14 @@ allow_direct_talk_to_others = true
 "introduction" = "writer"
 "写作" = "writer"
 "段落" = "writer"
-"editor" = "writer"
-"编辑" = "writer"
-"主编" = "writer"
+# --- editor (line-edit / structural-edit / editorial-coordination) ---
+"editor" = "editor"
+"编辑" = "editor"
+"主编" = "editor"
+"copy-edit" = "editor"
+"line-edit" = "editor"
+"structural-edit" = "editor"
+"审稿改稿" = "editor"
 
 # --- referee (internal pre-submission critique) ---
 "referee" = "referee"

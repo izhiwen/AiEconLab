@@ -61,6 +61,7 @@ Roles you can chat with directly:
   ael pi                                         项目经理 — 派单、跟进、汇总
   ael advisor                                    顾问 — 反思、识别策略、框架
   ael writer                                     写手 — 起草段落、引言、改稿
+  ael editor                                     编辑 — line-edit / 结构调整 / 审稿合成
   ael ra-stata                                   实证 RA — 回归、表格、Stata
   ael ra-python                                  数据 RA — 清洗、合并、Python
   ael theorist                                   理论 — 识别假设、模型
@@ -648,7 +649,7 @@ project_has_runtime_manifest() {
 
 project_has_ael_personas() {
   local role
-  for role in pi advisor writer ra-stata ra-python theorist referee replicator pm; do
+  for role in pi advisor writer editor ra-stata ra-python theorist referee replicator pm; do
     [ -f "$PWD/.aiplus/agents/personas/$role.md" ] || return 1
   done
 }
@@ -1221,7 +1222,7 @@ ael_chat_args_error() {
 
 exec_aiplus_delegate() {
   case "${1:-}" in
-    ""|pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm|talk|route|invite|dismiss|integrate|substrate)
+    ""|pi|advisor|writer|editor|ra-stata|ra-python|theorist|referee|replicator|pm|talk|route|invite|dismiss|integrate|substrate)
       ;;
     chat)
       [ "$#" -eq 1 ] || ael_chat_args_error
@@ -1249,7 +1250,7 @@ exec_aiplus_delegate() {
       shift
       delegate_args=()
       ;;
-    pi|advisor|writer|ra-stata|ra-python|theorist|referee|replicator|pm)
+    pi|advisor|writer|editor|ra-stata|ra-python|theorist|referee|replicator|pm)
       local role="$1"
       shift
       role_talk_delegate_args "$role" "$@"
