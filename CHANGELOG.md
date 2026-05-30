@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-29
+
+### Changed
+
+- `core/templates/personas/writer.md` and `core/templates/experts/writer.toml`:
+  drop the `Writer / Editor` dual-mode framing. The lobby now renders the
+  role as plain `Writer`, aliases `编辑` / `editor` / `copy-edit` no longer
+  point at writer (reserved for the upcoming independent editor role).
+  Existing `editor-coordination mode` block collapses to a one-line pointer
+  toward the new editor role (#158).
+
+### Fixed
+
+- `scripts/verify-version-consistency.sh` exclude-dir list now covers the
+  five hidden runtime directories `.aiplus`, `.agents`, `.claude`,
+  `.codex`, `.opencode`, eliminating the local-dev false-positive that
+  emerged after v0.5.0 (CI never tripped because these dirs are absent
+  there, but `make verify` failed in any working tree that had agent
+  state) (#158).
+
 ## [0.4.0] - 2026-05-28
 
 ### Added
