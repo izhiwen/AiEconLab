@@ -2,7 +2,7 @@ schema_version = "1.0"
 
 [agent]
 role = "writer"
-display_name = "Writer / Editor"
+display_name = "Writer"
 tier = "expert"
 default_specialty = ""
 warm_bench_ttl_seconds = 300
@@ -24,5 +24,5 @@ read_project_memory = true
 write_team_memory = false
 
 [invocation]
-chinese_aliases = ["写作", "编辑", "Writer", "rebuttal", "introduction"]
-english_aliases = ["writer", "editor", "rewrite", "intro", "abstract", "rebuttal", "copy-edit"]
+chinese_aliases = ["写作", "Writer", "rebuttal", "introduction"]
+english_aliases = ["writer", "rewrite", "intro", "abstract", "rebuttal"]
