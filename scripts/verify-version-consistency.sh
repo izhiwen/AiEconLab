@@ -76,7 +76,12 @@ done < <(grep -RInE 'AEL [0-9]+\.[0-9]+\.[0-9]+' . \
   --exclude-dir=.git \
   --exclude-dir=vendor \
   --exclude-dir=dist \
-  --exclude-dir=node_modules || true)
+  --exclude-dir=node_modules \
+  --exclude-dir=.aiplus \
+  --exclude-dir=.agents \
+  --exclude-dir=.claude \
+  --exclude-dir=.codex \
+  --exclude-dir=.opencode || true)
 
 while IFS= read -r line; do
   [ -n "$line" ] || continue
@@ -88,7 +93,12 @@ done < <(grep -RInE '"v[0-9]+\.[0-9]+\.[0-9]+"' . \
   --exclude-dir=.git \
   --exclude-dir=vendor \
   --exclude-dir=dist \
-  --exclude-dir=node_modules || true)
+  --exclude-dir=node_modules \
+  --exclude-dir=.aiplus \
+  --exclude-dir=.agents \
+  --exclude-dir=.claude \
+  --exclude-dir=.codex \
+  --exclude-dir=.opencode || true)
 
 [ "$bad" -eq 0 ] || fail "hardcoded current-version literals found"
 
